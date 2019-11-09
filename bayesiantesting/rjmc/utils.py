@@ -39,8 +39,12 @@ def parse_data_ffs(compound):
     ff_params_ref = np.transpose(np.asarray(ff_params))
     ff_params_ref[:, 1:] = ff_params_ref[:, 1:] / 10
 
-    Tc_lit = np.loadtxt(get_data_filename(os.path.join("trc_data", compound, "Tc.txt")), skiprows=1)
-    M_w = np.loadtxt(get_data_filename(os.path.join("trc_data", compound, "Mw.txt")), skiprows=1)
+    Tc_lit = np.loadtxt(
+        get_data_filename(os.path.join("trc_data", compound, "Tc.txt")), skiprows=1
+    )
+    M_w = np.loadtxt(
+        get_data_filename(os.path.join("trc_data", compound, "Mw.txt")), skiprows=1
+    )
 
     df = pd.read_csv(get_data_filename("nist_bond_lengths.txt"), delimiter="\t")
     df = df[df.Compound == compound]
@@ -51,7 +55,10 @@ def parse_data_ffs(compound):
 
     for name in data:
 
-        df = pd.read_csv(get_data_filename(os.path.join("trc_data", compound, f"{name}.txt")), sep="\t")
+        df = pd.read_csv(
+            get_data_filename(os.path.join("trc_data", compound, f"{name}.txt")),
+            sep="\t",
+        )
         df = df.dropna()
         data_dict[name] = df
 
@@ -291,7 +298,7 @@ def T_c_hat_models(compound_2CLJ, model, eps, sig, L, Q):
 
 
 def create_param_triangle_plot_4D(
-        trace, tracename, lit_values, properties, compound, n_iter, file_loc=None
+    trace, tracename, lit_values, properties, compound, n_iter, file_loc=None
 ):  # ,sig_prior,eps_prior,L_prior,Q_prior):
     if np.shape(trace) != (0,):
         fig, axs = plt.subplots(4, 4, figsize=(8, 8))
@@ -457,29 +464,80 @@ def create_param_triangle_plot_4D(
     return
 
 
-def create_percent_dev_triangle_plot(trace, tracename, lit_values, properties, compound, n_iter, file_loc=None):
+def create_percent_dev_triangle_plot(
+    trace, tracename, lit_values, properties, compound, n_iter, file_loc=None
+):
     fig, axs = plt.subplots(4, 4, figsize=(8, 8))
     fig.suptitle(
-        'Percent Deviation Marginal Distributions, ' + compound + ', ' + properties + ', ' + str(n_iter) + ' steps')
-    axs[0, 0].hist(trace[:, 0], bins=50, color='m', density=True)
-    axs[1, 1].hist(trace[:, 1], bins=50, color='m', density=True)
-    axs[2, 2].hist(trace[:, 2], bins=50, color='m', density=True)
-    axs[3, 3].hist(trace[:, 3], bins=50, color='m', density=True)
+        "Percent Deviation Marginal Distributions, "
+        + compound
+        + ", "
+        + properties
+        + ", "
+        + str(n_iter)
+        + " steps"
+    )
+    axs[0, 0].hist(trace[:, 0], bins=50, color="m", density=True)
+    axs[1, 1].hist(trace[:, 1], bins=50, color="m", density=True)
+    axs[2, 2].hist(trace[:, 2], bins=50, color="m", density=True)
+    axs[3, 3].hist(trace[:, 3], bins=50, color="m", density=True)
 
-    axs[0, 1].hist2d(trace[:, 1], trace[:, 0], bins=100, cmap='cool')
-    axs[0, 2].hist2d(trace[:, 2], trace[:, 0], bins=100, cmap='cool')
-    axs[0, 3].hist2d(trace[:, 3], trace[:, 0], bins=100, cmap='cool')
-    axs[1, 2].hist2d(trace[:, 2], trace[:, 1], bins=100, cmap='cool')
-    axs[1, 3].hist2d(trace[:, 3], trace[:, 1], bins=100, cmap='cool')
-    axs[2, 3].hist2d(trace[:, 3], trace[:, 2], bins=100, cmap='cool')
+    axs[0, 1].hist2d(trace[:, 1], trace[:, 0], bins=100, cmap="cool")
+    axs[0, 2].hist2d(trace[:, 2], trace[:, 0], bins=100, cmap="cool")
+    axs[0, 3].hist2d(trace[:, 3], trace[:, 0], bins=100, cmap="cool")
+    axs[1, 2].hist2d(trace[:, 2], trace[:, 1], bins=100, cmap="cool")
+    axs[1, 3].hist2d(trace[:, 3], trace[:, 1], bins=100, cmap="cool")
+    axs[2, 3].hist2d(trace[:, 3], trace[:, 2], bins=100, cmap="cool")
 
-    axs[0, 1].scatter(lit_values[::4, 1], lit_values[::4, 0], color='0.25', marker='o', alpha=0.5, facecolors='none',
-                      label='Stobener Pareto Values')
-    axs[0, 2].scatter(lit_values[::4, 2], lit_values[::4, 0], color='0.25', marker='o', alpha=0.5, facecolors='none')
-    axs[0, 3].scatter(lit_values[::4, 3], lit_values[::4, 0], color='0.25', marker='o', alpha=0.5, facecolors='none')
-    axs[1, 2].scatter(lit_values[::4, 2], lit_values[::4, 1], color='0.25', marker='o', alpha=0.5, facecolors='none')
-    axs[1, 3].scatter(lit_values[::4, 3], lit_values[::4, 1], color='0.25', marker='o', alpha=0.5, facecolors='none')
-    axs[2, 3].scatter(lit_values[::4, 3], lit_values[::4, 2], color='0.25', marker='o', alpha=0.5, facecolors='none')
+    axs[0, 1].scatter(
+        lit_values[::4, 1],
+        lit_values[::4, 0],
+        color="0.25",
+        marker="o",
+        alpha=0.5,
+        facecolors="none",
+        label="Stobener Pareto Values",
+    )
+    axs[0, 2].scatter(
+        lit_values[::4, 2],
+        lit_values[::4, 0],
+        color="0.25",
+        marker="o",
+        alpha=0.5,
+        facecolors="none",
+    )
+    axs[0, 3].scatter(
+        lit_values[::4, 3],
+        lit_values[::4, 0],
+        color="0.25",
+        marker="o",
+        alpha=0.5,
+        facecolors="none",
+    )
+    axs[1, 2].scatter(
+        lit_values[::4, 2],
+        lit_values[::4, 1],
+        color="0.25",
+        marker="o",
+        alpha=0.5,
+        facecolors="none",
+    )
+    axs[1, 3].scatter(
+        lit_values[::4, 3],
+        lit_values[::4, 1],
+        color="0.25",
+        marker="o",
+        alpha=0.5,
+        facecolors="none",
+    )
+    axs[2, 3].scatter(
+        lit_values[::4, 3],
+        lit_values[::4, 2],
+        color="0.25",
+        marker="o",
+        alpha=0.5,
+        facecolors="none",
+    )
 
     # axs[0,1].set_xlim([min(lit_values[::4,1]),max(lit_values[::4,1])])
     # axs[0,1].set_ylim([min(lit_values[::4,0]),max(lit_values[::4,0])])
@@ -510,24 +568,24 @@ def create_percent_dev_triangle_plot(trace, tracename, lit_values, properties, c
     axs[2, 2].set_yticklabels([])
     axs[3, 3].set_yticklabels([])
 
-    axs[0, 0].set(ylabel=r'% Deviation, $\rho_l$')
-    axs[1, 1].set(ylabel=r'% Deviation, $P_{sat}$')
-    axs[2, 2].set(ylabel=r'% Deviation, $\gamma$')
-    axs[3, 3].set(ylabel=r'% Deviation, $T_c$')
+    axs[0, 0].set(ylabel=r"% Deviation, $\rho_l$")
+    axs[1, 1].set(ylabel=r"% Deviation, $P_{sat}$")
+    axs[2, 2].set(ylabel=r"% Deviation, $\gamma$")
+    axs[3, 3].set(ylabel=r"% Deviation, $T_c$")
 
-    axs[0, 0].set(xlabel=r'% Deviation, $\rho_l$')
-    axs[0, 1].set(xlabel=r'% Deviation, $P_{sat}$')
-    axs[0, 2].set(xlabel=r'% Deviation, $\gamma$')
-    axs[0, 3].set(xlabel=r'% Deviation, $T_c$')
+    axs[0, 0].set(xlabel=r"% Deviation, $\rho_l$")
+    axs[0, 1].set(xlabel=r"% Deviation, $P_{sat}$")
+    axs[0, 2].set(xlabel=r"% Deviation, $\gamma$")
+    axs[0, 3].set(xlabel=r"% Deviation, $T_c$")
 
-    axs[0, 0].xaxis.set_label_position('top')
-    axs[0, 1].xaxis.set_label_position('top')
-    axs[0, 2].xaxis.set_label_position('top')
-    axs[0, 3].xaxis.set_label_position('top')
+    axs[0, 0].xaxis.set_label_position("top")
+    axs[0, 1].xaxis.set_label_position("top")
+    axs[0, 2].xaxis.set_label_position("top")
+    axs[0, 3].xaxis.set_label_position("top")
 
     handles, labels = axs[0, 1].get_legend_handles_labels()
     fig.legend(handles, labels, loc=[0.05, 0.3])
-    plt.savefig(file_loc + tracename + '.png')
+    plt.savefig(file_loc + tracename + ".png")
     plt.close()
     # plt.show()
 
@@ -573,7 +631,9 @@ def plot_bar_chart(prob, properties, compound, n_iter, n_models, file_loc=None):
 
 def import_literature_values(criteria, compound):
     df = pd.read_csv(
-        get_data_filename(os.path.join("literature", f"Pareto_Hasse_{criteria}_criteria.txt")),
+        get_data_filename(
+            os.path.join("literature", f"Pareto_Hasse_{criteria}_criteria.txt")
+        ),
         delimiter=" ",
         skiprows=2,
         usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8],

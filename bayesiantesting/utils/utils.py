@@ -15,9 +15,13 @@ def get_data_filename(relative_path):
     """
 
     from pkg_resources import resource_filename
-    fn = resource_filename('bayesiantesting', os.path.join('data', relative_path))
+
+    fn = resource_filename("bayesiantesting", os.path.join("data", relative_path))
 
     if not os.path.exists(fn):
-        raise ValueError("Sorry! %s does not exist. If you just added it, you'll have to re-install" % fn)
+        raise ValueError(
+            "Sorry! %s does not exist. If you just added it, you'll have to re-install"
+            % fn
+        )
 
     return fn

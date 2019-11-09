@@ -997,7 +997,9 @@ class RJMCSimulation:
         self.logp_trace_tuned = self.logp_trace[self.tune_for + 1 :]
         self.percent_dev_trace_tuned = self.percent_dev_trace[self.tune_for + 1 :]
 
-        self.lit_params, self.lit_devs = utils.import_literature_values("two", self.compound)
+        self.lit_params, self.lit_devs = utils.import_literature_values(
+            "two", self.compound
+        )
         trace_equil = self.trace_tuned
         logp_trace_equil = self.logp_trace_tuned
         percent_dev_trace_equil = self.percent_dev_trace_tuned

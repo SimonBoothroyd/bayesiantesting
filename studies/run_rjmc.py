@@ -26,7 +26,7 @@ def parse_input_yaml(filepath):
 def main():
 
     print("Parsing simulation params")
-    simulation_params = parse_input_yaml('basic_run.yaml')
+    simulation_params = parse_input_yaml("basic_run.yaml")
 
     print(simulation_params["priors"])
 
@@ -69,21 +69,21 @@ def main():
     )
 
     path = (
-            "output/"
-            + simulation_params["compound"]
-            + "/"
-            + simulation_params["properties"]
-            + "/"
-            + simulation_params["compound"]
-            + "_"
-            + simulation_params["properties"]
-            + "_"
-            + str(simulation_params["steps"])
-            + "_"
-            + simulation_params["label"]
-            + "_"
-            + str(date.today())
-            + "/runfile.yaml"
+        "output/"
+        + simulation_params["compound"]
+        + "/"
+        + simulation_params["properties"]
+        + "/"
+        + simulation_params["compound"]
+        + "_"
+        + simulation_params["properties"]
+        + "_"
+        + str(simulation_params["steps"])
+        + "_"
+        + simulation_params["label"]
+        + "_"
+        + str(date.today())
+        + "/runfile.yaml"
     )
 
     with open(path, "w") as outfile:
