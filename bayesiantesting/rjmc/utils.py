@@ -66,23 +66,23 @@ def parse_data_ffs(compound):
 
 
 def find_maxima(trace):
-    num_bins=20
-    hist=np.histogramdd(trace[:,1:],bins=num_bins,density=True)
+    num_bins = 20
+    hist = np.histogramdd(trace[:, 1:], bins=num_bins, density=True)
     val = hist[0].max()
     for i in range(num_bins):
         for j in range(num_bins):
             for k in range(num_bins):
                 for l in range(num_bins):
                     if hist[0][i][j][k][l] == val:
-                        print('LOCK ON')
-                        key = [i,j,k,l]
+                        print("LOCK ON")
+                        key = [i, j, k, l]
                         break
     max_values = []
     for index in range(len(key)):
-        low=hist[1][index][key[index]]
-        high=hist[1][index][key[index]]
-        max_values.append((low+high)/2)
-    return key,np.asarray(max_values)
+        low = hist[1][index][key[index]]
+        high = hist[1][index][key[index]]
+        max_values.append((low + high) / 2)
+    return key, np.asarray(max_values)
 
 
 def create_map(aua_path, auaq_path):
