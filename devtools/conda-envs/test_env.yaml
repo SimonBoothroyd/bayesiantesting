@@ -2,13 +2,23 @@ name: test
 channels:
 dependencies:
     # Base depends
-  - python
+  - python =3.7
   - pip
 
     # Testing
   - pytest
   - pytest-cov
   - codecov
+
+    # Main
+  - numpy
+  - scipy
+  - yaml
+  - pandas
+  - matplotlib
+  - pymbar
+  - tqdm
+  - statsmodels
 
     # Pip-only installs
   #- pip:
