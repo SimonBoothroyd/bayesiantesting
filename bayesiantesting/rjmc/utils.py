@@ -65,6 +65,35 @@ def parse_data_ffs(compound):
     return ff_params_ref, Tc_lit, M_w, data_dict, NIST_bondlength[0][1] / 10
 
 
+def find_maxima(trace):
+    num_bins=20
+    hist=np.histogramdd(trace[:,1:],bins=num_bins,density=True)
+    val = hist[0].max()
+    for i in range(num_bins):
+        for j in range(num_bins):
+            for k in range(num_bins):
+                for l in range(num_bins):
+                    if hist[0][i][j][k][l] == val:
+                        print('LOCK ON')
+                        key = [i,j,k,l]
+                        break
+    max_values = []
+    for index in range(len(key)):
+        low=hist[1][index][key[index]]
+        high=hist[1][index][key[index]]
+        max_values.append((low+high)/2)
+    return key,np.asarray(max_values)
+
+
+def create_map(aua_path, auaq_path):
+    aua_trace = np.load(aua_path)
+    auaq_trace = np.load(auaq_path)
+
+    aua_max_like = find_maxima(aua_trace)[1]
+    auaq_max_like = find_maxima(auaq_trace)[1]
+    return aua_max_like, auaq_max_like
+
+
 def filter_thermo_data(thermo_data, T_min, T_max, n_points):
 
     for name in thermo_data:
