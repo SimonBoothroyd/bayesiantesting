@@ -13,7 +13,7 @@ dependencies:
     # Main
   - numpy
   - scipy
-  - yaml
+  - pyyaml
   - pandas
   - matplotlib
   - pymbar
