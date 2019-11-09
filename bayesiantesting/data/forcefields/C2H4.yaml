@@ -1,0 +1,15 @@
+### This is a yaml file with all the force field parameters
+
+force_field_params:
+
+    eps_lit:    [76.95, 81.99, 91.4, 76.95]     # [K]
+    sig_lit:    [3.7639, 3.7126, 3.63, 3.7607]   # [Angstrom]
+    Lbond_lit:  [1.2531, 1.4421, 1.48, 1.2695] #[Angstrom]
+    Q_lit:      [4.22, 4.4, 0, 4.331] #[DAngstrom]
+    
+percent_deviations:
+
+    drhol: [0.4, 2, 1.05, 0.32]
+    dPv: [1.56, 3.71, 12.29, 2.23]
+    dgamma: [26.34, 15.83, 23.05, 25.98]
+    dTc: [-0.7, 0.3, -1.2, -0.61]
