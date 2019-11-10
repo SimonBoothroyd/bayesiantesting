@@ -19,6 +19,8 @@ dependencies:
   - pymbar
   - tqdm
   - statsmodels
+  - pint
+  - uncertainties
 
     # Pip-only installs
   #- pip:

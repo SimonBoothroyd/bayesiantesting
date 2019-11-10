@@ -23,7 +23,7 @@ from statsmodels.stats.proportion import multinomial_proportions_confint
 from bayesiantesting.utils import get_data_filename
 
 
-def parse_data_ffs(compound):
+def parse_ffs(compound):
 
     fname = get_data_filename(os.path.join("forcefields", f"{compound}.yaml"))
 
@@ -39,30 +39,7 @@ def parse_data_ffs(compound):
     ff_params_ref = np.transpose(np.asarray(ff_params))
     ff_params_ref[:, 1:] = ff_params_ref[:, 1:] / 10
 
-    Tc_lit = np.loadtxt(
-        get_data_filename(os.path.join("trc_data", compound, "Tc.txt")), skiprows=1
-    )
-    M_w = np.loadtxt(
-        get_data_filename(os.path.join("trc_data", compound, "Mw.txt")), skiprows=1
-    )
-
-    df = pd.read_csv(get_data_filename("nist_bond_lengths.txt"), delimiter="\t")
-    df = df[df.Compound == compound]
-    NIST_bondlength = np.asarray(df)
-
-    data = ["rhoL", "Pv", "SurfTens"]
-    data_dict = {}
-
-    for name in data:
-
-        df = pd.read_csv(
-            get_data_filename(os.path.join("trc_data", compound, f"{name}.txt")),
-            sep="\t",
-        )
-        df = df.dropna()
-        data_dict[name] = df
-
-    return ff_params_ref, Tc_lit, M_w, data_dict, NIST_bondlength[0][1] / 10
+    return ff_params_ref
 
 
 def find_maxima(trace):
@@ -92,86 +69,6 @@ def create_map(aua_path, auaq_path):
     aua_max_like = find_maxima(aua_trace)[1]
     auaq_max_like = find_maxima(auaq_trace)[1]
     return aua_max_like, auaq_max_like
-
-
-def filter_thermo_data(thermo_data, T_min, T_max, n_points):
-
-    for name in thermo_data:
-        df = thermo_data[name]
-
-        df = df[df.values[:, 0] > T_min]
-        df = df[df.values[:, 0] < T_max]
-        if int(np.floor(df.shape[0] / (n_points - 1))) == 0:
-            slicer = 1
-        else:
-            slicer = int(np.floor(df.shape[0] / (n_points - 1)))
-        # print(slicer)
-        df = df[::slicer]
-        thermo_data[name] = df
-
-    return thermo_data
-
-
-def calculate_uncertainties(thermo_data, T_c):
-
-    u_dict = {}
-
-    for name in thermo_data:
-
-        # Extract data from our data arrays
-        data = np.asarray(thermo_data[name])
-        T = data[:, 0]
-        values = data[:, 1]
-        u_exp = data[:, 2]
-
-        pu_corr = uncertainty_models(T, T_c, name)
-        u_corr = pu_corr * values
-
-        u_tot = np.sqrt(u_corr ** 2 + u_exp ** 2)
-        u_dict[name] = u_tot
-
-    return u_dict
-
-
-def uncertainty_models(T, T_c, thermo_property):
-
-    Tr = T / T_c
-    u = np.zeros(np.size(Tr))
-
-    # Linear models for uncertainties in the 2CLJQ correlation we are using,
-    # determined from Messerly analysis of figure from Stobener, Stoll, Werth
-
-    # Starts at 0.3% for low values and ramps up to 1% for large values
-    if thermo_property == "rhoL":
-        for i in range(np.size(Tr)):
-            if Tr[i] < 0.9:
-                u[i] = 0.3
-            elif 0.9 <= Tr[i] <= 0.95:
-                u[i] = 0.3 + (1 - 0.3) * (Tr[i] - 0.9) / (0.95 - 0.9)
-            else:
-                u[i] = 1.0
-
-    # Starts at 20% for low values and ramps down to 2% for large values
-    if thermo_property == "Pv":
-        for i in range(np.size(Tr)):
-            if Tr[i] <= 0.55:
-                u[i] = 20
-            elif 0.55 <= Tr[i] <= 0.7:
-                u[i] = 20 + (2 - 20) * (Tr[i] - 0.55) / (0.7 - 0.55)
-            else:
-                u[i] = 2.0
-
-    # Starts at 4% for low values and ramps up to 12% for higher values
-    if thermo_property == "SurfTens":
-        for i in range(np.size(Tr)):
-            if Tr[i] <= 0.75:
-                u[i] = 4
-            elif 0.75 <= Tr[i] <= 0.95:
-                u[i] = 4 + (12 - 4) * (Tr[i] - 0.75) / (0.95 - 0.75)
-            else:
-                u[i] = 12.0
-    u /= 100
-    return u
 
 
 def computePercentDeviations(
@@ -237,15 +134,15 @@ def rhol_hat_models(compound_2CLJ, Temp, model, eps, sig, L, Q):
     """
     if model == 0:  # Two center AUA LJ
 
-        rhol_hat = compound_2CLJ.rhol_hat_2CLJQ(Temp, eps, sig, L, 0)
+        rhol_hat = compound_2CLJ.liquid_density(Temp, eps, sig, L, 0)
 
     elif model == 1:  # Two center AUA LJ+Q
 
-        rhol_hat = compound_2CLJ.rhol_hat_2CLJQ(Temp, eps, sig, L, Q)
+        rhol_hat = compound_2CLJ.liquid_density(Temp, eps, sig, L, Q)
 
     elif model == 2:  # 2CLJ model
 
-        rhol_hat = compound_2CLJ.rhol_hat_2CLJQ(Temp, eps, sig, L, 0)
+        rhol_hat = compound_2CLJ.liquid_density(Temp, eps, sig, L, 0)
 
     else:
         raise NotImplementedError()
@@ -261,15 +158,15 @@ def Psat_hat_models(compound_2CLJ, Temp, model, eps, sig, L, Q):
     """
     if model == 0:  # Two center AUA LJ
 
-        Psat_hat = compound_2CLJ.Psat_hat_2CLJQ(Temp, eps, sig, L, 0)
+        Psat_hat = compound_2CLJ.saturation_pressure(Temp, eps, sig, L, 0)
 
     elif model == 1:  # Two center AUA LJ+Q
 
-        Psat_hat = compound_2CLJ.Psat_hat_2CLJQ(Temp, eps, sig, L, Q)
+        Psat_hat = compound_2CLJ.saturation_pressure(Temp, eps, sig, L, Q)
 
     elif model == 2:  # 2CLJ model
 
-        Psat_hat = compound_2CLJ.Psat_hat_2CLJQ(Temp, eps, sig, L, 0)
+        Psat_hat = compound_2CLJ.saturation_pressure(Temp, eps, sig, L, 0)
 
     else:
         raise NotImplementedError()
@@ -285,16 +182,16 @@ def SurfTens_hat_models(compound_2CLJ, Temp, model, eps, sig, L, Q):
     """
     if model == 0:
 
-        SurfTens_hat = compound_2CLJ.ST_hat_2CLJQ(Temp, eps, sig, L, 0)
+        SurfTens_hat = compound_2CLJ.surface_tension(Temp, eps, sig, L, 0)
 
     elif model == 1:
 
-        SurfTens_hat = compound_2CLJ.ST_hat_2CLJQ(Temp, eps, sig, L, Q)
+        SurfTens_hat = compound_2CLJ.surface_tension(Temp, eps, sig, L, Q)
 
     elif model == 2:
 
         # Model 2 is the same as model 0, but the L value will be previously specified (not varying)
-        SurfTens_hat = compound_2CLJ.ST_hat_2CLJQ(Temp, eps, sig, L, 0)
+        SurfTens_hat = compound_2CLJ.surface_tension(Temp, eps, sig, L, 0)
 
     else:
         raise NotImplementedError()
@@ -310,15 +207,15 @@ def T_c_hat_models(compound_2CLJ, model, eps, sig, L, Q):
     """
     if model == 0:
 
-        T_c_hat = compound_2CLJ.T_c_hat_2CLJQ(eps, sig, L, 0)
+        T_c_hat = compound_2CLJ.critical_temperature(eps, sig, L, 0)
 
     elif model == 1:
 
-        T_c_hat = compound_2CLJ.T_c_hat_2CLJQ(eps, sig, L, Q)
+        T_c_hat = compound_2CLJ.critical_temperature(eps, sig, L, Q)
 
     elif model == 2:
 
-        T_c_hat = compound_2CLJ.T_c_hat_2CLJQ(eps, sig, L, 0)
+        T_c_hat = compound_2CLJ.critical_temperature(eps, sig, L, 0)
 
     else:
         raise NotImplementedError()

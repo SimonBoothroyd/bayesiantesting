@@ -10,7 +10,7 @@ from datetime import date
 
 import yaml
 
-from bayesiantesting import models, rjmc
+from bayesiantesting import surrogates, rjmc
 
 
 def parse_input_yaml(filepath):
@@ -51,7 +51,7 @@ def main():
 
     print("Simulation Attributes:", rjmc_simulator.get_attributes())
 
-    compound_2CLJ = models.TwoCenterLennardJones(rjmc_simulator.M_w)
+    compound_2CLJ = surrogates.TwoCenterLennardJones(rjmc_simulator.molecular_weight)
     rjmc_simulator.optimum_bounds = simulation_params["opt_bounds"]
     rjmc_simulator.gen_Tmatrix(prior, compound_2CLJ)
     # print(rjmc_simulator.opt_params_AUA)
