@@ -18,6 +18,8 @@ from scipy.optimize import minimize
 from scipy.stats import distributions
 from tqdm import tqdm
 
+from bayesiantesting import unit
+from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.rjmc import utils
 
 
@@ -138,42 +140,44 @@ class RJMCSimulation:
         uncertainty information.
         """
 
-        (
-            self.ff_params_ref,
-            self.Tc_lit,
-            self.M_w,
-            thermo_data,
-            self.NIST_bondlength,
-        ) = utils.parse_data_ffs(self.compound)
+        # Retrieve force field literature values
+        self.ff_params_ref = utils.parse_ffs(self.compound)
 
-        # Retrieve force field literature values, constants, and thermo data
-        self.T_min = self.T_range[0] * self.Tc_lit[0]
-        self.T_max = self.T_range[1] * self.Tc_lit[0]
+        # Retrieve the constants and thermophysical data
+        data_set = NISTDataSet(self.compound)
 
-        # Select temperature range of data points to select, and how many
-        # temperatures within that range to use data at.
-        thermo_data = utils.filter_thermo_data(
-            thermo_data, self.T_min, self.T_max, self.n_points
+        self.Tc_lit = np.array(
+            [
+                data_set.critical_temperature.value.to(unit.kelvin).magnitude,
+                data_set.critical_temperature.error.to(unit.kelvin).magnitude,
+            ]
         )
 
-        # Filter data to selected conditions.
-        uncertainties = utils.calculate_uncertainties(thermo_data, self.Tc_lit[0])
+        self.molecular_weight = data_set.molecular_weight.to(
+            unit.gram / unit.mole
+        ).magnitude
 
-        # Calculate uncertainties for each data point, based on combination of
-        # experimental uncertainty and correlation uncertainty
-        self.thermo_data_rhoL = np.asarray(thermo_data["rhoL"])
-        self.thermo_data_Pv = np.asarray(thermo_data["Pv"])
-        self.thermo_data_SurfTens = np.asarray(thermo_data["SurfTens"])
+        self.NIST_bondlength = data_set.bond_length.to(unit.nanometer).magnitude
 
-        # Calculate the estimated standard deviation
-        sd_rhol = uncertainties["rhoL"] / 2.0
-        sd_Psat = uncertainties["Pv"] / 2.0
-        sd_SurfTens = uncertainties["SurfTens"] / 2
+        # Filter the data to selected conditions.
+        T_min = self.T_range[0] * self.Tc_lit[0]
+        T_max = self.T_range[1] * self.Tc_lit[0]
 
-        # Calculate the precision in each property
-        self.t_rhol = np.sqrt(1.0 / sd_rhol)
-        self.t_Psat = np.sqrt(1.0 / sd_Psat)
-        self.t_SurfTens = np.sqrt(1.0 / sd_SurfTens)
+        data_set.filter(T_min * unit.kelvin, T_max * unit.kelvin, self.n_points)
+
+        self.thermo_data_rhoL = np.asarray(
+            data_set.get_data(NISTDataType.LiquidDensity)
+        )
+        self.thermo_data_Pv = np.asarray(
+            data_set.get_data(NISTDataType.SaturationPressure)
+        )
+        self.thermo_data_SurfTens = np.asarray(
+            data_set.get_data(NISTDataType.SurfaceTension)
+        )
+
+        self.t_rhol = data_set.get_precision(NISTDataType.LiquidDensity)
+        self.t_Psat = data_set.get_precision(NISTDataType.SaturationPressure)
+        self.t_SurfTens = data_set.get_precision(NISTDataType.SurfaceTension)
 
     # Step 2
     def gen_Tmatrix(self, prior, compound_2CLJ):
