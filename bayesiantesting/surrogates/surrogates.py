@@ -300,7 +300,9 @@ class TwoCenterLennardJones:
             x[:, 2] = tau
             x[:, 3] = tau ** (3.0 / 2)
 
-            coefficient_1 = self._correlation_function_1(quadrupole_star, bond_length_star, _b_C1)
+            coefficient_1 = self._correlation_function_1(
+                quadrupole_star, bond_length_star, _b_C1
+            )
 
             if phase == "liquid":
 
