@@ -1,3 +1,3 @@
-from .models import BaseModel
+from .models import Model
 
-__all__ = [BaseModel]
+__all__ = [Model]

@@ -5,8 +5,7 @@ This code was originally authored by Owen Madin (github name ocmadin).
 import math
 
 import numpy as np
-import torch
-import torch.distributions
+import pymc3.distributions
 from tqdm import tqdm
 
 
@@ -21,7 +20,7 @@ class MCMCSimulation:
 
         Parameters
         ----------
-        model: BaseModel
+        model: Model
             The model whose posterior should be sampled.
         warm_up_steps: int
             The number of warm-up steps to take. During this time all
@@ -197,10 +196,10 @@ class MCMCSimulation:
         )
 
         # Sample the new parameters from a normal distribution.
-        proposal_distribution = torch.distributions.Normal(
+        proposal_distribution = pymc3.distributions.Normal.dist(
             proposed_params[parameter_index], proposal_scales[parameter_index]
         )
-        proposed_params[parameter_index] = proposal_distribution.rsample()
+        proposed_params[parameter_index] = proposal_distribution.random()
 
         proposed_log_prob = self.model.evaluate_log_posterior(proposed_params)
 
@@ -210,12 +209,13 @@ class MCMCSimulation:
     def _accept_reject(alpha):
 
         # Metropolis-Hastings accept/reject criteria
-        return torch.log(torch.rand()) < alpha
+        random_number = pymc3.distributions.Uniform.dist(0.0, 1.0).random()
+        return np.log(random_number) < alpha
 
     @staticmethod
     def _tune_proposals(move_proposals, move_acceptances, proposal_scales):
 
-        # print(np.sum(self.move_proposals))proposal_scalesproposal_scales
+        # print(np.sum(self.move_proposals))
         acceptance_rate = np.sum(move_acceptances) / np.sum(move_proposals)
 
         # print(acceptance_rate)

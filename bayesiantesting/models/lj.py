@@ -1,9 +1,10 @@
 import numpy as np
+import pymc3
 
-from bayesiantesting.models import BaseModel
+from bayesiantesting.models import Model
 
 
-class TwoCenterLennardJones(BaseModel):
+class TwoCenterLennardJones(Model):
     """A representation of the two-center Lennard-Jones model, which
     can be evaluated using a surrogate model against a `NISTDataSet`.
     """
@@ -57,14 +58,12 @@ class TwoCenterLennardJones(BaseModel):
         float
             The log value of the likelihood evaluated at `parameters`.
         """
-        from scipy.stats import distributions as scipy_distributions
-
         log_p = 0.0
 
         for property_type in self._property_types:
 
             reference_data = self._reference_data[property_type]
-            precision = self._reference_precisions[property_type]
+            precisions = self._reference_precisions[property_type]
 
             temperatures = reference_data[:, 0]
 
@@ -75,8 +74,11 @@ class TwoCenterLennardJones(BaseModel):
 
             # Compute likelihood based on gaussian penalty function
             log_p += sum(
-                scipy_distributions.norm.logpdf(
-                    reference_values, surrogate_values, precision ** -2.0
+                pymc3.distributions.Normal.dist(mu=mu, sigma=precision ** -2.0)
+                .logp(x)
+                .eval()
+                for x, mu, precision in zip(
+                    reference_values, surrogate_values, precisions
                 )
             )
 

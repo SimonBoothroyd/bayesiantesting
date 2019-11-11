@@ -1,8 +1,8 @@
 import numpy as np
-import torch.distributions
+import pymc3.distributions
 
 
-class BaseModel:
+class Model:
     """ Sets up a simply model based on the user-specified prior types and parameters
 
     Warnings
@@ -37,18 +37,20 @@ class BaseModel:
         if prior_type == "exponential":
 
             if not np.isclose(prior_values[0], 0.0):
-                # The loc argument is not supported in torch / pyro.
+                # The loc argument is not supported in PyMC3.
                 raise NotImplementedError()
 
-            prior = torch.distributions.Exponential(1.0 / prior_values[1])
+            prior = pymc3.distributions.Exponential.dist(lam=1.0 / prior_values[1])
 
         elif prior_type == "gamma":
 
             if not np.isclose(prior_values[1], 0.0):
-                # The loc argument is not supported in torch / pyro.
+                # The loc argument is not supported in PyMC3.
                 raise NotImplementedError()
 
-            prior = torch.distributions.Gamma(prior_values[0], 1.0 / prior_values[2])
+            prior = pymc3.distributions.Gamma(
+                alpha=prior_values[0], beta=1.0 / prior_values[2]
+            )
 
         else:
             raise NotImplementedError()
@@ -68,7 +70,7 @@ class BaseModel:
         initial_parameters = np.zeros((len(self.priors), 1))
 
         for index, prior in enumerate(self.priors):
-            initial_parameters[index] = prior.rsample()
+            initial_parameters[index] = prior.random()
 
         return initial_parameters
 
@@ -89,7 +91,7 @@ class BaseModel:
         """
         return sum(
             [
-                self.priors[index].log_prob(parameters[index])
+                self.priors[index].logp(parameters[index]).eval()
                 for index in range(len(self.priors))
             ]
         )
