@@ -1,3 +1,4 @@
+import abc
 import os
 
 import numpy as np
@@ -5,6 +6,8 @@ import yaml
 
 # Conversion constants
 from pkg_resources import resource_filename
+
+from bayesiantesting.datasets.nist import NISTDataType
 
 k_B = 1.38065e-23  # [J/K]
 N_A = 6.02214e23  # [1/mol]
@@ -16,7 +19,31 @@ J_per_m3_to_kPA = 1.0 / 1000
 D_to_sqrtJm3 = 3.1623e-25
 
 
-class TwoCenterLennardJones:
+class SurrogateModel(abc.ABC):
+    """The base representation of a surrogate model which can
+    be cheaply evaluated.
+    """
+
+    def evaluate(self, property_type, parameters, **kwargs):
+        """Evaluate this model for a set of parameters.
+
+        Parameters
+        ----------
+        property_type: NISTDataType
+            The property to evaluate.
+        parameters: numpy.ndarray
+            The values of the parameters (with shape=(n parameters, 1))
+            to evaluate at.
+
+        Returns
+        -------
+        numpy.ndarray
+            The values of this model at these parameters.
+        """
+        raise NotImplementedError()
+
+
+class StollWerthSurrogate(SurrogateModel):
     """A surrogate model for the two-center Lennard-Jones model, which can
     be rapidly evaluated from the models critical density and temperature,
     liquid and vapor density, saturation pressure and surface tension.
@@ -660,3 +687,14 @@ class TwoCenterLennardJones:
         )
         surface_tension = surface_tension_star * epsilon / sigma ** 2 * k_B * m2_to_nm2
         return surface_tension  # [J/m2]
+
+    def evaluate(self, property_type, parameters, temperatures=None):
+
+        if property_type == NISTDataType.LiquidDensity:
+            return StollWerthSurrogate.liquid_density(temperatures, *parameters)
+        elif property_type == NISTDataType.SaturationPressure:
+            return StollWerthSurrogate.saturation_pressure(temperatures, *parameters)
+        elif property_type == NISTDataType.SurfaceTension:
+            return StollWerthSurrogate.surface_tension(temperatures, *parameters)
+
+        raise NotImplementedError()
