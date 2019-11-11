@@ -40,33 +40,38 @@ class MCMCSimulation:
 
         self.model = model
 
+        self._initial_values = None
+        self._initial_log_p = None
+
     def set_initial_state(self, initial_values=None):
 
-        initial_log_p = math.nan
+        self._initial_log_p = math.nan
 
         if initial_values is not None:
-            initial_values = np.copy(initial_values)
+
+            assert len(initial_values) == self.model.n_total_parameters
+            self._initial_values = np.copy(self._initial_values)
 
         else:
 
             counter = 0
 
-            while math.isnan(initial_log_p) and counter < 1000:
+            while math.isnan(self._initial_log_p) and counter < 1000:
 
-                initial_values = self.model.sample_priors()
-                initial_log_p = self.model.evaluate_log_posterior(initial_values)
+                self._initial_values = self.model.sample_priors()
+                self._initial_log_p = self.model.evaluate_log_posterior(self._initial_values)
 
                 counter += 1
 
-        print(f"Markov Chain initialized values:", initial_values)
+        print(f"Markov Chain initialized values:", self._initial_values)
         print("==============================")
 
-        initial_log_p = self.model.evaluate_log_posterior(initial_values)
+        self._initial_log_p = self.model.evaluate_log_posterior(self._initial_values)
 
-        print("Initial log posterior:", initial_log_p)
+        print("Initial log posterior:", self._initial_log_p)
         print("==============================")
 
-        if np.isnan(initial_log_p):
+        if np.isnan(self._initial_log_p):
 
             raise ValueError(
                 "The initial values could not be set without yielding "
@@ -89,18 +94,16 @@ class MCMCSimulation:
         #     utils.T_c_hat_models,
         # )
 
-        return initial_values, initial_log_p
+    def run(self):
 
-    def run(self, initial_values):
-
-        trace = [initial_values]
-        log_p_trace = [self.model.evaluate_log_posterior(initial_values)]
+        trace = [self._initial_values]
+        log_p_trace = [self.model.evaluate_log_posterior(self._initial_values)]
         # percent_dev_trace = [self.initial_percent_deviation]
 
         move_proposals = np.zeros((1, 1))
         move_acceptances = np.zeros((1, 1))
 
-        proposal_scales = np.asarray(initial_values) / 100
+        proposal_scales = np.asarray(self._initial_values) / 100
 
         print("Initializing Simulation...")
         print("Tuning Proposals...")
@@ -191,9 +194,7 @@ class MCMCSimulation:
     def parameter_proposal(self, proposed_params, proposal_scales):
 
         # Choose a random parameter to change
-        parameter_index = int(
-            np.ceil(np.random.random() * self.model.number_of_parameters)
-        )
+        parameter_index = np.random.randint(low=0, high=self.model.n_trainable_parameters)
 
         # Sample the new parameters from a normal distribution.
         proposal_distribution = pymc3.distributions.Normal.dist(

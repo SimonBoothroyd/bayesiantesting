@@ -11,7 +11,7 @@ import yaml
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.kernels import MCMCSimulation
-from bayesiantesting.models.lj import TwoCenterLennardJones
+from bayesiantesting.models import TwoCenterLennardJones
 from bayesiantesting.surrogates import StollWerthSurrogate
 
 
@@ -25,33 +25,19 @@ def parse_input_yaml(filepath):
     return simulation_params
 
 
-def prepare_data(compound, temperature_range, number_of_points):
+def prepare_data(simulation_params):
     """From input parameters, pull appropriate experimental data and
     uncertainty information.
     """
 
     # Retrieve the constants and thermophysical data
-    data_set = NISTDataSet(compound)
+    data_set = NISTDataSet(simulation_params["compound"])
 
     # Filter the data to selected conditions.
-    T_min = temperature_range[0] * data_set.critical_temperature.value.to(unit.kelvin).magnitude
-    T_max = temperature_range[1] * data_set.critical_temperature.value.to(unit.kelvin).magnitude
+    T_min = simulation_params["trange"][0] * data_set.critical_temperature.value.to(unit.kelvin).magnitude
+    T_max = simulation_params["trange"][1] * data_set.critical_temperature.value.to(unit.kelvin).magnitude
 
-    data_set.filter(T_min * unit.kelvin, T_max * unit.kelvin, number_of_points)
-
-    return data_set
-
-
-def main():
-
-    print("Parsing simulation params")
-    simulation_params = parse_input_yaml("basic_run.yaml")
-
-    print(simulation_params["priors"])
-
-    data_set = prepare_data(simulation_params["compound"],
-                            simulation_params["trange"],
-                            simulation_params["number_data_points"])
+    data_set.filter(T_min * unit.kelvin, T_max * unit.kelvin, simulation_params["number_data_points"])
 
     property_types = []
 
@@ -61,6 +47,18 @@ def main():
         property_types.append(NISTDataType.SaturationPressure)
     elif simulation_params["properties"] == "All":
         property_types.extend(data_set.data_types)
+
+    return data_set, property_types
+
+
+def main():
+
+    print("Parsing simulation params")
+    simulation_params = parse_input_yaml("basic_run.yaml")
+
+    print(simulation_params["priors"])
+
+    data_set, property_types = prepare_data(simulation_params)
 
     model = TwoCenterLennardJones(simulation_params["priors"],
                                   data_set,
@@ -74,9 +72,9 @@ def main():
     )
 
     # print("Simulation Attributes:", rjmc_simulator.get_attributes())
-    initial_parameters = simulation.set_initial_state()
+    simulation.set_initial_state()
 
-    trace, log_p_trace = simulation.run(initial_parameters)
+    trace, log_p_trace = simulation.run()
 
     print(log_p_trace)
 

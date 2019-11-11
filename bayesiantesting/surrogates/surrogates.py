@@ -50,7 +50,7 @@ class StollWerthSurrogate(SurrogateModel):
     """
 
     def __init__(self, molecular_weight, file_path=None):
-        """Constructs a new `TwoCenterLennardJones` object.
+        """Constructs a new `StollWerthSurrogate` object.
 
         Parameters
         ----------
@@ -691,10 +691,10 @@ class StollWerthSurrogate(SurrogateModel):
     def evaluate(self, property_type, parameters, temperatures=None):
 
         if property_type == NISTDataType.LiquidDensity:
-            return StollWerthSurrogate.liquid_density(temperatures, *parameters)
+            return self.liquid_density(temperatures, *parameters)
         elif property_type == NISTDataType.SaturationPressure:
-            return StollWerthSurrogate.saturation_pressure(temperatures, *parameters)
+            return self.saturation_pressure(temperatures, *parameters)
         elif property_type == NISTDataType.SurfaceTension:
-            return StollWerthSurrogate.surface_tension(temperatures, *parameters)
+            return self.surface_tension(temperatures, *parameters)
 
         raise NotImplementedError()

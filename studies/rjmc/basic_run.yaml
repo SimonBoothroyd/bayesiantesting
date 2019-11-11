@@ -11,14 +11,6 @@ optimum_matching:
 - 'True'
 - 'True'
 priors:
-  L:
-  - exponential
-  - - 0
-    - 3
-  Q:
-  - exponential
-  - - 0
-    - 1
   epsilon:
   - exponential
   - - 0
@@ -27,6 +19,14 @@ priors:
   - exponential
   - - 0
     - 5
+  L:
+  - exponential
+  - - 0
+    - 3
+  Q:
+  - exponential
+  - - 0
+    - 1
 properties: rhol+Psat
 save_traj: true
 simulation_type: Basic

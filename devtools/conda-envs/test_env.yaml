@@ -21,6 +21,7 @@ dependencies:
   - statsmodels
   - pint
   - uncertainties
+  - mkl-service
   - pymc3
 
     # Pip-only installs
