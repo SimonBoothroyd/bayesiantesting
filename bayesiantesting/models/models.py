@@ -18,33 +18,60 @@ class Model:
         return self._prior_labels
 
     @property
+    def n_fixed_parameters(self):
+        """int: The number of fixed parameters within this model."""
+        return len(self._fixed_labels)
+
+    @property
+    def fixed_parameter_labels(self):
+        """list of str: The friendly names of the parameters which are fixed."""
+        return self._fixed_labels
+
+    @property
     def n_total_parameters(self):
         """int: The total number of parameters within this model."""
-        return len(self._all_parameter_labels)
+        return self.n_trainable_parameters + self.n_fixed_parameters
 
     @property
     def all_parameter_labels(self):
         """list of str: The friendly names of the parameters within this model."""
-        return len(self._all_parameter_labels)
+        return self._prior_labels + self._fixed_labels
 
-    def __init__(self, prior_settings):
+    def __init__(self, priors, fixed_parameters):
         """Constructs a new `MCMCModel` object.
 
         Parameters
         ----------
-        prior_settings: dict of str and tuple of float
-            The settings for each of the priors. There should be
-            one entry per parameter.
+        priors: dict of str and tuple of float
+            The settings for each of the priors, whose keys are the friendly
+            name of the parameter associated with the prior. There should be
+            one entry per trainable parameter.
+        fixed_parameters: dict of str and float
+            The values of the fixed model parameters, whose keys of the name
+            associated with the parameter.
         """
         self._priors = []
         self._prior_labels = []
 
-        for prior_name in prior_settings:
+        self._fixed_parameters = []
+        self._fixed_labels = []
 
-            self._priors.append(self._initialize_prior(prior_settings[prior_name]))
-            self._prior_labels.append(prior_name)
+        for parameter_name in priors:
 
-        self._all_parameter_labels = [*self._prior_labels]
+            self._priors.append(self._initialize_prior(priors[parameter_name]))
+            self._prior_labels.append(parameter_name)
+
+        for parameter_name in fixed_parameters:
+
+            self._fixed_parameters.append(fixed_parameters[parameter_name])
+            self._fixed_labels.append(parameter_name)
+
+        common_parameters = set(self._fixed_labels).intersection(set(self._prior_labels))
+
+        if len(common_parameters) > 0:
+
+            raise ValueError(f"The {', '.join(common_parameters)} have been flagged "
+                             f"as being both fixed and trainable.")
 
     @staticmethod
     def _initialize_prior(settings):
@@ -77,7 +104,7 @@ class Model:
     def sample_priors(self):
         """Generates a set of random parameters from the prior
         distributions. Those parameters without a prior will be
-        assigned a value of 0.
+        assigned their fixed values.
 
         Returns
         -------
@@ -89,6 +116,9 @@ class Model:
 
         for index, prior in enumerate(self._priors):
             initial_parameters[index] = prior.rsample()
+
+        for index, parameter in enumerate(self._fixed_parameters):
+            initial_parameters[index + self.n_trainable_parameters] = parameter
 
         return initial_parameters
 

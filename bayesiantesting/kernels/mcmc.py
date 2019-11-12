@@ -131,6 +131,9 @@ class MCMCSimulation:
         print("Simulation Done!")
         print("==============================")
 
+        print(f"Markov Chain final values:", trace[-1])
+        print("==============================")
+
         return trace, log_p_trace, percent_deviation_trace_arrays
 
     def _run_step(self, current_params, proposal_scales, current_log_prob):

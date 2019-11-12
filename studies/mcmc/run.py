@@ -98,25 +98,38 @@ def main():
 
     data_set, property_types = prepare_data(simulation_params)
 
-    model = TwoCenterLJModel(
-        simulation_params["priors"],
+    aua_priors = {
+        "epsilon": simulation_params["priors"]["epsilon"],
+        "sigma": simulation_params["priors"]["sigma"],
+        "L": simulation_params["priors"]["L"]
+    }
+    aua_fixed = {
+        "Q": 0.0
+    }
+
+    aua_model = TwoCenterLJModel(
+        aua_priors,
+        aua_fixed,
         data_set,
         property_types,
         StollWerthSurrogate(data_set.molecular_weight),
     )
 
     simulation = MCMCSimulation(
-        model=model,
+        model=aua_model,
         warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
         discard_warm_up_data=False,
     )
 
-    initial_parameters = generate_initial_values(model)
+    initial_parameters = generate_initial_values(aua_model)
+
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
 
-    pyplot.plot(trace)
-    pyplot.show()
+    for i in range(4):
+        pyplot.plot(trace[:, i])
+        pyplot.draw()
+        pyplot.show()
 
     pyplot.plot(log_p_trace)
     pyplot.show()

@@ -22,7 +22,7 @@ class TwoCenterLJModel(Model):
         return 4
 
     def __init__(
-        self, prior_settings, reference_data_set, property_types, surrogate_model
+        self, prior_settings, fixed_parameters, reference_data_set, property_types, surrogate_model
     ):
         """Constructs a new `TwoCenterLJModel` model.
 
@@ -37,26 +37,18 @@ class TwoCenterLJModel(Model):
         surrogate_model: SurrogateModel
             The surrogate model to use when evaluating the likelihood function.
         """
-        super().__init__(prior_settings)
+        super().__init__(prior_settings, fixed_parameters)
 
-        self._all_parameter_labels = ["epsilon", "sigma", "L", "Q"]
+        required_parameters = ["epsilon", "sigma", "L", "Q"]
+        provided_parameters = [*prior_settings.keys(), *fixed_parameters.keys()]
 
-        if "epsilon" not in self._prior_labels or "sigma" not in self._prior_labels:
+        missing_parameters = set(required_parameters) - set(provided_parameters)
+        extra_parameters = set(provided_parameters) - set(required_parameters)
 
-            raise ValueError(
-                "Both an `epsilon` and `sigma` prior must be provided."
-                "The `L` and `Q` parameters are optional."
-            )
-
-        for parameter_label in self._prior_labels:
-
-            if parameter_label in self._all_parameter_labels:
-                continue
-
-            raise ValueError(
-                f"The only allowed parameters of this model are {', '.join(self._all_parameter_labels)}. "
-                f"The `L` and `Q` parameters are optional."
-            )
+        if len(missing_parameters) > 0:
+            raise ValueError(f"The {', '.join(missing_parameters)} parameters are required but were not provided.")
+        if len(extra_parameters) > 0:
+            raise ValueError(f"The {', '.join(extra_parameters)} parameters are not supported by this model.")
 
         self._property_types = property_types
 
