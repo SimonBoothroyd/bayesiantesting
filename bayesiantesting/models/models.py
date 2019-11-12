@@ -65,7 +65,9 @@ class Model:
                 # The loc argument is not supported in PyMC3.
                 raise NotImplementedError()
 
-            prior = torch.distributions.Gamma(prior_values[0], rate=1.0 / prior_values[2])
+            prior = torch.distributions.Gamma(
+                prior_values[0], rate=1.0 / prior_values[2]
+            )
 
         else:
             raise NotImplementedError()
@@ -245,7 +247,9 @@ class TwoCenterLennardJones(Model):
             ref_torch = torch.from_numpy(reference_values)
 
             # Compute likelihood based on gaussian penalty function
-            log_p += torch.sum(torch.distributions.Normal(sm_torch, prec_torch).log_prob(ref_torch)).item()
+            log_p += torch.sum(
+                torch.distributions.Normal(sm_torch, prec_torch).log_prob(ref_torch)
+            ).item()
 
             # log_p += sum(
             #     pymc3.distributions.Normal.dist(mu=mu, sigma=precision ** -2.0)

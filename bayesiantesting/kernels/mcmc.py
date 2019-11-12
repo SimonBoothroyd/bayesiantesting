@@ -16,7 +16,12 @@ class MCMCSimulation:
     """
 
     def __init__(
-        self, model, warm_up_steps=100000, steps=100000, tune_frequency=5000,
+        self,
+        model,
+        warm_up_steps=100000,
+        steps=100000,
+        tune_frequency=5000,
+        discard_warm_up_data=True,
     ):
         """Initializes the basic state of the simulator object.
 
@@ -26,17 +31,21 @@ class MCMCSimulation:
             The model whose posterior should be sampled.
         warm_up_steps: int
             The number of warm-up steps to take. During this time all
-            data is discarded and the move proposals will be tuned.
+            move proposals will be tuned.
         steps: int
             The number of steps which the simulation should run for.
         tune_frequency: int
             The frequency with which to tune the move proposals.
+        discard_warm_up_data: bool
+            If true, all data generated during the warm-up period will
+            be discarded.
         """
 
         self.warm_up_steps = warm_up_steps
         self.steps = steps
 
-        self.tune_frequency = tune_frequency
+        self._tune_frequency = tune_frequency
+        self._discard_warm_up_data = discard_warm_up_data
 
         self.optimum_bounds = "Normal"
 
@@ -45,37 +54,29 @@ class MCMCSimulation:
         self._initial_values = None
         self._initial_log_p = None
 
-    def set_initial_state(self, initial_values=None):
+    def generate_initial_values(self, initial_parameters=None):
 
-        self._initial_log_p = math.nan
+        initial_log_p = math.nan
 
-        if initial_values is not None:
+        if initial_parameters is not None:
 
-            assert len(initial_values) == self.model.n_total_parameters
-            self._initial_values = np.copy(self._initial_values)
+            assert len(initial_parameters) == self.model.n_total_parameters
+            initial_parameters = np.copy(initial_parameters)
 
         else:
 
             counter = 0
 
-            while math.isnan(self._initial_log_p) and counter < 1000:
+            while math.isnan(initial_log_p) and counter < 1000:
 
-                self._initial_values = self.model.sample_priors()
-                self._initial_log_p = self.model.evaluate_log_posterior(
-                    self._initial_values
-                )
+                initial_parameters = self.model.sample_priors()
+                initial_log_p = self.model.evaluate_log_posterior(initial_parameters)
 
                 counter += 1
 
-        print(f"Markov Chain initialized values:", self._initial_values)
-        print("==============================")
+        initial_log_p = self.model.evaluate_log_posterior(initial_parameters)
 
-        self._initial_log_p = self.model.evaluate_log_posterior(self._initial_values)
-
-        print("Initial log posterior:", self._initial_log_p)
-        print("==============================")
-
-        if np.isnan(self._initial_log_p):
+        if np.isnan(initial_log_p):
 
             raise ValueError(
                 "The initial values could not be set without yielding "
@@ -98,11 +99,21 @@ class MCMCSimulation:
         #     utils.T_c_hat_models,
         # )
 
-    def run(self):
+        return initial_parameters, initial_log_p
 
-        trace = [self._initial_values]
+    def run(self, initial_parameters):
+
+        self._initial_values = initial_parameters
+
+        trace = [np.copy(self._initial_values)]
         log_p_trace = [self.model.evaluate_log_posterior(self._initial_values)]
         # percent_dev_trace = [self.initial_percent_deviation]
+
+        print(f"Markov Chain initialized values:", initial_parameters)
+        print("==============================")
+
+        print("Initial log posterior:", log_p_trace[-1])
+        print("==============================")
 
         move_proposals = np.zeros((1, 1))
         move_acceptances = np.zeros((1, 1))
@@ -110,17 +121,14 @@ class MCMCSimulation:
         proposal_scales = np.asarray(self._initial_values) / 100
 
         print("Initializing Simulation...")
-        print("Tuning Proposals...")
+        if self.warm_up_steps > 0:
+            print("Tuning Proposals...")
         print("==============================")
 
-        for i in tqdm(range(self.steps)):
+        for i in tqdm(range(self.warm_up_steps + self.steps)):
 
-            if not i % 50000:
-                # print('Iteration ' + str(i)), print('Log Posterior:', self.logp_trace[i])
-                pass
-
-            current_params = trace[i].copy()
-            current_log_prob = log_p_trace[i]
+            current_params = trace[-1].copy()
+            current_log_prob = log_p_trace[-1]
 
             new_params, new_log_prob, acceptance = self._run_step(
                 current_params, proposal_scales, current_log_prob
@@ -131,8 +139,15 @@ class MCMCSimulation:
             if acceptance == "True":
                 move_acceptances[0, 0] += 1
 
-            log_p_trace.append(new_log_prob)
-            trace.append(new_params)
+            if i < self.warm_up_steps and self._discard_warm_up_data:
+
+                log_p_trace[-1] = new_log_prob
+                trace[-1] = new_params
+
+            else:
+
+                log_p_trace.append(new_log_prob)
+                trace.append(new_params)
 
             # percent_dev_trace.append(
             #     utils.computePercentDeviations(
@@ -152,7 +167,7 @@ class MCMCSimulation:
             #     )
             # )
 
-            if (not (i + 1) % self.tune_frequency) and (i < self.warm_up_steps):
+            if (not (i + 1) % self._tune_frequency) and (i < self.warm_up_steps):
 
                 proposal_scales = self._tune_proposals(
                     move_proposals, move_acceptances, proposal_scales
@@ -183,7 +198,7 @@ class MCMCSimulation:
 
         acceptance = self._accept_reject(alpha)
 
-        if acceptance is True:
+        if acceptance:
 
             new_log_prob = proposed_log_prob
             new_params = proposed_params
@@ -213,8 +228,8 @@ class MCMCSimulation:
     def _accept_reject(alpha):
 
         # Metropolis-Hastings accept/reject criteria
-        random_number = np.random.random()
-        return np.log(random_number) < alpha
+        random_number = torch.rand((1,))
+        return torch.log(random_number).item() < alpha
 
     @staticmethod
     def _tune_proposals(move_proposals, move_acceptances, proposal_scales):

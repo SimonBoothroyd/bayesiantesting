@@ -5,7 +5,6 @@ Created on Thu Oct 31 14:42:37 2019
 
 @author: owenmadin
 """
-import numpy
 import yaml
 
 from bayesiantesting import unit
@@ -35,18 +34,18 @@ def prepare_data(simulation_params):
     data_set = NISTDataSet(simulation_params["compound"])
 
     # Filter the data to selected conditions.
-    T_min = (
+    minimum_temperature = (
         simulation_params["trange"][0]
         * data_set.critical_temperature.value.to(unit.kelvin).magnitude
     )
-    T_max = (
+    maximum_temperature = (
         simulation_params["trange"][1]
         * data_set.critical_temperature.value.to(unit.kelvin).magnitude
     )
 
     data_set.filter(
-        T_min * unit.kelvin,
-        T_max * unit.kelvin,
+        minimum_temperature * unit.kelvin,
+        maximum_temperature * unit.kelvin,
         simulation_params["number_data_points"],
     )
 
@@ -80,15 +79,16 @@ def main():
     )
 
     simulation = MCMCSimulation(
-        model, simulation_params["steps"] * 0.1, simulation_params["steps"]
+        model=model,
+        warm_up_steps=int(simulation_params["steps"] * 0.1),
+        steps=simulation_params["steps"],
+        discard_warm_up_data=False,
     )
 
     # print("Simulation Attributes:", rjmc_simulator.get_attributes())
-    simulation.set_initial_state(
-        numpy.array([130.14909363, 0.42885435, 0.15328945, 0.90364307])
-    )
+    initial_parameters, initial_log_p = simulation.generate_initial_values()
 
-    trace, log_p_trace = simulation.run()
+    trace, log_p_trace = simulation.run(initial_parameters)
 
     pyplot.plot(trace)
     pyplot.show()
