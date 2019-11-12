@@ -392,7 +392,7 @@ class StollWerthSurrogate(SurrogateModel):
             The evaluated densities in units of kg / m3.
         """
 
-        molecular_weight = self.molecular_weight
+        molecular_weight = self.molecular_weight.magnitude
 
         # Note that epsilon is defined as epsilon/kB
         temperature_star = temperature / epsilon

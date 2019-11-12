@@ -5,8 +5,10 @@ This code was originally authored by Owen Madin (github name ocmadin).
 import math
 
 import numpy as np
-import pymc3.distributions
 from tqdm import tqdm
+
+import torch
+import torch.distributions
 
 
 class MCMCSimulation:
@@ -59,7 +61,9 @@ class MCMCSimulation:
             while math.isnan(self._initial_log_p) and counter < 1000:
 
                 self._initial_values = self.model.sample_priors()
-                self._initial_log_p = self.model.evaluate_log_posterior(self._initial_values)
+                self._initial_log_p = self.model.evaluate_log_posterior(
+                    self._initial_values
+                )
 
                 counter += 1
 
@@ -116,7 +120,7 @@ class MCMCSimulation:
                 pass
 
             current_params = trace[i].copy()
-            current_log_prob = log_p_trace[i].copy()
+            current_log_prob = log_p_trace[i]
 
             new_params, new_log_prob, acceptance = self._run_step(
                 current_params, proposal_scales, current_log_prob
@@ -194,13 +198,12 @@ class MCMCSimulation:
     def parameter_proposal(self, proposed_params, proposal_scales):
 
         # Choose a random parameter to change
-        parameter_index = np.random.randint(low=0, high=self.model.n_trainable_parameters)
+        parameter_index = torch.randint(self.model.n_trainable_parameters, (1,))
 
         # Sample the new parameters from a normal distribution.
-        proposal_distribution = pymc3.distributions.Normal.dist(
+        proposed_params[parameter_index] = torch.distributions.Normal(
             proposed_params[parameter_index], proposal_scales[parameter_index]
-        )
-        proposed_params[parameter_index] = proposal_distribution.random()
+        ).sample()
 
         proposed_log_prob = self.model.evaluate_log_posterior(proposed_params)
 
@@ -210,7 +213,7 @@ class MCMCSimulation:
     def _accept_reject(alpha):
 
         # Metropolis-Hastings accept/reject criteria
-        random_number = pymc3.distributions.Uniform.dist(0.0, 1.0).random()
+        random_number = np.random.random()
         return np.log(random_number) < alpha
 
     @staticmethod

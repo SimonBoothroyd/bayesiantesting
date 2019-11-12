@@ -1,5 +1,5 @@
 import numpy as np
-import pymc3.distributions
+import torch.distributions
 
 
 class Model:
@@ -54,10 +54,10 @@ class Model:
         if prior_type == "exponential":
 
             if not np.isclose(prior_values[0], 0.0):
-                # The loc argument is not supported in PyMC3.
+                # The loc argument is not supported in PyTorch.
                 raise NotImplementedError()
 
-            prior = pymc3.distributions.Exponential.dist(lam=1.0 / prior_values[1])
+            prior = torch.distributions.Exponential(rate=1.0 / prior_values[1])
 
         elif prior_type == "gamma":
 
@@ -65,9 +65,7 @@ class Model:
                 # The loc argument is not supported in PyMC3.
                 raise NotImplementedError()
 
-            prior = pymc3.distributions.Gamma(
-                alpha=prior_values[0], beta=1.0 / prior_values[2]
-            )
+            prior = torch.distributions.Gamma(prior_values[0], rate=1.0 / prior_values[2])
 
         else:
             raise NotImplementedError()
@@ -88,7 +86,7 @@ class Model:
         initial_parameters = np.zeros(self.n_total_parameters)
 
         for index, prior in enumerate(self._priors):
-            initial_parameters[index] = prior.random()
+            initial_parameters[index] = prior.rsample()
 
         return initial_parameters
 
@@ -109,8 +107,8 @@ class Model:
         """
         return sum(
             [
-                self._priors[index].logp(parameters[index]).eval()
-                for index in range(len(self._priors))
+                prior.log_prob(parameters[index]).item()
+                for index, prior in enumerate(self._priors)
             ]
         )
 
@@ -242,14 +240,20 @@ class TwoCenterLennardJones(Model):
                 property_type, parameters, temperatures
             )
 
+            sm_torch = torch.from_numpy(surrogate_values)
+            prec_torch = torch.from_numpy(precisions) ** -2.0
+            ref_torch = torch.from_numpy(reference_values)
+
             # Compute likelihood based on gaussian penalty function
-            log_p += sum(
-                pymc3.distributions.Normal.dist(mu=mu, sigma=precision ** -2.0)
-                .logp(x)
-                .eval()
-                for x, mu, precision in zip(
-                    reference_values, surrogate_values, precisions
-                )
-            )
+            log_p += torch.sum(torch.distributions.Normal(sm_torch, prec_torch).log_prob(ref_torch)).item()
+
+            # log_p += sum(
+            #     pymc3.distributions.Normal.dist(mu=mu, sigma=precision ** -2.0)
+            #     .logp(x)
+            #     .eval()
+            #     for x, mu, precision in zip(
+            #         reference_values, surrogate_values, precisions
+            #     )
+            # )
 
         return log_p
