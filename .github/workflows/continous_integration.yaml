@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
 
-  build:
+  test:
 
     runs-on: ${{ matrix.os }}
 
@@ -40,7 +40,29 @@ jobs:
         run: |
           eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate test
           pytest -v --cov=bayesiantesting bayesiantesting/tests/
-      - name: Code coverage
+
+  lint:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v1
+      - name: Install the Python environment
         run: |
-          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate test
-          codecov
+          source devtools/scripts/install_miniconda.sh
+          python -V
+      - name: Install flake8 / black
+        run: |
+          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate
+          conda install -c conda-forge flake8 flake8-black
+      - name: Run flake8
+        run: |
+          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate
+          flake8 bayesiantesting
+          flake8 studies
+      - name: Run black
+        run: |
+          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate
+          black bayesiantesting --check
+          black studies --check
