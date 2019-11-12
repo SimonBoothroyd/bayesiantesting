@@ -2,7 +2,6 @@
 This code is based upon the implementations by Owen Madin
 """
 
-import copy
 import os
 
 import matplotlib.pyplot as plt
@@ -90,156 +89,59 @@ def create_map(aua_path, auaq_path):
     return aua_max_like, auaq_max_like
 
 
-def computePercentDeviations(
-    compound_2CLJ,
-    temp_values_rhol,
-    temp_values_psat,
-    temp_values_surftens,
-    parameter_values,
-    rhol_data,
-    psat_data,
-    surftens_data,
-    T_c_data,
-    rhol_hat_models,
-    Psat_hat_models,
-    SurfTens_hat_models,
-    T_c_hat_models,
-):
-
-    rhol_model = rhol_hat_models(compound_2CLJ, temp_values_rhol, *parameter_values)
-    psat_model = Psat_hat_models(compound_2CLJ, temp_values_psat, *parameter_values)
-    if len(surftens_data) != 0:
-        surftens_model = SurfTens_hat_models(
-            compound_2CLJ, temp_values_surftens, *parameter_values
-        )
-        surftens_deviation_vector = (
-            (surftens_data - surftens_model) / surftens_data
-        ) ** 2
-        surftens_mean_relative_deviation = (
-            np.sqrt(
-                np.sum(surftens_deviation_vector) / np.size(surftens_deviation_vector)
-            )
-            * 100
-        )
-    else:
-        surftens_mean_relative_deviation = 0
-    T_c_model = T_c_hat_models(compound_2CLJ, *parameter_values)
-
-    rhol_deviation_vector = ((rhol_data - rhol_model) / rhol_data) ** 2
-    psat_deviation_vector = ((psat_data - psat_model) / psat_data) ** 2
-
-    T_c_relative_deviation = (T_c_data - T_c_model) * 100 / T_c_data
-
-    rhol_mean_relative_deviation = (
-        np.sqrt(np.sum(rhol_deviation_vector) / np.size(rhol_deviation_vector)) * 100
-    )
-    psat_mean_relative_deviation = (
-        np.sqrt(np.sum(psat_deviation_vector) / np.size(psat_deviation_vector)) * 100
-    )
-
-    return (
-        rhol_mean_relative_deviation,
-        psat_mean_relative_deviation,
-        surftens_mean_relative_deviation,
-        T_c_relative_deviation,
-    )
-
-
-def rhol_hat_models(compound_2CLJ, Temp, model, eps, sig, L, Q):
-    """
-    L_nm=L/10
-    sig_nm=sig/10
-    Q_nm=Q/10
-    """
-    if model == 0:  # Two center AUA LJ
-
-        rhol_hat = compound_2CLJ.liquid_density(Temp, eps, sig, L, 0)
-
-    elif model == 1:  # Two center AUA LJ+Q
-
-        rhol_hat = compound_2CLJ.liquid_density(Temp, eps, sig, L, Q)
-
-    elif model == 2:  # 2CLJ model
-
-        rhol_hat = compound_2CLJ.liquid_density(Temp, eps, sig, L, 0)
-
-    else:
-        raise NotImplementedError()
-
-    return rhol_hat  # [kg/m3]
-
-
-def Psat_hat_models(compound_2CLJ, Temp, model, eps, sig, L, Q):
-    """
-    L_nm=L/10
-    sig_nm=sig/10
-    Q_nm=Q/10
-    """
-    if model == 0:  # Two center AUA LJ
-
-        Psat_hat = compound_2CLJ.saturation_pressure(Temp, eps, sig, L, 0)
-
-    elif model == 1:  # Two center AUA LJ+Q
-
-        Psat_hat = compound_2CLJ.saturation_pressure(Temp, eps, sig, L, Q)
-
-    elif model == 2:  # 2CLJ model
-
-        Psat_hat = compound_2CLJ.saturation_pressure(Temp, eps, sig, L, 0)
-
-    else:
-        raise NotImplementedError()
-
-    return Psat_hat  # [kPa]
-
-
-def SurfTens_hat_models(compound_2CLJ, Temp, model, eps, sig, L, Q):
-    """
-    L_nm=L/10
-    sig_nm=sig/10
-    Q_nm=Q/10
-    """
-    if model == 0:
-
-        SurfTens_hat = compound_2CLJ.surface_tension(Temp, eps, sig, L, 0)
-
-    elif model == 1:
-
-        SurfTens_hat = compound_2CLJ.surface_tension(Temp, eps, sig, L, Q)
-
-    elif model == 2:
-
-        # Model 2 is the same as model 0, but the L value will be previously specified (not varying)
-        SurfTens_hat = compound_2CLJ.surface_tension(Temp, eps, sig, L, 0)
-
-    else:
-        raise NotImplementedError()
-
-    return SurfTens_hat
-
-
-def T_c_hat_models(compound_2CLJ, model, eps, sig, L, Q):
-    """
-    L_nm=L/10
-    sig_nm=sig/10
-    Q_nm=Q/10
-    """
-    if model == 0:
-
-        T_c_hat = compound_2CLJ.critical_temperature(eps, sig, L, 0)
-
-    elif model == 1:
-
-        T_c_hat = compound_2CLJ.critical_temperature(eps, sig, L, Q)
-
-    elif model == 2:
-
-        T_c_hat = compound_2CLJ.critical_temperature(eps, sig, L, 0)
-
-    else:
-        raise NotImplementedError()
-
-    return T_c_hat
+# def computePercentDeviations(
+#     compound_2CLJ,
+#     temp_values_rhol,
+#     temp_values_psat,
+#     temp_values_surftens,
+#     parameter_values,
+#     rhol_data,
+#     psat_data,
+#     surftens_data,
+#     T_c_data,
+#     rhol_hat_models,
+#     Psat_hat_models,
+#     SurfTens_hat_models,
+#     T_c_hat_models,
+# ):
+#
+#     rhol_model = rhol_hat_models(compound_2CLJ, temp_values_rhol, *parameter_values)
+#     psat_model = Psat_hat_models(compound_2CLJ, temp_values_psat, *parameter_values)
+#     if len(surftens_data) != 0:
+#         surftens_model = SurfTens_hat_models(
+#             compound_2CLJ, temp_values_surftens, *parameter_values
+#         )
+#         surftens_deviation_vector = (
+#             (surftens_data - surftens_model) / surftens_data
+#         ) ** 2
+#         surftens_mean_relative_deviation = (
+#             np.sqrt(
+#                 np.sum(surftens_deviation_vector) / np.size(surftens_deviation_vector)
+#             )
+#             * 100
+#         )
+#     else:
+#         surftens_mean_relative_deviation = 0
+#     T_c_model = T_c_hat_models(compound_2CLJ, *parameter_values)
+#
+#     rhol_deviation_vector = ((rhol_data - rhol_model) / rhol_data) ** 2
+#     psat_deviation_vector = ((psat_data - psat_model) / psat_data) ** 2
+#
+#     T_c_relative_deviation = (T_c_data - T_c_model) * 100 / T_c_data
+#
+#     rhol_mean_relative_deviation = (
+#         np.sqrt(np.sum(rhol_deviation_vector) / np.size(rhol_deviation_vector)) * 100
+#     )
+#     psat_mean_relative_deviation = (
+#         np.sqrt(np.sum(psat_deviation_vector) / np.size(psat_deviation_vector)) * 100
+#     )
+#
+#     return (
+#         rhol_mean_relative_deviation,
+#         psat_mean_relative_deviation,
+#         surftens_mean_relative_deviation,
+#         T_c_relative_deviation,
+#     )
 
 
 def create_param_triangle_plot_4D(
@@ -539,7 +441,7 @@ def plot_bar_chart(prob, properties, compound, n_iter, n_models, file_loc=None):
     x = np.arange(n_models)
     prob = prob[-1:] + prob[:-1]
     print(prob)
-    prob_copy = copy.deepcopy(prob)
+    # prob_copy = copy.deepcopy(prob)
     basis = min(i for i in prob if i > 0)
     # while basis==0:
     # prob_copy=np.delete(prob_copy,np.argmin(prob))
@@ -548,12 +450,12 @@ def plot_bar_chart(prob, properties, compound, n_iter, n_models, file_loc=None):
     # else:
     #    basis=min(prob_copy)
     value = prob / basis
-    if np.size(prob) == 2:
-        color = ["red", "blue"]
-        label = "AUA,AUA+Q"
-    elif np.size(prob) == 3:
-        color = ["red", "blue", "orange"]
-        label = ("UA", "AUA", "AUA+Q")
+    # if np.size(prob) == 2:
+    #     color = ["red", "blue"]
+    #     label = "AUA,AUA+Q"
+    # elif np.size(prob) == 3:
+    #     color = ["red", "blue", "orange"]
+    #     label = ("UA", "AUA", "AUA+Q")
     plt.bar(x, value, color=["red", "blue", "orange"])
     plt.xticks(x, ("UA", "AUA", "AUA+Q"), fontsize=14)
     plt.title(
@@ -632,7 +534,7 @@ def unbias_simulation(biasing_factor, probabilities):
 
 def fit_exponential_sp(trace, plot=False):
     loc, scale = expon.fit(trace[:, 4])
-    if plot == True:
+    if plot:
         xmax = max(trace[:, 4])
         xmin = min(trace[:, 4])
         xdata = np.linspace(xmin, xmax, num=500)
