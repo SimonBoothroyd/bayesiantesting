@@ -48,21 +48,17 @@ jobs:
     steps:
 
       - uses: actions/checkout@v1
-      - name: Install the Python environment
-        run: |
-          source devtools/scripts/install_miniconda.sh
-          python -V
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.7'
       - name: Install flake8 / black
         run: |
-          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate
-          conda install -c conda-forge flake8 flake8-black
+          pip install flake8 black
       - name: Run flake8
         run: |
-          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate
           flake8 bayesiantesting
           flake8 studies
       - name: Run black
         run: |
-          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate
           black bayesiantesting --check
           black studies --check
