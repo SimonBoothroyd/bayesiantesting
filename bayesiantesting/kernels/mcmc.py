@@ -203,44 +203,14 @@ class MCMCSimulation:
     # def write_output(self, prior_dict, tag=None, save_traj=False):
     #
     #     # Ask if output exists
-    #     if os.path.isdir("output") is False:
-    #         os.mkdir("output")
-    #     if os.path.isdir("output/" + self.compound) is False:
-    #         os.mkdir("output/" + self.compound)
-    #     if os.path.isdir("output/" + self.compound + "/" + self.properties) is False:
-    #         os.mkdir("output/" + self.compound + "/" + self.properties)
+    #     run_identifier = f'{self.model.name}_{self.steps}_{tag}_{str(date.today())}'
     #
-    #     path = (
-    #         "output/"
-    #         + self.compound
-    #         + "/"
-    #         + self.properties
-    #         + "/"
-    #         + self.compound
-    #         + "_"
-    #         + self.properties
-    #         + "_"
-    #         + str(self.steps)
-    #         + "_"
-    #         + tag
-    #         + "_"
-    #         + str(date.today())
-    #     )
+    #     figure_directory = os.path.join('output', run_identifier, 'figures')
+    #     os.makedirs(figure_directory, exist_ok=True)
     #
-    #     if os.path.isdir(path):
-    #         print("Directory Exists, overwriting")
-    #         rmtree(path)
-    #         os.mkdir(path)
-    #     else:
-    #         os.mkdir(path)
-    #
-    #     os.mkdir(path + "/figures")
-    #
-    #     print("Creating figures...")
-    #     print("==============================")
-    #     plt.plot(self.logp_trace_tuned)
-    #     plt.savefig(path + "/figures/logp_trace.png")
-    #     plt.close()
+    #     pyplot.plot(self.logp_trace_tuned)
+    #     pyplot.savefig(os.path.join(figure_directory, "logp_trace.png"))
+    #     pyplot.close()
     #
     #     plt.plot(self.trace_tuned[:, 0])
     #     plt.savefig(path + "/figures/model_trace.png")
@@ -291,18 +261,18 @@ class MCMCSimulation:
     #         file_loc=path + "/figures/",
     #     )
     #
-    #     print("Writing metadata...")
-    #     print("==============================")
-    #     self.write_datapoints(path)
-    #
-    #     self.write_metadata(path, prior_dict)
-    #
-    #     self.write_simulation_results(path)
-    #
-    #     if save_traj:
-    #         print("Saving Trajectories")
-    #         print("==============================")
-    #         self.write_traces(path)
+    #     # print("Writing metadata...")
+    #     # print("==============================")
+    #     # self.write_datapoints(path)
+    #     #
+    #     # self.write_metadata(path, prior_dict)
+    #     #
+    #     # self.write_simulation_results(path)
+    #     #
+    #     # if save_traj:
+    #     #     print("Saving Trajectories")
+    #     #     print("==============================")
+    #     #     self.write_traces(path)
     #
     # def write_datapoints(self, path):
     #

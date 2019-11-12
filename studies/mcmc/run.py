@@ -6,6 +6,7 @@ Created on Thu Oct 31 14:42:37 2019
 @author: owenmadin
 """
 import math
+import os
 
 import numpy
 import yaml
@@ -65,7 +66,46 @@ def prepare_data(simulation_params):
     return data_set, property_types
 
 
-def generate_initial_values(model):
+def get_model(model_name, data_set, property_types, simulation_params):
+
+    priors = {
+        "epsilon": simulation_params["priors"]["epsilon"],
+        "sigma": simulation_params["priors"]["sigma"],
+    }
+    fixed = {}
+
+    if model_name == 'AUA':
+
+        priors["L"] = simulation_params["priors"]["L"]
+        fixed["Q"] = 0.0
+
+    elif model_name == 'AUA+Q':
+
+        priors["L"] = simulation_params["priors"]["L"]
+        priors["Q"] = simulation_params["priors"]["Q"]
+
+    elif model_name == 'UA':
+
+        fixed["L"] = data_set.bond_length.to(unit.nanometer).magnitude
+        fixed["Q"] = 0.0
+
+    else:
+
+        raise NotImplementedError()
+
+    model = TwoCenterLJModel(
+        model_name,
+        priors,
+        fixed,
+        data_set,
+        property_types,
+        StollWerthSurrogate(data_set.molecular_weight),
+    )
+
+    return model
+
+
+def generate_initial_parameters(model):
 
     initial_log_p = math.nan
     initial_parameters = None
@@ -96,36 +136,26 @@ def main():
 
     print(simulation_params["priors"])
 
+    # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
-    aua_priors = {
-        "epsilon": simulation_params["priors"]["epsilon"],
-        "sigma": simulation_params["priors"]["sigma"],
-        "L": simulation_params["priors"]["L"]
-    }
-    aua_fixed = {
-        "Q": 0.0
-    }
+    # Build the model / models.
+    model = get_model('UA', data_set, property_types, simulation_params)
 
-    aua_model = TwoCenterLJModel(
-        aua_priors,
-        aua_fixed,
-        data_set,
-        property_types,
-        StollWerthSurrogate(data_set.molecular_weight),
-    )
+    # Draw the initial parameter values from the model priors.
+    initial_parameters = generate_initial_parameters(model)
 
+    # Run the simulation.
     simulation = MCMCSimulation(
-        model=aua_model,
+        model=model,
         warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
-        discard_warm_up_data=False,
+        discard_warm_up_data=True,
     )
-
-    initial_parameters = generate_initial_values(aua_model)
 
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
 
+    # Plot the output.
     for i in range(4):
         pyplot.plot(trace[:, i])
         pyplot.draw()
@@ -140,6 +170,12 @@ def main():
     pyplot.legend()
     pyplot.draw()
     pyplot.show()
+
+    os.makedirs('traces', exist_ok=True)
+
+    numpy.save(os.path.join('traces', "trace.npy"), trace)
+    numpy.save(os.path.join('traces', "log_p_trace.npy"), log_p_trace)
+    numpy.save(os.path.join('traces', "percent_dev_trace.npy"), percent_deviation_trace)
 
     # trace, logp_trace, percent_dev_trace, BAR_trace = rjmc_simulator.Report(
     #     USE_BAR=simulation_params["USE_BAR"]

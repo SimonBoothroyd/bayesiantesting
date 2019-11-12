@@ -22,7 +22,7 @@ class TwoCenterLJModel(Model):
         return 4
 
     def __init__(
-        self, prior_settings, fixed_parameters, reference_data_set, property_types, surrogate_model
+        self, name, prior_settings, fixed_parameters, reference_data_set, property_types, surrogate_model
     ):
         """Constructs a new `TwoCenterLJModel` model.
 
@@ -37,7 +37,7 @@ class TwoCenterLJModel(Model):
         surrogate_model: SurrogateModel
             The surrogate model to use when evaluating the likelihood function.
         """
-        super().__init__(prior_settings, fixed_parameters)
+        super().__init__(name, prior_settings, fixed_parameters)
 
         required_parameters = ["epsilon", "sigma", "L", "Q"]
         provided_parameters = [*prior_settings.keys(), *fixed_parameters.keys()]

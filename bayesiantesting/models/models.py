@@ -8,6 +8,11 @@ class Model:
     """
 
     @property
+    def name(self):
+        """str: The name of this model."""
+        return self._name
+
+    @property
     def n_trainable_parameters(self):
         """int: The number of trainable parameters within this model."""
         return len(self._prior_labels)
@@ -37,11 +42,13 @@ class Model:
         """list of str: The friendly names of the parameters within this model."""
         return self._prior_labels + self._fixed_labels
 
-    def __init__(self, priors, fixed_parameters):
+    def __init__(self, name, priors, fixed_parameters):
         """Constructs a new `MCMCModel` object.
 
         Parameters
         ----------
+        name: str
+            The name of this model.
         priors: dict of str and tuple of float
             The settings for each of the priors, whose keys are the friendly
             name of the parameter associated with the prior. There should be
@@ -50,6 +57,8 @@ class Model:
             The values of the fixed model parameters, whose keys of the name
             associated with the parameter.
         """
+        self._name = name
+
         self._priors = []
         self._prior_labels = []
 
