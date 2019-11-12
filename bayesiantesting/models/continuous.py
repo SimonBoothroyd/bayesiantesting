@@ -22,7 +22,13 @@ class TwoCenterLJModel(Model):
         return 4
 
     def __init__(
-        self, name, prior_settings, fixed_parameters, reference_data_set, property_types, surrogate_model
+        self,
+        name,
+        prior_settings,
+        fixed_parameters,
+        reference_data_set,
+        property_types,
+        surrogate_model,
     ):
         """Constructs a new `TwoCenterLJModel` model.
 
@@ -46,9 +52,13 @@ class TwoCenterLJModel(Model):
         extra_parameters = set(provided_parameters) - set(required_parameters)
 
         if len(missing_parameters) > 0:
-            raise ValueError(f"The {', '.join(missing_parameters)} parameters are required but were not provided.")
+            raise ValueError(
+                f"The {', '.join(missing_parameters)} parameters are required but were not provided."
+            )
         if len(extra_parameters) > 0:
-            raise ValueError(f"The {', '.join(extra_parameters)} parameters are not supported by this model.")
+            raise ValueError(
+                f"The {', '.join(extra_parameters)} parameters are not supported by this model."
+            )
 
         self._property_types = property_types
 
@@ -56,7 +66,9 @@ class TwoCenterLJModel(Model):
         self._reference_precisions = {}
 
         self._critical_temperature = reference_data_set.critical_temperature.value
-        self._critical_temperature = self._critical_temperature.to(unit.kelvin).magnitude
+        self._critical_temperature = self._critical_temperature.to(
+            unit.kelvin
+        ).magnitude
 
         for property_type in self._property_types:
 
@@ -104,7 +116,9 @@ class TwoCenterLJModel(Model):
 
             # Compute likelihood based on gaussian penalty function
             log_p += torch.sum(
-                torch.distributions.Normal(surrogate_values, precisions).log_prob(reference_values)
+                torch.distributions.Normal(surrogate_values, precisions).log_prob(
+                    reference_values
+                )
             ).item()
 
         return log_p
@@ -122,7 +136,9 @@ class TwoCenterLJModel(Model):
                 property_type, parameters, reference_data[:, 0]
             )
 
-            deviation_vector = ((reference_values - surrogate_values) / reference_values) ** 2
+            deviation_vector = (
+                (reference_values - surrogate_values) / reference_values
+            ) ** 2
             mean_percentage_deviation = np.sqrt(np.mean(deviation_vector)) * 100
 
             deviations[property_type] = mean_percentage_deviation

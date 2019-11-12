@@ -75,12 +75,16 @@ class Model:
             self._fixed_parameters.append(fixed_parameters[parameter_name])
             self._fixed_labels.append(parameter_name)
 
-        common_parameters = set(self._fixed_labels).intersection(set(self._prior_labels))
+        common_parameters = set(self._fixed_labels).intersection(
+            set(self._prior_labels)
+        )
 
         if len(common_parameters) > 0:
 
-            raise ValueError(f"The {', '.join(common_parameters)} have been flagged "
-                             f"as being both fixed and trainable.")
+            raise ValueError(
+                f"The {', '.join(common_parameters)} have been flagged "
+                f"as being both fixed and trainable."
+            )
 
     @staticmethod
     def _initialize_prior(settings):

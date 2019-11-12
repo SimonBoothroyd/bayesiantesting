@@ -58,7 +58,9 @@ class MCMCSimulation:
 
         trace = [np.copy(self._initial_values)]
         log_p_trace = [self.model.evaluate_log_posterior(self._initial_values)]
-        percent_deviation_trace = [self.model.compute_percentage_deviations(self._initial_values)]
+        percent_deviation_trace = [
+            self.model.compute_percentage_deviations(self._initial_values)
+        ]
 
         print(f"Markov Chain initialized values:", initial_parameters)
         print("==============================")
@@ -91,7 +93,9 @@ class MCMCSimulation:
 
             if acceptance:
                 move_acceptances[0, 0] += 1
-                new_percent_deviation = self.model.compute_percentage_deviations(new_params)
+                new_percent_deviation = self.model.compute_percentage_deviations(
+                    new_params
+                )
 
             if i < self.warm_up_steps and self._discard_warm_up_data:
 
@@ -120,13 +124,16 @@ class MCMCSimulation:
         log_p_trace = np.asarray(log_p_trace)
 
         percent_deviation_trace_arrays = {
-            label: np.zeros(len(percent_deviation_trace)) for label in percent_deviation_trace[0]
+            label: np.zeros(len(percent_deviation_trace))
+            for label in percent_deviation_trace[0]
         }
 
         for label in percent_deviation_trace_arrays:
 
             for index in range(len(percent_deviation_trace)):
-                percent_deviation_trace_arrays[label][index] = percent_deviation_trace[index][label]
+                percent_deviation_trace_arrays[label][index] = percent_deviation_trace[
+                    index
+                ][label]
 
         print("Simulation Done!")
         print("==============================")

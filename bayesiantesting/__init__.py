@@ -3,8 +3,9 @@ bayesiantesting
 A private space for testing out projects based on Bayesian methods
 """
 
-from ._version import get_versions
 from pint import UnitRegistry
+
+from ._version import get_versions
 
 # Set up pint.
 unit = UnitRegistry()

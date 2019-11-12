@@ -3,12 +3,11 @@ import os
 
 import numpy as np
 import yaml
-
-# Conversion constants
 from pkg_resources import resource_filename
 
 from bayesiantesting.datasets.nist import NISTDataType
 
+# Conversion constants
 k_B = 1.38065e-23  # [J/K]
 N_A = 6.02214e23  # [1/mol]
 m3_to_nm3 = 1e27

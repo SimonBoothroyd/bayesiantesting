@@ -74,17 +74,17 @@ def get_model(model_name, data_set, property_types, simulation_params):
     }
     fixed = {}
 
-    if model_name == 'AUA':
+    if model_name == "AUA":
 
         priors["L"] = simulation_params["priors"]["L"]
         fixed["Q"] = 0.0
 
-    elif model_name == 'AUA+Q':
+    elif model_name == "AUA+Q":
 
         priors["L"] = simulation_params["priors"]["L"]
         priors["Q"] = simulation_params["priors"]["Q"]
 
-    elif model_name == 'UA':
+    elif model_name == "UA":
 
         fixed["L"] = data_set.bond_length.to(unit.nanometer).magnitude
         fixed["Q"] = 0.0
@@ -140,7 +140,7 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model('UA', data_set, property_types, simulation_params)
+    model = get_model("UA", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
     initial_parameters = generate_initial_parameters(model)
@@ -171,11 +171,11 @@ def main():
     pyplot.draw()
     pyplot.show()
 
-    os.makedirs('traces', exist_ok=True)
+    os.makedirs("traces", exist_ok=True)
 
-    numpy.save(os.path.join('traces', "trace.npy"), trace)
-    numpy.save(os.path.join('traces', "log_p_trace.npy"), log_p_trace)
-    numpy.save(os.path.join('traces', "percent_dev_trace.npy"), percent_deviation_trace)
+    numpy.save(os.path.join("traces", "trace.npy"), trace)
+    numpy.save(os.path.join("traces", "log_p_trace.npy"), log_p_trace)
+    numpy.save(os.path.join("traces", "percent_dev_trace.npy"), percent_deviation_trace)
 
     # trace, logp_trace, percent_dev_trace, BAR_trace = rjmc_simulator.Report(
     #     USE_BAR=simulation_params["USE_BAR"]
