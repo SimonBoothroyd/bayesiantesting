@@ -27,6 +27,7 @@ dependencies:
     # PyMC3
   - mkl-service
   - pymc3
+  - arviz
 
     # PyTorch
   - pytorch
