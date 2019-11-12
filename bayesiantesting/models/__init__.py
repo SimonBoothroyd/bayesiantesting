@@ -1,3 +1,3 @@
-from .models import Model, TwoCenterLennardJones
+from .models import Model, ModelCollection
 
-__all__ = [Model, TwoCenterLennardJones]
+__all__ = [Model, ModelCollection]

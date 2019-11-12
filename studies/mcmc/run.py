@@ -5,12 +5,15 @@ Created on Thu Oct 31 14:42:37 2019
 
 @author: owenmadin
 """
+import math
+
+import numpy
 import yaml
 
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.kernels import MCMCSimulation
-from bayesiantesting.models import TwoCenterLennardJones
+from bayesiantesting.models.continuous import TwoCenterLJModel
 from bayesiantesting.surrogates import StollWerthSurrogate
 from matplotlib import pyplot
 
@@ -62,6 +65,30 @@ def prepare_data(simulation_params):
     return data_set, property_types
 
 
+def generate_initial_values(model):
+
+    initial_log_p = math.nan
+    initial_parameters = None
+
+    counter = 0
+
+    while math.isnan(initial_log_p) and counter < 1000:
+
+        initial_parameters = model.sample_priors()
+        initial_log_p = model.evaluate_log_posterior(initial_parameters)
+
+        counter += 1
+
+    if numpy.isnan(initial_log_p):
+
+        raise ValueError(
+            "The initial values could not be set without yielding "
+            "a NaN log posterior"
+        )
+
+    return initial_parameters
+
+
 def main():
 
     print("Parsing simulation params")
@@ -71,7 +98,7 @@ def main():
 
     data_set, property_types = prepare_data(simulation_params)
 
-    model = TwoCenterLennardJones(
+    model = TwoCenterLJModel(
         simulation_params["priors"],
         data_set,
         property_types,
@@ -85,15 +112,20 @@ def main():
         discard_warm_up_data=False,
     )
 
-    # print("Simulation Attributes:", rjmc_simulator.get_attributes())
-    initial_parameters, initial_log_p = simulation.generate_initial_values()
-
-    trace, log_p_trace = simulation.run(initial_parameters)
+    initial_parameters = generate_initial_values(model)
+    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
 
     pyplot.plot(trace)
     pyplot.show()
 
     pyplot.plot(log_p_trace)
+    pyplot.show()
+
+    for property_label in percent_deviation_trace:
+        pyplot.plot(percent_deviation_trace[property_label], label=property_label)
+
+    pyplot.legend()
+    pyplot.draw()
     pyplot.show()
 
     # trace, logp_trace, percent_dev_trace, BAR_trace = rjmc_simulator.Report(

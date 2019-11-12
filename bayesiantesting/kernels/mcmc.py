@@ -2,13 +2,11 @@
 Code to perform MCMC simulations on simple toy models.
 This code was originally authored by Owen Madin (github name ocmadin).
 """
-import math
 
 import numpy as np
-from tqdm import tqdm
-
 import torch
 import torch.distributions
+from tqdm import tqdm
 
 
 class MCMCSimulation:
@@ -54,60 +52,13 @@ class MCMCSimulation:
         self._initial_values = None
         self._initial_log_p = None
 
-    def generate_initial_values(self, initial_parameters=None):
-
-        initial_log_p = math.nan
-
-        if initial_parameters is not None:
-
-            assert len(initial_parameters) == self.model.n_total_parameters
-            initial_parameters = np.copy(initial_parameters)
-
-        else:
-
-            counter = 0
-
-            while math.isnan(initial_log_p) and counter < 1000:
-
-                initial_parameters = self.model.sample_priors()
-                initial_log_p = self.model.evaluate_log_posterior(initial_parameters)
-
-                counter += 1
-
-        initial_log_p = self.model.evaluate_log_posterior(initial_parameters)
-
-        if np.isnan(initial_log_p):
-
-            raise ValueError(
-                "The initial values could not be set without yielding "
-                "a NaN log posterior"
-            )
-
-        # initial_percent_deviation = utils.computePercentDeviations(
-        #     surrogate,
-        #     self.thermo_data_rhoL[:, 0],
-        #     self.thermo_data_Pv[:, 0],
-        #     self.thermo_data_SurfTens[:, 0],
-        #     initial_values,
-        #     self.thermo_data_rhoL[:, 1],
-        #     self.thermo_data_Pv[:, 1],
-        #     self.thermo_data_SurfTens[:, 1],
-        #     self.Tc_lit[0],
-        #     utils.rhol_hat_models,
-        #     utils.Psat_hat_models,
-        #     utils.SurfTens_hat_models,
-        #     utils.T_c_hat_models,
-        # )
-
-        return initial_parameters, initial_log_p
-
     def run(self, initial_parameters):
 
         self._initial_values = initial_parameters
 
         trace = [np.copy(self._initial_values)]
         log_p_trace = [self.model.evaluate_log_posterior(self._initial_values)]
-        # percent_dev_trace = [self.initial_percent_deviation]
+        percent_deviation_trace = [self.model.compute_percentage_deviations(self._initial_values)]
 
         print(f"Markov Chain initialized values:", initial_parameters)
         print("==============================")
@@ -129,43 +80,30 @@ class MCMCSimulation:
 
             current_params = trace[-1].copy()
             current_log_prob = log_p_trace[-1]
+            current_percent_deviation = percent_deviation_trace[-1]
 
             new_params, new_log_prob, acceptance = self._run_step(
                 current_params, proposal_scales, current_log_prob
             )
+            new_percent_deviation = current_percent_deviation
 
             move_proposals[0, 0] += 1
 
-            if acceptance == "True":
+            if acceptance:
                 move_acceptances[0, 0] += 1
+                new_percent_deviation = self.model.compute_percentage_deviations(new_params)
 
             if i < self.warm_up_steps and self._discard_warm_up_data:
 
                 log_p_trace[-1] = new_log_prob
                 trace[-1] = new_params
+                percent_deviation_trace[-1] = new_percent_deviation
 
             else:
 
                 log_p_trace.append(new_log_prob)
                 trace.append(new_params)
-
-            # percent_dev_trace.append(
-            #     utils.computePercentDeviations(
-            #         surrogate,
-            #         self.thermo_data_rhoL[:, 0],
-            #         self.thermo_data_Pv[:, 0],
-            #         self.thermo_data_SurfTens[:, 0],
-            #         self.trace[i + 1],
-            #         self.thermo_data_rhoL[:, 1],
-            #         self.thermo_data_Pv[:, 1],
-            #         self.thermo_data_SurfTens[:, 1],
-            #         self.Tc_lit[0],
-            #         utils.rhol_hat_models,
-            #         utils.Psat_hat_models,
-            #         utils.SurfTens_hat_models,
-            #         utils.T_c_hat_models,
-            #     )
-            # )
+                percent_deviation_trace.append(new_percent_deviation)
 
             if (not (i + 1) % self._tune_frequency) and (i < self.warm_up_steps):
 
@@ -180,12 +118,20 @@ class MCMCSimulation:
 
         trace = np.asarray(trace)
         log_p_trace = np.asarray(log_p_trace)
-        # percent_dev_trace = np.asarray(percent_dev_trace)
+
+        percent_deviation_trace_arrays = {
+            label: np.zeros(len(percent_deviation_trace)) for label in percent_deviation_trace[0]
+        }
+
+        for label in percent_deviation_trace_arrays:
+
+            for index in range(len(percent_deviation_trace)):
+                percent_deviation_trace_arrays[label][index] = percent_deviation_trace[index][label]
 
         print("Simulation Done!")
         print("==============================")
 
-        return trace, log_p_trace
+        return trace, log_p_trace, percent_deviation_trace_arrays
 
     def _run_step(self, current_params, proposal_scales, current_log_prob):
 
@@ -354,206 +300,6 @@ class MCMCSimulation:
     #         print("Saving Trajectories")
     #         print("==============================")
     #         self.write_traces(path)
-    #
-    # def get_attributes(self):
-    #     """Return attributes of RJMC system
-    #     """
-    #
-    #     return {
-    #         "compound": self.compound,
-    #         "properties": self.properties,
-    #         "T_range": self.T_range,
-    #         "n_points": self.n_points,
-    #         "steps": self.steps,
-    #         "swap_freq": self.swap_freq,
-    #         "biasing_factor": self.biasing_factor,
-    #     }
-    #
-    #
-    # def Report(self, plotting=False, USE_BAR=False):
-    #     print("Proposed Moves:")
-    #     print(np.sum(self.move_proposals))
-    #     print(self.move_proposals)
-    #     print("==============================")
-    #     print("Successful Moves:")
-    #     print(self.move_acceptances)
-    #     print("==============================")
-    #     prob_matrix = self.move_acceptances / self.move_proposals
-    #     print("Ratio of successful moves")
-    #     print(prob_matrix)
-    #     print("==============================")
-    #     transition_matrix = np.ones((3, 3))
-    #     transition_matrix[0, 1] = (
-    #         self.move_acceptances[0, 1] / np.sum(self.move_proposals, 1)[0]
-    #     )
-    #     transition_matrix[0, 2] = (
-    #         self.move_acceptances[0, 2] / np.sum(self.move_proposals, 1)[0]
-    #     )
-    #     transition_matrix[1, 0] = (
-    #         self.move_acceptances[1, 0] / np.sum(self.move_proposals, 1)[1]
-    #     )
-    #     transition_matrix[1, 2] = (
-    #         self.move_acceptances[1, 2] / np.sum(self.move_proposals, 1)[1]
-    #     )
-    #     transition_matrix[2, 1] = (
-    #         self.move_acceptances[2, 1] / np.sum(self.move_proposals, 1)[2]
-    #     )
-    #     transition_matrix[2, 0] = (
-    #         self.move_acceptances[2, 0] / np.sum(self.move_proposals, 1)[2]
-    #     )
-    #     transition_matrix[0, 0] = 1 - transition_matrix[0, 1] - transition_matrix[0, 2]
-    #     transition_matrix[1, 1] = 1 - transition_matrix[1, 0] - transition_matrix[1, 2]
-    #     transition_matrix[2, 2] = 1 - transition_matrix[2, 0] - transition_matrix[2, 1]
-    #     print("Transition Matrix:")
-    #     print(transition_matrix)
-    #     print("==============================")
-    #     self.transition_matrix = transition_matrix
-    #
-    #     self.trace_tuned = self.trace[self.tune_for + 1 :]
-    #     self.logp_trace_tuned = self.logp_trace[self.tune_for + 1 :]
-    #     self.percent_dev_trace_tuned = self.percent_dev_trace[self.tune_for + 1 :]
-    #
-    #     self.lit_params, self.lit_devs = utils.import_literature_values(
-    #         "two", self.compound
-    #     )
-    #     trace_equil = self.trace_tuned
-    #     logp_trace_equil = self.logp_trace_tuned
-    #     percent_dev_trace_equil = self.percent_dev_trace_tuned
-    #     self.prob_conf = None
-    #     try:
-    #         self.prob_conf = utils.compute_multinomial_confidence_intervals(trace_equil)
-    #     except pymbar.utils.ParameterError:
-    #         print("Cannot compute confidence intervals due to only sampling one model")
-    #
-    #     # Converts the array with number of model parameters into an array with
-    #     # the number of times there was 1 parameter or 2 parameters
-    #     model_count = np.array(
-    #         [
-    #             len(trace_equil[trace_equil[:, 0] == 0]),
-    #             len(trace_equil[trace_equil[:, 0] == 1]),
-    #             len(trace_equil[trace_equil[:, 0] == 2]),
-    #         ]
-    #     )
-    #
-    #     prob_0 = 1.0 * model_count[0] / (len(trace_equil))
-    #     print(
-    #         "Percent that  model 0 is sampled: " + str(prob_0 * 100.0)
-    #     )  # The percent that use 1 parameter model
-    #
-    #     prob_1 = 1.0 * model_count[1] / (len(trace_equil))
-    #     print(
-    #         "Percent that model 1 is sampled: " + str(prob_1 * 100.0)
-    #     )  # The percent that use two center UA LJ
-    #
-    #     prob_2 = 1.0 * model_count[2] / (len(trace_equil))
-    #     print(
-    #         "Percent that model 2 is sampled: " + str(prob_2 * 100.0)
-    #     )  # The percent that use two center UA LJ
-    #     print("==============================")
-    #     self.prob = [prob_0, prob_1, prob_2]
-    #
-    #     self.Exp_ratio = [prob_0 / prob_1, prob_0 / prob_2]
-    #
-    #     if self.prob_conf is not None:
-    #         print("95% confidence intervals for probability", self.prob_conf)
-    #
-    #     self.unbiased_prob = utils.unbias_simulation(
-    #         np.asarray(self.biasing_factor), np.asarray(self.prob)
-    #     )
-    #     print("Unbiased probabilities")
-    #
-    #     print("Experimental sampling ratio:", self.Exp_ratio)
-    #     print("==============================")
-    #
-    #     print("Detailed Balance")
-    #
-    #     # These sets of numbers should be roughly equal to each other (If both
-    #     # models are sampled).  If not, big problem
-    #
-    #     print(prob_0 * transition_matrix[0, 1])
-    #     print(prob_1 * transition_matrix[1, 0])
-    #
-    #     print(prob_0 * transition_matrix[0, 2])
-    #     print(prob_2 * transition_matrix[2, 0])
-    #
-    #     print(prob_1 * transition_matrix[1, 2])
-    #     print(prob_2 * transition_matrix[2, 1])
-    #     print("==============================")
-    #     trace_model_0 = []
-    #     trace_model_1 = []
-    #     trace_model_2 = []
-    #     """
-    #     log_trace_0=[]
-    #     log_trace_1=[]
-    #     log_trace_2=[]
-    #     """
-    #     for i in range(np.size(trace_equil, 0)):
-    #         if trace_equil[i, 0] == 0:
-    #             trace_model_0.append(trace_equil[i])
-    #             # log_trace_0.append(logp_trace[i])
-    #         elif trace_equil[i, 0] == 1:
-    #             trace_model_1.append(trace_equil[i])
-    #             # log_trace_1.append(logp_trace[i])
-    #         elif trace_equil[i, 0] == 2:
-    #             trace_model_2.append(trace_equil[i])
-    #             # log_trace_2.append(logp_trace[i])
-    #
-    #     self.trace_model_0 = np.asarray(trace_model_0)
-    #     self.trace_model_1 = np.asarray(trace_model_1)
-    #     self.trace_model_2 = np.asarray(trace_model_2)
-    #
-    #     self.BAR_trace = np.asarray(self.BAR_trace)
-    #     if USE_BAR is True:
-    #         self.BF_BAR = self.compute_BAR()
-    #         print("BAR Bayes factor estimates")
-    #         print(self.BF_BAR)
-    #
-    #     else:
-    #         self.BF_BAR = None
-    #
-    #     if plotting:
-    #
-    #         utils.create_param_triangle_plot_4D(
-    #             self.trace_model_0,
-    #             "trace_model_0",
-    #             self.lit_params,
-    #             self.properties,
-    #             self.compound,
-    #             self.steps,
-    #         )
-    #         utils.create_param_triangle_plot_4D(
-    #             self.trace_model_1,
-    #             "trace_model_1",
-    #             self.lit_params,
-    #             self.properties,
-    #             self.compound,
-    #             self.steps,
-    #         )
-    #         utils.create_param_triangle_plot_4D(
-    #             self.trace_model_2,
-    #             "trace_model_2",
-    #             self.lit_params,
-    #             self.properties,
-    #             self.compound,
-    #             self.steps,
-    #         )
-    #
-    #         utils.create_percent_dev_triangle_plot(
-    #             percent_dev_trace_equil,
-    #             "percent_dev_trace",
-    #             self.lit_devs,
-    #             self.prob,
-    #             self.properties,
-    #             self.compound,
-    #             self.steps,
-    #         )
-    #
-    #     return (
-    #         self.trace_tuned,
-    #         self.logp_trace_tuned,
-    #         self.percent_dev_trace_tuned,
-    #         self.BAR_trace,
-    #     )
     #
     # def write_datapoints(self, path):
     #

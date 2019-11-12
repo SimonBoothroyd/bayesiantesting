@@ -89,61 +89,6 @@ def create_map(aua_path, auaq_path):
     return aua_max_like, auaq_max_like
 
 
-# def computePercentDeviations(
-#     compound_2CLJ,
-#     temp_values_rhol,
-#     temp_values_psat,
-#     temp_values_surftens,
-#     parameter_values,
-#     rhol_data,
-#     psat_data,
-#     surftens_data,
-#     T_c_data,
-#     rhol_hat_models,
-#     Psat_hat_models,
-#     SurfTens_hat_models,
-#     T_c_hat_models,
-# ):
-#
-#     rhol_model = rhol_hat_models(compound_2CLJ, temp_values_rhol, *parameter_values)
-#     psat_model = Psat_hat_models(compound_2CLJ, temp_values_psat, *parameter_values)
-#     if len(surftens_data) != 0:
-#         surftens_model = SurfTens_hat_models(
-#             compound_2CLJ, temp_values_surftens, *parameter_values
-#         )
-#         surftens_deviation_vector = (
-#             (surftens_data - surftens_model) / surftens_data
-#         ) ** 2
-#         surftens_mean_relative_deviation = (
-#             np.sqrt(
-#                 np.sum(surftens_deviation_vector) / np.size(surftens_deviation_vector)
-#             )
-#             * 100
-#         )
-#     else:
-#         surftens_mean_relative_deviation = 0
-#     T_c_model = T_c_hat_models(compound_2CLJ, *parameter_values)
-#
-#     rhol_deviation_vector = ((rhol_data - rhol_model) / rhol_data) ** 2
-#     psat_deviation_vector = ((psat_data - psat_model) / psat_data) ** 2
-#
-#     T_c_relative_deviation = (T_c_data - T_c_model) * 100 / T_c_data
-#
-#     rhol_mean_relative_deviation = (
-#         np.sqrt(np.sum(rhol_deviation_vector) / np.size(rhol_deviation_vector)) * 100
-#     )
-#     psat_mean_relative_deviation = (
-#         np.sqrt(np.sum(psat_deviation_vector) / np.size(psat_deviation_vector)) * 100
-#     )
-#
-#     return (
-#         rhol_mean_relative_deviation,
-#         psat_mean_relative_deviation,
-#         surftens_mean_relative_deviation,
-#         T_c_relative_deviation,
-#     )
-
-
 def create_param_triangle_plot_4D(
     trace, tracename, lit_values, properties, compound, n_iter, file_loc=None
 ):  # ,sig_prior,eps_prior,L_prior,Q_prior):
