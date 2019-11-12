@@ -1,0 +1,46 @@
+name: CI
+
+on: [push]
+
+jobs:
+
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+
+      matrix:
+        os: [macOS-latest, ubuntu-latest]
+        python-version: [3.6, 3.7]
+
+    steps:
+
+      - uses: actions/checkout@v1
+      - name: Additional info about the build
+        run: |
+          uname -a
+          df -h
+          ulimit -a
+      - name: Install the Python environment
+        run: |
+          source devtools/scripts/install_miniconda.sh
+          python -V
+        env:
+          OPERATING_SYSTEM: ${{ matrix.os }}
+      - name: Create test environment for package
+        run: |
+          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate
+          python devtools/scripts/create_conda_env.py -n=test -p=${{ matrix.python-version }} devtools/conda-envs/test_env.yaml
+      - name: Install package
+        run: |
+          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate test
+          python setup.py develop --no-deps
+      - name: Run tests
+        run: |
+          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate test
+          pytest -v --cov=kinoml kinoml/tests/
+      - name: Code coverage
+        run: |
+          eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate test
+          codecov
