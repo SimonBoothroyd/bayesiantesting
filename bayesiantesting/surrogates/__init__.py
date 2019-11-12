@@ -1,3 +1,3 @@
-from .surrogates import TwoCenterLennardJones
+from .surrogates import StollWerthSurrogate, SurrogateModel
 
-__all__ = [TwoCenterLennardJones]
+__all__ = [StollWerthSurrogate, SurrogateModel]

@@ -51,7 +51,7 @@ def main():
 
     print("Simulation Attributes:", rjmc_simulator.get_attributes())
 
-    compound_2CLJ = surrogates.TwoCenterLennardJones(rjmc_simulator.molecular_weight)
+    compound_2CLJ = surrogates.TwoCenterLJModel(rjmc_simulator.molecular_weight)
     rjmc_simulator.optimum_bounds = simulation_params["opt_bounds"]
     rjmc_simulator.gen_Tmatrix(prior, compound_2CLJ)
     # print(rjmc_simulator.opt_params_AUA)

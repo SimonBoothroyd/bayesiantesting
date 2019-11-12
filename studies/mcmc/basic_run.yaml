@@ -1,4 +1,4 @@
-USE_BAR: true
+USE_BAR: false
 biasing_factor:
 - 0
 - 0
@@ -30,7 +30,7 @@ priors:
 properties: rhol+Psat
 save_traj: true
 simulation_type: Basic
-steps: 2000
+steps: 100000
 swap_freq: 0.1
 trange:
 - 0.55

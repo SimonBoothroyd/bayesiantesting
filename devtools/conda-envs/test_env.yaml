@@ -1,5 +1,7 @@
 name: test
 channels:
+  - conda-forge
+  - pytorch
 dependencies:
     # Base depends
   - python =3.7
@@ -21,6 +23,15 @@ dependencies:
   - statsmodels
   - pint
   - uncertainties
+
+    # PyMC3
+  - mkl-service
+  - pymc3
+
+    # PyTorch
+  - pytorch
+  - torchvision
+  - cpuonly
 
     # Pip-only installs
   #- pip:
