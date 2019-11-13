@@ -102,11 +102,17 @@ class Model:
         elif prior_type == "gamma":
 
             if not np.isclose(prior_values[1], 0.0):
-                # The loc argument is not supported in PyMC3.
+                # The loc argument is not supported in PyTorch.
                 raise NotImplementedError()
 
             prior = torch.distributions.Gamma(
                 prior_values[0], rate=1.0 / prior_values[2]
+            )
+
+        elif prior_type == "normal":
+
+            prior = torch.distributions.Normal(
+                prior_values[0], prior_values[1]
             )
 
         else:
@@ -217,6 +223,11 @@ class ModelCollection:
     """
 
     @property
+    def name(self):
+        """str: The name of this model."""
+        return self._name
+
+    @property
     def models(self):
         """tuple of Model: The models which belong to this collection."""
         return self._models
@@ -226,16 +237,22 @@ class ModelCollection:
         """int: The number models which belong to this collection."""
         return len(self._models)
 
-    def __init__(self, models):
+    def __init__(self, name, models):
         """Initializes self.
 
         Parameters
         ----------
-        models: list of Model
+        name: str
+            The name of this collection.
+        models: List of Model
             The models which belong to this collection.
         """
+
+        # Make sure there are no models with duplicate names.
+        assert len(set(model.name for model in models)) == len(models)
+
+        self.__name = name
         self._models = tuple(*models)
-        raise NotImplementedError()
 
     def __len__(self):
         return self.n_models
