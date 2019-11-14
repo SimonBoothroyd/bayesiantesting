@@ -5,16 +5,19 @@ Created on Thu Oct 31 14:42:37 2019
 
 @author: owenmadin
 """
+
 import math
 import os
 
 import numpy
+import torch
 import yaml
 
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
-from bayesiantesting.kernels import MCMCSimulation
+from bayesiantesting.kernels.rjmc import RJMCSimulation
 from bayesiantesting.models.continuous import TwoCenterLJModel
+from bayesiantesting.models.discrete import TwoCenterLJModelCollection
 from bayesiantesting.surrogates import StollWerthSurrogate
 from matplotlib import pyplot
 
@@ -131,56 +134,70 @@ def generate_initial_parameters(model):
 
 def main():
 
-    print("Parsing simulation params")
+    # Load in the simulation parameters.
     simulation_params = parse_input_yaml("basic_run.yaml")
-
-    print(simulation_params["priors"])
 
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("AUA+Q", data_set, property_types, simulation_params)
+    sub_models = [
+        get_model("AUA", data_set, property_types, simulation_params),
+        get_model("AUA+Q", data_set, property_types, simulation_params),
+        get_model("UA", data_set, property_types, simulation_params),
+    ]
+
+    model_collection = TwoCenterLJModelCollection("2CLJ Models", sub_models)
 
     # Draw the initial parameter values from the model priors.
-    initial_parameters = generate_initial_parameters(model)
+    initial_model_index = torch.randint(len(sub_models), (1,)).item()
+    initial_parameters = generate_initial_parameters(sub_models[initial_model_index])
 
-    # Run the simulation.
-    simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.2),
+    simulation = RJMCSimulation(
+        model_collection=model_collection,
+        warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
+        swap_frequency=simulation_params["swap_freq"],
     )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
+    trace, log_p_trace, percent_deviation_trace = simulation.run(
+        initial_parameters, initial_model_index
+    )
 
     # Plot the output.
-    for i in range(4):
-        pyplot.plot(trace[:, i + 1])
-        pyplot.draw()
-        pyplot.show()
-
-        pyplot.hist(trace[:, i + 1])
-        pyplot.draw()
-        pyplot.show()
-
     pyplot.plot(log_p_trace)
     pyplot.show()
 
-    for property_label in percent_deviation_trace:
-        pyplot.plot(percent_deviation_trace[property_label], label=property_label)
-
-    pyplot.legend()
-    pyplot.draw()
-    pyplot.show()
-
+    # Save the traces to disk.
     os.makedirs("traces", exist_ok=True)
 
     numpy.save(os.path.join("traces", "trace.npy"), trace)
     numpy.save(os.path.join("traces", "log_p_trace.npy"), log_p_trace)
     numpy.save(os.path.join("traces", "percent_dev_trace.npy"), percent_deviation_trace)
 
+    # rjmc_simulator = rjmc.RJMCSimulation(
+    #     simulation_params["compound"],
+    #     simulation_params["trange"],
+    #     simulation_params["properties"],
+    #     simulation_params["number_data_points"],
+    #     simulation_params["steps"],
+    #     simulation_params["swap_freq"],
+    #     simulation_params["biasing_factor"],
+    #     simulation_params["optimum_matching"],
+    # )
+    #
+    # rjmc_simulator.prepare_data()
+    #
+    # print("Simulation Attributes:", rjmc_simulator.get_attributes())
+    #
+    # compound_2CLJ = surrogates.TwoCenterLJModel(rjmc_simulator.molecular_weight)
+    # rjmc_simulator.optimum_bounds = simulation_params["opt_bounds"]
+    # rjmc_simulator.gen_Tmatrix(prior, compound_2CLJ)
+    # # print(rjmc_simulator.opt_params_AUA)
+    # rjmc_simulator.set_initial_state(prior, compound_2CLJ)
+    #
+    # rjmc_simulator.RJMC_Outerloop(prior, compound_2CLJ)
     # trace, logp_trace, percent_dev_trace, BAR_trace = rjmc_simulator.Report(
     #     USE_BAR=simulation_params["USE_BAR"]
     # )

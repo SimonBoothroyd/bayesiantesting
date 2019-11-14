@@ -32,6 +32,7 @@ dependencies:
   - pytorch
   - torchvision
   - cpuonly
+  - autograd
 
     # Pip-only installs
   #- pip:

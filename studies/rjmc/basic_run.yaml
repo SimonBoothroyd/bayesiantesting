@@ -30,7 +30,7 @@ priors:
 properties: rhol+Psat
 save_traj: true
 simulation_type: Basic
-steps: 2000
+steps: 50000
 swap_freq: 0.1
 trange:
 - 0.55
