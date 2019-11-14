@@ -130,7 +130,7 @@ class RJMCSimulation(MCMCSimulation):
             proposed_model_index, proposed_parameters
         )
 
-        jacobian = torch.prod(jacobian_array)
+        jacobian = np.prod(jacobian_array)
         transition_probability = self._model_collection.transition_probabilities(
             current_model_index, proposed_model_index
         )
