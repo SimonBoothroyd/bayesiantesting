@@ -46,7 +46,13 @@ class RJMCSimulation(MCMCSimulation):
         self._swap_frequency = swap_frequency
 
     def _run_step(
-        self, current_parameters, current_model_index, proposal_scales, current_log_p
+        self,
+        current_parameters,
+        current_model_index,
+        proposal_scales,
+        current_log_p,
+        move_proposals,
+        move_acceptances,
     ):
 
         proposed_parameters = current_parameters.copy()
@@ -88,11 +94,15 @@ class RJMCSimulation(MCMCSimulation):
         # Apply the acceptance criteria.
         acceptance = self._accept_reject(alpha)
 
+        move_proposals[current_model_index, proposed_model_index] += 1
+
         if acceptance:
 
             new_log_p = proposed_log_p
             new_params = proposed_parameters
             new_model_index = proposed_model_index
+
+            move_acceptances[current_model_index, new_model_index] += 1
 
         else:
 

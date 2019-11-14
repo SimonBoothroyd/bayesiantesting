@@ -140,7 +140,7 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("UA", data_set, property_types, simulation_params)
+    model = get_model("AUA+Q", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
     initial_parameters = generate_initial_parameters(model)
@@ -148,7 +148,7 @@ def main():
     # Run the simulation.
     simulation = MCMCSimulation(
         model_collection=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.1),
+        warm_up_steps=int(simulation_params["steps"] * 0.2),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
     )
@@ -157,7 +157,11 @@ def main():
 
     # Plot the output.
     for i in range(4):
-        pyplot.plot(trace[:, i])
+        pyplot.plot(trace[:, i + 1])
+        pyplot.draw()
+        pyplot.show()
+
+        pyplot.hist(trace[:, i + 1])
         pyplot.draw()
         pyplot.show()
 

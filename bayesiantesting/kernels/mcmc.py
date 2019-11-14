@@ -143,19 +143,22 @@ class MCMCSimulation:
 
             # Propose the new state.
             new_parameters, new_model_index, new_log_p, acceptance = self._run_step(
-                current_parameters, current_model_index, proposal_scales, current_log_p,
+                current_parameters,
+                current_model_index,
+                proposal_scales,
+                current_log_p,
+                move_proposals,
+                move_acceptances,
             )
             new_percent_deviation = current_percent_deviation
 
-            # Update the bookkeeping.
-            move_proposals[current_model_index, new_model_index] += 1
-
             if acceptance:
-                move_acceptances[current_model_index, new_model_index] += 1
+
                 new_percent_deviation = self._model_collection.models[
                     new_model_index
                 ].compute_percentage_deviations(new_parameters)
 
+            # Update the bookkeeping.
             trace[i + 1][0] = new_model_index
             trace[i + 1][1:] = new_parameters
 
@@ -203,10 +206,18 @@ class MCMCSimulation:
         print(f"Markov Chain final values:", trace[-1])
         print("==============================")
 
+        self._print_statistics(move_proposals, move_acceptances)
+
         return trace, log_p_trace, percent_deviation_trace_arrays
 
     def _run_step(
-        self, current_parameters, current_model_index, proposal_scales, current_log_p
+        self,
+        current_parameters,
+        current_model_index,
+        proposal_scales,
+        current_log_p,
+        move_proposals,
+        move_acceptances,
     ):
 
         proposed_parameters = current_parameters.copy()
@@ -218,10 +229,14 @@ class MCMCSimulation:
 
         acceptance = self._accept_reject(alpha)
 
+        move_proposals[current_model_index, current_model_index] += 1
+
         if acceptance:
 
             new_log_p = proposed_log_p
             new_params = proposed_parameters
+
+            move_acceptances[current_model_index, current_model_index] += 1
 
         else:
 
@@ -258,22 +273,53 @@ class MCMCSimulation:
     @staticmethod
     def _tune_proposals(move_proposals, move_acceptances, proposal_scales):
 
-        # print(np.sum(self.move_proposals))
         acceptance_rate = np.sum(move_acceptances) / np.sum(move_proposals)
 
-        # print(acceptance_rate)
-
         if acceptance_rate < 0.2:
-
             proposal_scales *= 0.9
-            # print('Yes')
-
         elif acceptance_rate > 0.5:
-
             proposal_scales *= 1.1
-            # print('No')
 
         return proposal_scales
+
+    def _print_statistics(self, move_proposals, move_acceptances):
+
+        print("Proposed Moves:")
+
+        print(np.sum(move_proposals))
+        print(move_proposals)
+
+        print("==============================")
+        print("Successful Moves:")
+        print(move_acceptances)
+
+        print("==============================")
+
+        prob_matrix = move_acceptances / move_proposals
+
+        print("Ratio of successful moves")
+        print(prob_matrix)
+        print("==============================")
+
+        transition_matrix = np.ones(
+            (self._model_collection.n_models, self._model_collection.n_models)
+        )
+
+        for i in range(self._model_collection.n_models):
+
+            for j in range(self._model_collection.n_models):
+
+                if i == j:
+                    continue
+
+                transition_matrix[i, i] -= transition_matrix[i, j]
+                transition_matrix[i, j] = (
+                    move_acceptances[i, j] / np.sum(move_proposals, 1)[i]
+                )
+
+        print("Transition Matrix:")
+        print(transition_matrix)
+        print("==============================")
 
     # def write_output(self, prior_dict, tag=None, save_traj=False):
     #
@@ -379,11 +425,11 @@ class MCMCSimulation:
     #
     # def write_simulation_results(self, path):
     #     results = {
-    #         "Proposed Moves": self.move_proposals,
+    #         "Proposed Moves": move_proposals,
     #         "Tuning Frequency": self.tune_freq,
     #         "Tuning Length": self.tune_for,
     #         "Final Move SD": self.prop_sd,
-    #         "Accepted Moves": self.move_acceptances,
+    #         "Accepted Moves": move_acceptances,
     #         "Transition Matrix": self.transition_matrix,
     #         "Model Probabilities": self.prob,
     #         "Timestamp": str(datetime.today()),
