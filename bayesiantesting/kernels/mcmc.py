@@ -16,11 +16,8 @@ class MCMCSimulation:
 
     @property
     def model(self):
-        """Model or ModelCollection: The model being simulated.
+        """ModelCollection: The model being simulated.
         """
-        if isinstance(self._model, ModelCollection) and self._model.n_models == 1:
-            return self._model.models[0]
-
         return self._model
 
     def __init__(
@@ -35,7 +32,7 @@ class MCMCSimulation:
 
         Parameters
         ----------
-        model: Model
+        model: Model or ModelCollection
             The model whose posterior should be sampled.
         warm_up_steps: int
             The number of warm-up steps to take. During this time all
@@ -68,16 +65,50 @@ class MCMCSimulation:
         self._initial_model_index = None
         self._initial_log_p = None
 
+    def _validate_parameter_shapes(self, initial_parameters, initial_model_index):
+
+        if initial_model_index < 0 or initial_model_index >= self._model.n_models:
+
+            raise ValueError(f'The model index was outside the allowed range '
+                             f'[0, {self._model.n_models})')
+
+        maximum_n_parameters = 0
+
+        for model in self._model.models:
+            maximum_n_parameters = max(maximum_n_parameters, model.n_total_parameters)
+
+        if len(initial_parameters) != maximum_n_parameters:
+
+            raise ValueError(f'The initial parameters vector is too small '
+                             f'{len(initial_parameters)} to store the maximum '
+                             f'number of the parameters from across all models '
+                             f'({maximum_n_parameters}).')
+
     def run(self, initial_parameters, initial_model_index=0):
+
+        # Make sure the parameters are the correct shape for the
+        # specified model.
+        self._validate_parameter_shapes(initial_parameters, initial_model_index)
 
         self._initial_values = initial_parameters
         self._initial_model_index = initial_model_index
 
-        trace = [np.copy(self._initial_values)]
-        log_p_trace = [self.model.evaluate_log_posterior(self._initial_values)]
-        percent_deviation_trace = [
-            self.model.compute_percentage_deviations(self._initial_values)
-        ]
+        initial_model = self.model.models[initial_model_index]
+
+        initial_log_p = initial_model.evaluate_log_posterior(self._initial_values)
+        initial_deviations = initial_model.compute_percentage_deviations(self._initial_values)
+
+        # Initialize the trace vectors
+        total_steps = self.steps + self.warm_up_steps
+
+        trace = np.zeros((total_steps + 1, len(self._initial_values) + 1))
+        trace[0, 0] = self._initial_model_index
+        trace[0, 1:] = self._initial_values
+
+        log_p_trace = np.zeros(total_steps + 1)
+        log_p_trace[0] = initial_log_p
+
+        percent_deviation_trace = [initial_deviations]
 
         print(f"Markov Chain initialized values:", initial_parameters)
         print("==============================")
@@ -85,45 +116,43 @@ class MCMCSimulation:
         print("Initial log posterior:", log_p_trace[-1])
         print("==============================")
 
-        move_proposals = np.zeros((1, 1))
-        move_acceptances = np.zeros((1, 1))
+        move_proposals = np.zeros((self._model.n_models, self._model.n_models))
+        move_acceptances = np.zeros((self._model.n_models, self._model.n_models))
 
         proposal_scales = np.asarray(self._initial_values) / 100
 
         print("Initializing Simulation...")
-        if self.warm_up_steps > 0:
-            print("Tuning Proposals...")
         print("==============================")
 
         for i in tqdm(range(self.warm_up_steps + self.steps)):
 
-            current_params = trace[-1].copy()
-            current_log_prob = log_p_trace[-1]
-            current_percent_deviation = percent_deviation_trace[-1]
+            current_model_index = trace[i][0]
+            current_parameters = trace[i][1:]
 
-            new_params, new_log_prob, acceptance = self._run_step(
-                current_params, proposal_scales, current_log_prob
+            current_log_prob = log_p_trace[i]
+            current_percent_deviation = percent_deviation_trace[i]
+
+            # Propose the new state.
+            new_parameters, new_model_index, new_log_p, acceptance = self._run_step(
+                current_parameters, current_model_index, proposal_scales, current_log_prob
             )
             new_percent_deviation = current_percent_deviation
 
-            move_proposals[0, 0] += 1
+            # Update the bookkeeping.
+            move_proposals[current_model_index, new_model_index] += 1
 
             if acceptance:
-                move_acceptances[0, 0] += 1
-                new_percent_deviation = self.model.compute_percentage_deviations(
-                    new_params
+                move_acceptances[current_model_index, new_model_index] += 1
+                new_percent_deviation = self.model.models[new_model_index].compute_percentage_deviations(
+                    new_parameters
                 )
 
-            if i < self.warm_up_steps and self._discard_warm_up_data:
+            trace[i + 1][0] = new_model_index
+            trace[i + 1][1:] = new_parameters
 
-                log_p_trace[-1] = new_log_prob
-                trace[-1] = new_params
-                percent_deviation_trace[-1] = new_percent_deviation
+            log_p_trace[i + 1] = new_log_p
 
-            else:
-
-                log_p_trace.append(new_log_prob)
-                trace.append(new_params)
+            if i > self.warm_up_steps or not self._discard_warm_up_data:
                 percent_deviation_trace.append(new_percent_deviation)
 
             if (not (i + 1) % self._tune_frequency) and (i < self.warm_up_steps):
@@ -134,11 +163,14 @@ class MCMCSimulation:
 
             if i == self.warm_up_steps:
 
-                move_proposals = np.zeros((1, 1))
-                move_acceptances = np.zeros((1, 1))
+                move_proposals = np.zeros((self._model.n_models, self._model.n_models))
+                move_acceptances = np.zeros((self._model.n_models, self._model.n_models))
 
-        trace = np.asarray(trace)
-        log_p_trace = np.asarray(log_p_trace)
+                if self._discard_warm_up_data:
+
+                    # Discard any warm-up data.
+                    trace = trace[i + 1:]
+                    log_p_trace = log_p_trace[i + 1:]
 
         percent_deviation_trace_arrays = {
             label: np.zeros(len(percent_deviation_trace))
