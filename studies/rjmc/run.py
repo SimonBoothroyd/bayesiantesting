@@ -144,26 +144,26 @@ def main():
     sub_models = [
         get_model("AUA", data_set, property_types, simulation_params),
         get_model("AUA+Q", data_set, property_types, simulation_params),
-        get_model("UA", data_set, property_types, simulation_params)
+        get_model("UA", data_set, property_types, simulation_params),
     ]
 
-    model = TwoCenterLJModelCollection('2CLJ Models', sub_models)
+    model_collection = TwoCenterLJModelCollection("2CLJ Models", sub_models)
 
     # Draw the initial parameter values from the model priors.
     initial_model_index = torch.randint(len(sub_models), (1,)).item()
     initial_parameters = generate_initial_parameters(sub_models[initial_model_index])
 
     simulation = RJMCSimulation(
-        model=model,
+        model_collection=model_collection,
         warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
         swap_frequency=simulation_params["swap_freq"],
-        optimum_matching=simulation_params["optimum_matching"],
-        optimum_bounds="Normal"
     )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters, initial_model_index)
+    trace, log_p_trace, percent_deviation_trace = simulation.run(
+        initial_parameters, initial_model_index
+    )
 
     # Plot the output.
     pyplot.plot(log_p_trace)

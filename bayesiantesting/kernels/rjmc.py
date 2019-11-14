@@ -17,7 +17,7 @@ class RJMCSimulation(MCMCSimulation):
 
     def __init__(
         self,
-        model,
+        model_collection,
         warm_up_steps=100000,
         steps=100000,
         tune_frequency=5000,
@@ -30,18 +30,26 @@ class RJMCSimulation(MCMCSimulation):
         swap_frequency: float
             The percentage of times the simulation tries to jump between models.
         """
-        super().__init__(
-            model, warm_up_steps, steps, tune_frequency, discard_warm_up_data
-        )
-
-        if not isinstance(model, ModelCollection):
+        if not isinstance(model_collection, ModelCollection):
             raise ValueError("The model must be a `ModelCollection`.")
+
+        if not model_collection.n_models > 1:
+            raise ValueError(
+                "The model collection must contain at least two "
+                "sub-models to jump between."
+            )
+
+        super().__init__(
+            model_collection, warm_up_steps, steps, tune_frequency, discard_warm_up_data
+        )
 
         self._swap_frequency = swap_frequency
 
-    def _run_step(self, current_params, current_model_index, proposal_scales, current_log_prob):
+    def _run_step(
+        self, current_parameters, current_model_index, proposal_scales, current_log_p
+    ):
 
-        proposed_params = current_params.copy()
+        proposed_parameters = current_parameters.copy()
         proposed_model_index = int(current_model_index)
 
         random_move = torch.rand((1,)).item()
@@ -50,15 +58,15 @@ class RJMCSimulation(MCMCSimulation):
 
             # Propose a cross-model move.
             (
-                proposed_params,
-                proposed_log_prob,
+                proposed_parameters,
+                proposed_log_p,
                 proposed_model_index,
                 jacobian,
                 transition_probability,
-            ) = self.model_proposal(proposed_params, proposed_model_index)
+            ) = self.model_proposal(proposed_parameters, proposed_model_index)
 
             alpha = (
-                (proposed_log_prob - current_log_prob)
+                (proposed_log_p - current_log_p)
                 + np.log(jacobian)
                 + np.log(transition_probability)
             )
@@ -66,57 +74,61 @@ class RJMCSimulation(MCMCSimulation):
         else:
 
             # Propose an in-model move.
-            proposed_params = current_params.copy()
-
-            proposed_params, proposed_log_prob = self.parameter_proposal(
-                proposed_params, proposal_scales
+            proposed_parameters, proposed_log_p = self.parameter_proposal(
+                proposed_parameters, proposed_model_index, proposal_scales
             )
-            alpha = proposed_log_prob - current_log_prob
+            alpha = proposed_log_p - current_log_p
 
         # Check for NaNs in the proposed state.
-        if proposed_log_prob == math.nan:
+        if proposed_log_p == math.nan:
 
             alpha = -math.inf
-            proposed_log_prob = -math.inf
+            proposed_log_p = -math.inf
 
         # Apply the acceptance criteria.
         acceptance = self._accept_reject(alpha)
 
         if acceptance:
 
-            new_log_prob = proposed_log_prob
-            new_params = proposed_params
+            new_log_p = proposed_log_p
+            new_params = proposed_parameters
             new_model_index = proposed_model_index
 
         else:
 
-            new_log_prob = current_log_prob
-            new_params = current_params
+            new_log_p = current_log_p
+            new_params = current_parameters
             new_model_index = current_model_index
 
-        return new_params, new_model_index, new_log_prob, acceptance
+        return new_params, new_model_index, new_log_p, acceptance
 
-    def model_proposal(self, current_params, current_model_index):
+    def model_proposal(self, current_parameters, current_model_index):
 
         proposed_model_index = int(current_model_index)
 
         # Propose new model to jump to
         while proposed_model_index == current_model_index:
-            proposed_model_index = torch.randint(self.model.n_models, (1,)).item()
+            proposed_model_index = torch.randint(
+                self._model_collection.n_models, (1,)
+            ).item()
 
-        _, proposed_parameters, jacobian_array = self.model.map_parameters(
-            current_params, current_model_index, proposed_model_index
+        _, proposed_parameters, jacobian_array = self._model_collection.map_parameters(
+            current_parameters, current_model_index, proposed_model_index
         )
 
-        proposed_log_prob = self.model.evaluate_log_posterior(proposed_model_index, proposed_parameters)
+        proposed_log_p = self._model_collection.evaluate_log_posterior(
+            proposed_model_index, proposed_parameters
+        )
 
         jacobian = torch.prod(jacobian_array)
-        transition_probability = self.model.transition_probabilities(current_model_index, proposed_model_index)
+        transition_probability = self._model_collection.transition_probabilities(
+            current_model_index, proposed_model_index
+        )
 
         # Return values of jacobian in order to properly calculate accept/reject
         return (
             proposed_parameters,
-            proposed_log_prob,
+            proposed_log_p,
             proposed_model_index,
             jacobian,
             transition_probability,

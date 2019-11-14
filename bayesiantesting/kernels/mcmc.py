@@ -14,15 +14,9 @@ class MCMCSimulation:
     """ Builds an object that runs an MCMC simulation.
     """
 
-    @property
-    def model(self):
-        """ModelCollection: The model being simulated.
-        """
-        return self._model
-
     def __init__(
         self,
-        model,
+        model_collection,
         warm_up_steps=100000,
         steps=100000,
         tune_frequency=5000,
@@ -32,7 +26,7 @@ class MCMCSimulation:
 
         Parameters
         ----------
-        model: Model or ModelCollection
+        model_collection: Model or ModelCollection
             The model whose posterior should be sampled.
         warm_up_steps: int
             The number of warm-up steps to take. During this time all
@@ -54,12 +48,14 @@ class MCMCSimulation:
 
         self.optimum_bounds = "Normal"
 
-        if isinstance(model, Model):
+        if isinstance(model_collection, Model):
             # Convert any standalone models to model collections
             # for convenience.
-            model = ModelCollection(model.name, (model,))
+            model_collection = ModelCollection(
+                model_collection.name, (model_collection,)
+            )
 
-        self._model = model
+        self._model_collection = model_collection
 
         self._initial_values = None
         self._initial_model_index = None
@@ -67,22 +63,29 @@ class MCMCSimulation:
 
     def _validate_parameter_shapes(self, initial_parameters, initial_model_index):
 
-        if initial_model_index < 0 or initial_model_index >= self._model.n_models:
+        if (
+            initial_model_index < 0
+            or initial_model_index >= self._model_collection.n_models
+        ):
 
-            raise ValueError(f'The model index was outside the allowed range '
-                             f'[0, {self._model.n_models})')
+            raise ValueError(
+                f"The model index was outside the allowed range "
+                f"[0, {self._model_collection.n_models})"
+            )
 
         maximum_n_parameters = 0
 
-        for model in self._model.models:
+        for model in self._model_collection.models:
             maximum_n_parameters = max(maximum_n_parameters, model.n_total_parameters)
 
         if len(initial_parameters) != maximum_n_parameters:
 
-            raise ValueError(f'The initial parameters vector is too small '
-                             f'{len(initial_parameters)} to store the maximum '
-                             f'number of the parameters from across all models '
-                             f'({maximum_n_parameters}).')
+            raise ValueError(
+                f"The initial parameters vector is too small "
+                f"{len(initial_parameters)} to store the maximum "
+                f"number of the parameters from across all models "
+                f"({maximum_n_parameters})."
+            )
 
     def run(self, initial_parameters, initial_model_index=0):
 
@@ -93,10 +96,12 @@ class MCMCSimulation:
         self._initial_values = initial_parameters
         self._initial_model_index = initial_model_index
 
-        initial_model = self.model.models[initial_model_index]
+        initial_model = self._model_collection.models[initial_model_index]
 
         initial_log_p = initial_model.evaluate_log_posterior(self._initial_values)
-        initial_deviations = initial_model.compute_percentage_deviations(self._initial_values)
+        initial_deviations = initial_model.compute_percentage_deviations(
+            self._initial_values
+        )
 
         # Initialize the trace vectors
         total_steps = self.steps + self.warm_up_steps
@@ -116,25 +121,29 @@ class MCMCSimulation:
         print("Initial log posterior:", log_p_trace[-1])
         print("==============================")
 
-        move_proposals = np.zeros((self._model.n_models, self._model.n_models))
-        move_acceptances = np.zeros((self._model.n_models, self._model.n_models))
+        move_proposals = np.zeros(
+            (self._model_collection.n_models, self._model_collection.n_models)
+        )
+        move_acceptances = np.zeros(
+            (self._model_collection.n_models, self._model_collection.n_models)
+        )
 
         proposal_scales = np.asarray(self._initial_values) / 100
 
-        print("Initializing Simulation...")
+        print("Running Simulation...")
         print("==============================")
 
         for i in tqdm(range(self.warm_up_steps + self.steps)):
 
-            current_model_index = trace[i][0]
+            current_model_index = int(trace[i][0])
             current_parameters = trace[i][1:]
 
-            current_log_prob = log_p_trace[i]
+            current_log_p = log_p_trace[i]
             current_percent_deviation = percent_deviation_trace[i]
 
             # Propose the new state.
             new_parameters, new_model_index, new_log_p, acceptance = self._run_step(
-                current_parameters, current_model_index, proposal_scales, current_log_prob
+                current_parameters, current_model_index, proposal_scales, current_log_p,
             )
             new_percent_deviation = current_percent_deviation
 
@@ -143,17 +152,15 @@ class MCMCSimulation:
 
             if acceptance:
                 move_acceptances[current_model_index, new_model_index] += 1
-                new_percent_deviation = self.model.models[new_model_index].compute_percentage_deviations(
-                    new_parameters
-                )
+                new_percent_deviation = self._model_collection.models[
+                    new_model_index
+                ].compute_percentage_deviations(new_parameters)
 
             trace[i + 1][0] = new_model_index
             trace[i + 1][1:] = new_parameters
 
             log_p_trace[i + 1] = new_log_p
-
-            if i > self.warm_up_steps or not self._discard_warm_up_data:
-                percent_deviation_trace.append(new_percent_deviation)
+            percent_deviation_trace.append(new_percent_deviation)
 
             if (not (i + 1) % self._tune_frequency) and (i < self.warm_up_steps):
 
@@ -163,14 +170,20 @@ class MCMCSimulation:
 
             if i == self.warm_up_steps:
 
-                move_proposals = np.zeros((self._model.n_models, self._model.n_models))
-                move_acceptances = np.zeros((self._model.n_models, self._model.n_models))
+                move_proposals = np.zeros(
+                    (self._model_collection.n_models, self._model_collection.n_models)
+                )
+                move_acceptances = np.zeros(
+                    (self._model_collection.n_models, self._model_collection.n_models)
+                )
 
-                if self._discard_warm_up_data:
+        if self._discard_warm_up_data:
 
-                    # Discard any warm-up data.
-                    trace = trace[i + 1:]
-                    log_p_trace = log_p_trace[i + 1:]
+            # Discard any warm-up data.
+            trace = trace[self.warm_up_steps :]
+            log_p_trace = log_p_trace[self.warm_up_steps :]
+
+            percent_deviation_trace = percent_deviation_trace[self.warm_up_steps :]
 
         percent_deviation_trace_arrays = {
             label: np.zeros(len(percent_deviation_trace))
@@ -192,49 +205,48 @@ class MCMCSimulation:
 
         return trace, log_p_trace, percent_deviation_trace_arrays
 
-    def _run_step(self, current_params, current_model_index, proposal_scales, current_log_prob):
+    def _run_step(
+        self, current_parameters, current_model_index, proposal_scales, current_log_p
+    ):
 
-        proposed_params = current_params.copy()
+        proposed_parameters = current_parameters.copy()
 
-        proposed_params, proposed_log_prob = self.parameter_proposal(
-            proposed_params, proposal_scales
+        proposed_parameters, proposed_log_p = self.parameter_proposal(
+            proposed_parameters, current_model_index, proposal_scales
         )
-        alpha = proposed_log_prob - current_log_prob
+        alpha = proposed_log_p - current_log_p
 
         acceptance = self._accept_reject(alpha)
 
         if acceptance:
 
-            new_log_prob = proposed_log_prob
-            new_params = proposed_params
+            new_log_p = proposed_log_p
+            new_params = proposed_parameters
 
         else:
 
-            new_log_prob = current_log_prob
-            new_params = current_params
+            new_log_p = current_log_p
+            new_params = current_parameters
 
-        return new_params, current_model_index, new_log_prob, acceptance
+        return new_params, current_model_index, new_log_p, acceptance
 
-    def parameter_proposal(self, proposed_params, current_model_index, proposal_scales):
+    def parameter_proposal(
+        self, proposed_parameters, current_model_index, proposal_scales
+    ):
 
-        model = self.model
+        model = self._model_collection.models[current_model_index]
 
         # Choose a random parameter to change
-        parameter_index = torch.randint(self.model.n_trainable_parameters, (1,))
+        parameter_index = torch.randint(model.n_trainable_parameters, (1,))
 
         # Sample the new parameters from a normal distribution.
-        proposed_params[parameter_index] = torch.distributions.Normal(
-            proposed_params[parameter_index], proposal_scales[parameter_index]
+        proposed_parameters[parameter_index] = torch.distributions.Normal(
+            proposed_parameters[parameter_index], proposal_scales[parameter_index]
         ).sample()
 
-        if isinstance(self.model, Model):
-            proposed_log_prob = self.model.evaluate_log_posterior(proposed_params)
-        elif isinstance(self.model, ModelCollection):
-            proposed_log_prob = self.model.evaluate_log_posterior(current_model_index, proposed_params)
-        else:
-            raise NotImplementedError()
+        proposed_log_p = model.evaluate_log_posterior(proposed_parameters)
 
-        return proposed_params, proposed_log_prob
+        return proposed_parameters, proposed_log_p
 
     @staticmethod
     def _accept_reject(alpha):
@@ -266,7 +278,7 @@ class MCMCSimulation:
     # def write_output(self, prior_dict, tag=None, save_traj=False):
     #
     #     # Ask if output exists
-    #     run_identifier = f'{self.model.name}_{self.steps}_{tag}_{str(date.today())}'
+    #     run_identifier = f'{self._model_collection.name}_{self.steps}_{tag}_{str(date.today())}'
     #
     #     figure_directory = os.path.join('output', run_identifier, 'figures')
     #     os.makedirs(figure_directory, exist_ok=True)
