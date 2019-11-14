@@ -6,12 +6,22 @@ This code was originally authored by Owen Madin (github name ocmadin).
 import numpy as np
 import torch
 import torch.distributions
+from bayesiantesting.models import Model, ModelCollection
 from tqdm import tqdm
 
 
 class MCMCSimulation:
     """ Builds an object that runs an MCMC simulation.
     """
+
+    @property
+    def model(self):
+        """Model or ModelCollection: The model being simulated.
+        """
+        if isinstance(self._model, ModelCollection) and self._model.n_models == 1:
+            return self._model.models[0]
+
+        return self._model
 
     def __init__(
         self,
@@ -47,14 +57,21 @@ class MCMCSimulation:
 
         self.optimum_bounds = "Normal"
 
-        self.model = model
+        if isinstance(model, Model):
+            # Convert any standalone models to model collections
+            # for convenience.
+            model = ModelCollection(model.name, (model,))
+
+        self._model = model
 
         self._initial_values = None
+        self._initial_model_index = None
         self._initial_log_p = None
 
-    def run(self, initial_parameters):
+    def run(self, initial_parameters, initial_model_index=0):
 
         self._initial_values = initial_parameters
+        self._initial_model_index = initial_model_index
 
         trace = [np.copy(self._initial_values)]
         log_p_trace = [self.model.evaluate_log_posterior(self._initial_values)]
@@ -143,7 +160,7 @@ class MCMCSimulation:
 
         return trace, log_p_trace, percent_deviation_trace_arrays
 
-    def _run_step(self, current_params, proposal_scales, current_log_prob):
+    def _run_step(self, current_params, current_model_index, proposal_scales, current_log_prob):
 
         proposed_params = current_params.copy()
 
@@ -164,9 +181,11 @@ class MCMCSimulation:
             new_log_prob = current_log_prob
             new_params = current_params
 
-        return new_params, new_log_prob, acceptance
+        return new_params, current_model_index, new_log_prob, acceptance
 
-    def parameter_proposal(self, proposed_params, proposal_scales):
+    def parameter_proposal(self, proposed_params, current_model_index, proposal_scales):
+
+        model = self.model
 
         # Choose a random parameter to change
         parameter_index = torch.randint(self.model.n_trainable_parameters, (1,))
@@ -176,7 +195,12 @@ class MCMCSimulation:
             proposed_params[parameter_index], proposal_scales[parameter_index]
         ).sample()
 
-        proposed_log_prob = self.model.evaluate_log_posterior(proposed_params)
+        if isinstance(self.model, Model):
+            proposed_log_prob = self.model.evaluate_log_posterior(proposed_params)
+        elif isinstance(self.model, ModelCollection):
+            proposed_log_prob = self.model.evaluate_log_posterior(current_model_index, proposed_params)
+        else:
+            raise NotImplementedError()
 
         return proposed_params, proposed_log_prob
 

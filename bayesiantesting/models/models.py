@@ -1,5 +1,8 @@
+import autograd
+import numpy
 import numpy as np
 import torch.distributions
+from bayesiantesting.utils import distributions
 
 
 class Model:
@@ -11,6 +14,14 @@ class Model:
     def name(self):
         """str: The name of this model."""
         return self._name
+
+    @property
+    def priors(self):
+        return self._priors
+
+    @property
+    def fixed_parameters(self):
+        return self._fixed_parameters
 
     @property
     def n_trainable_parameters(self):
@@ -111,9 +122,7 @@ class Model:
 
         elif prior_type == "normal":
 
-            prior = torch.distributions.Normal(
-                prior_values[0], prior_values[1]
-            )
+            prior = torch.distributions.Normal(prior_values[0], prior_values[1])
 
         else:
             raise NotImplementedError()
@@ -134,7 +143,7 @@ class Model:
         initial_parameters = np.zeros(self.n_total_parameters)
 
         for index, prior in enumerate(self._priors):
-            initial_parameters[index] = prior.rsample()
+            initial_parameters[index] = prior.rsample().item()
 
         for index, parameter in enumerate(self._fixed_parameters):
             initial_parameters[index + self.n_trainable_parameters] = parameter
@@ -251,8 +260,179 @@ class ModelCollection:
         # Make sure there are no models with duplicate names.
         assert len(set(model.name for model in models)) == len(models)
 
-        self.__name = name
-        self._models = tuple(*models)
+        self._name = name
+        self._models = tuple(models)
+
+        for model in self._models:
+
+            if all(
+                isinstance(prior, torch.distributions.Exponential)
+                for prior in model.priors
+            ):
+                continue
+
+            raise ValueError("Currently only exponential priors are supported.")
+
+    def _mapping_function(
+        self, parameter, model_index_a, model_index_b, parameter_index
+    ):
+
+        model_a = self._models[model_index_a]
+        model_b = self._models[model_index_b]
+
+        if (
+            parameter_index >= model_a.n_trainable_parameters
+            and parameter_index >= model_b.n_trainable_parameters
+        ):
+
+            # These parameters aren't being trained so we don't need to
+            # do any mapping so long as both models take the same fixed
+            # value.
+            if not numpy.isclose(
+                model_a.fixed_parameters[
+                    parameter_index - model_a.n_trainable_parameters
+                ],
+                model_b.fixed_parameters[
+                    parameter_index - model_b.n_trainable_parameters
+                ],
+            ):
+
+                raise NotImplementedError()
+
+            return parameter
+
+        elif (
+            parameter_index < model_a.n_trainable_parameters
+            and parameter_index < model_b.n_trainable_parameters
+        ):
+
+            prior_0_rate = model_a.priors[parameter_index].rate.item()
+            prior_1_rate = model_b.priors[parameter_index].rate.item()
+
+            cdf_x = distributions.exponential_cdf(parameter, prior_0_rate)
+            return distributions.exponential_inverse_cdf(cdf_x, prior_1_rate)
+
+        elif (
+            model_a.n_trainable_parameters
+            > parameter_index
+            >= model_b.n_trainable_parameters
+        ):
+
+            # Handle the case where we are mapping to a model with a lower dimension.
+            prior_0_rate = model_a.priors[parameter_index].rate.item()
+            return distributions.exponential_cdf(parameter, prior_0_rate)
+
+        elif (
+            model_a.n_trainable_parameters
+            <= parameter_index
+            < model_b.n_trainable_parameters
+        ):
+
+            # Handle the case where we are mapping to a model with a higher dimension.
+            prior_1_rate = model_b.priors[parameter_index].rate.item()
+            return distributions.exponential_inverse_cdf(parameter, prior_1_rate)
+
+        raise NotImplementedError()
+
+    def map_parameters(self, parameters, model_index_a, model_index_b):
+
+        current_parameters = parameters.copy()
+
+        new_parameters = numpy.empty(parameters.shape)
+        jacobians = numpy.empty(parameters.shape)
+
+        n_parameters = max(
+            self._models[model_index_a].n_total_parameters,
+            self._models[model_index_b].n_total_parameters,
+        )
+
+        jacobian_function = autograd.grad(self._mapping_function)
+
+        if (
+            self._models[model_index_a].n_trainable_parameters
+            < self._models[model_index_b].n_trainable_parameters
+        ):
+
+            # If we are moving to a higher dimensional model, we
+            # set the 'ghost' parameters to a random number drawn
+            # from a uniform distribution.
+            for j in range(
+                self._models[model_index_a].n_trainable_parameters,
+                self._models[model_index_b].n_trainable_parameters,
+            ):
+
+                current_parameters[j] = torch.rand((1,)).item()
+
+        for i in range(n_parameters):
+
+            new_parameters[i] = self._mapping_function(
+                current_parameters[i], model_index_a, model_index_b, i
+            )
+            jacobians[i] = jacobian_function(
+                current_parameters[i], model_index_a, model_index_b, i
+            )
+
+        return current_parameters, new_parameters, jacobians
+
+    def transition_probabilities(self, model_index_a, model_index_b):
+        return 1.0
+
+    def evaluate_log_prior(self, model_index, parameters):
+        """Evaluates the log value of the prior for a
+        given model and corresponding parameters.
+
+        Parameters
+        ----------
+        model_index: int
+            The index of the model to evaluate.
+        parameters: numpy.ndarray
+            The values of the parameters (with shape=n_parameters)
+            to evaluate at.
+
+        Returns
+        -------
+        float
+            The sum of the log values of priors evaluated at `parameters`.
+        """
+        return self._models[model_index].evaluate_log_prior(parameters)
+
+    def evaluate_log_likelihood(self, model_index, parameters):
+        """Evaluates the log value of the this models likelihood for a
+        given model and corresponding parameters.
+
+        Parameters
+        ----------
+        model_index: int
+            The index of the model to evaluate.
+        parameters: numpy.ndarray
+            The values of the parameters (with shape=n_parameters)
+            to evaluate at.
+
+        Returns
+        -------
+        float
+            The log value of the likelihood evaluated at `parameters`.
+        """
+        return self._models[model_index].evaluate_log_likelihood(parameters)
+
+    def evaluate_log_posterior(self, model_index, parameters):
+        """Evaluates the *unnormalized* log posterior for a
+        given model and corresponding parameters.
+
+        Parameters
+        ----------
+        model_index: int
+            The index of the model to evaluate.
+        parameters: numpy.ndarray
+            The values of the parameters (with shape=n_parameters)
+            to evaluate at.
+
+        Returns
+        -------
+        float
+            The log value of the posterior evaluated at `parameters`.
+        """
+        return self._models[model_index].evaluate_log_posterior(parameters)
 
     def __len__(self):
         return self.n_models
