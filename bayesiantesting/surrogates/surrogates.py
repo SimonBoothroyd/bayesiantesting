@@ -121,15 +121,15 @@ class StollWerthSurrogate(SurrogateModel):
         b = self.critical_temperature_star_parameters
 
         t_c_star = (
-            1 * b[0] +
-            quadrupole_star_sqr ** 2 * b[1] +
-            quadrupole_star_sqr ** 3 * b[2] +
-            1.0 / (0.1 + bond_length_star ** 2) * b[3] +
-            1.0 / (0.1 + bond_length_star ** 5) * b[4] +
-            quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 2) * b[5] +
-            quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 5) * b[6] +
-            quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 2) * b[7] +
-            quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 5) * b[8]
+            1 * b[0]
+            + quadrupole_star_sqr ** 2 * b[1]
+            + quadrupole_star_sqr ** 3 * b[2]
+            + 1.0 / (0.1 + bond_length_star ** 2) * b[3]
+            + 1.0 / (0.1 + bond_length_star ** 5) * b[4]
+            + quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 2) * b[5]
+            + quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 5) * b[6]
+            + quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 2) * b[7]
+            + quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 5) * b[8]
         )
 
         return t_c_star
@@ -188,15 +188,27 @@ class StollWerthSurrogate(SurrogateModel):
         b = self.density_star_parameters
 
         rho_c_star = (
-            1 * b[0] +
-            quadrupole_star ** 2 * b[1] +
-            quadrupole_star ** 3 * b[2] +
-            bond_length_star ** 2 / (0.11 + bond_length_star ** 2) * b[3] +
-            bond_length_star ** 5 / (0.11 + bond_length_star ** 5) * b[4] +
-            bond_length_star ** 2 * quadrupole_star ** 2 / (0.11 + bond_length_star ** 2) * b[5] +
-            bond_length_star ** 5 * quadrupole_star ** 2 / (0.11 + bond_length_star ** 5) * b[6] +
-            bond_length_star ** 2 * quadrupole_star ** 3 / (0.11 + bond_length_star ** 2) * b[7] +
-            bond_length_star ** 5 * quadrupole_star ** 3 / (0.11 + bond_length_star ** 5) * b[8]
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star ** 2 / (0.11 + bond_length_star ** 2) * b[3]
+            + bond_length_star ** 5 / (0.11 + bond_length_star ** 5) * b[4]
+            + bond_length_star ** 2
+            * quadrupole_star ** 2
+            / (0.11 + bond_length_star ** 2)
+            * b[5]
+            + bond_length_star ** 5
+            * quadrupole_star ** 2
+            / (0.11 + bond_length_star ** 5)
+            * b[6]
+            + bond_length_star ** 2
+            * quadrupole_star ** 3
+            / (0.11 + bond_length_star ** 2)
+            * b[7]
+            + bond_length_star ** 5
+            * quadrupole_star ** 3
+            / (0.11 + bond_length_star ** 5)
+            * b[8]
         )
 
         return rho_c_star
@@ -205,15 +217,27 @@ class StollWerthSurrogate(SurrogateModel):
     def _correlation_function_1(quadrupole_star, bond_length_star, b):
 
         result = (
-            1 * b[0] +
-            quadrupole_star ** 2 * b[1] +
-            quadrupole_star ** 3 * b[2] +
-            bond_length_star ** 3 / (bond_length_star + 0.4) ** 3 * b[3] +
-            bond_length_star ** 4 / (bond_length_star + 0.4) ** 5 * b[4] +
-            quadrupole_star ** 2 * bond_length_star ** 2 / (bond_length_star + 0.4) * b[5] +
-            quadrupole_star ** 2 * bond_length_star ** 3 / (bond_length_star + 0.4) ** 7 * b[6] +
-            quadrupole_star ** 3 * bond_length_star ** 2 / (bond_length_star + 0.4) * b[7] +
-            quadrupole_star ** 3 * bond_length_star ** 3 / (bond_length_star + 0.4) ** 7 * b[8]
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star ** 3 / (bond_length_star + 0.4) ** 3 * b[3]
+            + bond_length_star ** 4 / (bond_length_star + 0.4) ** 5 * b[4]
+            + quadrupole_star ** 2
+            * bond_length_star ** 2
+            / (bond_length_star + 0.4)
+            * b[5]
+            + quadrupole_star ** 2
+            * bond_length_star ** 3
+            / (bond_length_star + 0.4) ** 7
+            * b[6]
+            + quadrupole_star ** 3
+            * bond_length_star ** 2
+            / (bond_length_star + 0.4)
+            * b[7]
+            + quadrupole_star ** 3
+            * bond_length_star ** 3
+            / (bond_length_star + 0.4) ** 7
+            * b[8]
         )
 
         return result
@@ -222,14 +246,14 @@ class StollWerthSurrogate(SurrogateModel):
     def _correlation_function_2(quadrupole_star, bond_length_star, b):
 
         result = (
-            1 * b[0] +
-            quadrupole_star ** 2 * b[1] +
-            quadrupole_star ** 3 * b[2] +
-            bond_length_star ** 2 * b[3] +
-            bond_length_star ** 3 * b[4] +
-            quadrupole_star ** 2 * bond_length_star ** 2 * b[5] +
-            quadrupole_star ** 2 * bond_length_star ** 3 * b[6] +
-            quadrupole_star ** 3 * bond_length_star ** 2 * b[7]
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star ** 2 * b[3]
+            + bond_length_star ** 3 * b[4]
+            + quadrupole_star ** 2 * bond_length_star ** 2 * b[5]
+            + quadrupole_star ** 2 * bond_length_star ** 3 * b[6]
+            + quadrupole_star ** 3 * bond_length_star ** 2 * b[7]
         )
 
         return result
@@ -238,14 +262,14 @@ class StollWerthSurrogate(SurrogateModel):
     def _correlation_function_3(quadrupole_star, bond_length_star, b):
 
         result = (
-            1 * b[0] +
-            quadrupole_star ** 2 * b[1] +
-            quadrupole_star ** 3 * b[2] +
-            bond_length_star * b[3] +
-            bond_length_star ** 4 * b[4] +
-            quadrupole_star ** 2 * bond_length_star * b[5] +
-            quadrupole_star ** 2 * bond_length_star ** 4 * b[6] +
-            quadrupole_star ** 3 * bond_length_star ** 4 * b[7]
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star * b[3]
+            + bond_length_star ** 4 * b[4]
+            + quadrupole_star ** 2 * bond_length_star * b[5]
+            + quadrupole_star ** 2 * bond_length_star ** 4 * b[6]
+            + quadrupole_star ** 3 * bond_length_star ** 4 * b[7]
         )
 
         return result
@@ -290,18 +314,28 @@ class StollWerthSurrogate(SurrogateModel):
 
         if all(tau > 0):
 
-            coefficient_1 = self._correlation_function_1(quadrupole_star, bond_length_star, _b_C1)
+            coefficient_1 = self._correlation_function_1(
+                quadrupole_star, bond_length_star, _b_C1
+            )
 
             if phase == "liquid":
 
-                coefficient_2 = self._correlation_function_2(quadrupole_star, bond_length_star, _b_C2_L)
-                coefficient_3 = self._correlation_function_3(quadrupole_star, bond_length_star, _b_C3_L)
+                coefficient_2 = self._correlation_function_2(
+                    quadrupole_star, bond_length_star, _b_C2_L
+                )
+                coefficient_3 = self._correlation_function_3(
+                    quadrupole_star, bond_length_star, _b_C3_L
+                )
 
             elif phase == "vapor":
 
                 coefficient_1 = -coefficient_1
-                coefficient_2 = self._correlation_function_2(quadrupole_star, bond_length_star, _b_C2_v)
-                coefficient_3 = self._correlation_function_3(quadrupole_star, bond_length_star, _b_C3_v)
+                coefficient_2 = self._correlation_function_2(
+                    quadrupole_star, bond_length_star, _b_C2_v
+                )
+                coefficient_3 = self._correlation_function_3(
+                    quadrupole_star, bond_length_star, _b_C3_v
+                )
 
             else:
 
@@ -444,31 +478,55 @@ class StollWerthSurrogate(SurrogateModel):
         _b_c1, _b_c2, _b_c3 = self._b_c1, self._b_c2, self._b_c3
 
         c1 = (
-            1.0 * _b_c1[0] +
-            quadrupole_star ** 2 * _b_c1[1] +
-            quadrupole_star ** 3 * _b_c1[2] +
-            bond_length_star ** 2 / (bond_length_star ** 2 + 0.75) * _b_c1[3] +
-            bond_length_star ** 3 / (bond_length_star ** 3 + 0.75) * _b_c1[4] +
-            bond_length_star ** 2 * quadrupole_star ** 2 / (bond_length_star ** 2 + 0.75) * _b_c1[5] +
-            bond_length_star ** 3 * quadrupole_star ** 2 / (bond_length_star ** 3 + 0.75) * _b_c1[6] +
-            bond_length_star ** 2 * quadrupole_star ** 3 / (bond_length_star ** 2 + 0.75) * _b_c1[7] +
-            bond_length_star ** 3 * quadrupole_star ** 3 / (bond_length_star ** 3 + 0.75) * _b_c1[8]
+            1.0 * _b_c1[0]
+            + quadrupole_star ** 2 * _b_c1[1]
+            + quadrupole_star ** 3 * _b_c1[2]
+            + bond_length_star ** 2 / (bond_length_star ** 2 + 0.75) * _b_c1[3]
+            + bond_length_star ** 3 / (bond_length_star ** 3 + 0.75) * _b_c1[4]
+            + bond_length_star ** 2
+            * quadrupole_star ** 2
+            / (bond_length_star ** 2 + 0.75)
+            * _b_c1[5]
+            + bond_length_star ** 3
+            * quadrupole_star ** 2
+            / (bond_length_star ** 3 + 0.75)
+            * _b_c1[6]
+            + bond_length_star ** 2
+            * quadrupole_star ** 3
+            / (bond_length_star ** 2 + 0.75)
+            * _b_c1[7]
+            + bond_length_star ** 3
+            * quadrupole_star ** 3
+            / (bond_length_star ** 3 + 0.75)
+            * _b_c1[8]
         )
         c2 = (
-            1.0 * _b_c2[0] +
-            quadrupole_star ** 2 * _b_c2[1] +
-            quadrupole_star ** 3 * _b_c2[2] +
-            bond_length_star ** 2 / (bond_length_star + 0.75) ** 2 * _b_c2[3] +
-            bond_length_star ** 3 / (bond_length_star + 0.75) ** 3 * _b_c2[4] +
-            bond_length_star ** 2 * quadrupole_star ** 2 / (bond_length_star + 0.75) ** 2 * _b_c2[5] +
-            bond_length_star ** 3 * quadrupole_star ** 2 / (bond_length_star + 0.75) ** 3 * _b_c2[6] +
-            bond_length_star ** 2 * quadrupole_star ** 3 / (bond_length_star + 0.75) ** 2 * _b_c2[7] +
-            bond_length_star ** 3 * quadrupole_star ** 3 / (bond_length_star + 0.75) ** 3 * _b_c2[8]
+            1.0 * _b_c2[0]
+            + quadrupole_star ** 2 * _b_c2[1]
+            + quadrupole_star ** 3 * _b_c2[2]
+            + bond_length_star ** 2 / (bond_length_star + 0.75) ** 2 * _b_c2[3]
+            + bond_length_star ** 3 / (bond_length_star + 0.75) ** 3 * _b_c2[4]
+            + bond_length_star ** 2
+            * quadrupole_star ** 2
+            / (bond_length_star + 0.75) ** 2
+            * _b_c2[5]
+            + bond_length_star ** 3
+            * quadrupole_star ** 2
+            / (bond_length_star + 0.75) ** 3
+            * _b_c2[6]
+            + bond_length_star ** 2
+            * quadrupole_star ** 3
+            / (bond_length_star + 0.75) ** 2
+            * _b_c2[7]
+            + bond_length_star ** 3
+            * quadrupole_star ** 3
+            / (bond_length_star + 0.75) ** 3
+            * _b_c2[8]
         )
         c3 = (
-            quadrupole_star ** 2 * _b_c3[0] +
-            quadrupole_star ** 5 * _b_c3[1] +
-            bond_length_star ** 0.5
+            quadrupole_star ** 2 * _b_c3[0]
+            + quadrupole_star ** 5 * _b_c3[1]
+            + bond_length_star ** 0.5
         )
 
         saturation_pressure_star = np.exp(
@@ -531,18 +589,18 @@ class StollWerthSurrogate(SurrogateModel):
 
         a = 1.0 * c_a
         b = (
-            quadrupole_star * c_b[0] +
-            quadrupole_star ** 2.0 * c_b[1] +
-            quadrupole_star ** 3.0 * c_b[2]
+            quadrupole_star * c_b[0]
+            + quadrupole_star ** 2.0 * c_b[1]
+            + quadrupole_star ** 3.0 * c_b[2]
         )
         c = 1.0 / (bond_length_star ** 2.0 + 0.1) * c_c[0]
         d = (
-            quadrupole_star ** 2.0 * bond_length_star ** 2.0 * c_d[0] +
-            quadrupole_star ** 2.0 * bond_length_star ** 3.0 * c_d[1]
+            quadrupole_star ** 2.0 * bond_length_star ** 2.0 * c_d[0]
+            + quadrupole_star ** 2.0 * bond_length_star ** 3.0 * c_d[1]
         )
         e = (
-            quadrupole_star ** 2 / (bond_length_star ** 2.0 + 0.1) * c_e[0] +
-            quadrupole_star ** 2.0 / (bond_length_star ** 5.0 + 0.1) * c_e[1]
+            quadrupole_star ** 2 / (bond_length_star ** 2.0 + 0.1) * c_e[0]
+            + quadrupole_star ** 2.0 / (bond_length_star ** 5.0 + 0.1) * c_e[1]
         )
 
         return a + b + c + d + e
