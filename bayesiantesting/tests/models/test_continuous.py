@@ -15,7 +15,7 @@ from bayesiantesting.surrogates import StollWerthSurrogate
 
 def _get_two_center_model():
 
-    data_set = NISTDataSet('C2H2')
+    data_set = NISTDataSet("C2H2")
     property_types = [*data_set.data_types]
 
     priors = {
@@ -27,7 +27,7 @@ def _get_two_center_model():
     fixed = {}
 
     model = TwoCenterLJModel(
-        'AUA+Q',
+        "AUA+Q",
         priors,
         fixed,
         data_set,
@@ -45,7 +45,7 @@ def test_evaluate_log_prior():
         "b": ("normal", [0.0, random()]),
     }
 
-    model = Model('test', prior_settings, {})
+    model = Model("test", prior_settings, {})
     parameters = model.sample_priors()
 
     # Make sure the method call doesn't fail.
@@ -59,9 +59,7 @@ def test_evaluate_log_prior():
     assert not numpy.allclose(prior_gradients, 0.0)
 
 
-@pytest.mark.parametrize(
-    "model", [_get_two_center_model()]
-)
+@pytest.mark.parametrize("model", [_get_two_center_model()])
 def test_evaluate_log_likelihood(model):
 
     parameters = model.sample_priors()
@@ -77,9 +75,7 @@ def test_evaluate_log_likelihood(model):
     assert not numpy.allclose(prior_gradients, 0.0)
 
 
-@pytest.mark.parametrize(
-    "model", [_get_two_center_model()]
-)
+@pytest.mark.parametrize("model", [_get_two_center_model()])
 def test_evaluate_log_posterior(model):
 
     parameters = model.sample_priors()

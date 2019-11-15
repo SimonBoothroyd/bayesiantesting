@@ -114,7 +114,7 @@ def generate_initial_parameters(model, attempts=5):
 
     while counter < attempts:
 
-        parameters = model.sample_priors()[0:model.n_trainable_parameters]
+        parameters = model.sample_priors()[0 : model.n_trainable_parameters]
         parameters = model.find_maximum_a_posteriori(parameters)
 
         log_p = model.evaluate_log_posterior(parameters)

@@ -5,6 +5,7 @@ import torch
 import bayesiantesting.utils.distributions as distributions
 import scipy.optimize
 
+
 class Model:
     """ Sets up a simply model based on the user-specified prior
     types and parameters
@@ -148,7 +149,9 @@ class Model:
 
         return initial_parameters
 
-    def find_maximum_a_posteriori(self, initial_parameters=None, optimisation_method='L-BFGS-B'):
+    def find_maximum_a_posteriori(
+        self, initial_parameters=None, optimisation_method="L-BFGS-B"
+    ):
         """ Find the maximum a posteriori of the posterior by doing a simply
         minimisation.
 
@@ -163,12 +166,14 @@ class Model:
         """
 
         if initial_parameters is None:
-            initial_parameters = self.sample_priors()[0:self.n_trainable_parameters]
+            initial_parameters = self.sample_priors()[0 : self.n_trainable_parameters]
 
         if len(initial_parameters) != self.n_trainable_parameters:
 
-            raise ValueError("The initial parameters must have a length "
-                             "equal to the number of parameters to train.")
+            raise ValueError(
+                "The initial parameters must have a length "
+                "equal to the number of parameters to train."
+            )
 
         # Create an array which contains the fixed parameters,
         # and which can be updated with the current trainable
@@ -190,7 +195,7 @@ class Model:
             fun=negative_log_posterior,
             x0=initial_parameters,
             jac=gradient_function,
-            method=optimisation_method
+            method=optimisation_method,
         )
 
         final_parameters = [*results.x]
