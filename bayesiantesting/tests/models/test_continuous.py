@@ -60,7 +60,7 @@ def test_for_loops():
     property_types = [
         NISTDataType.LiquidDensity,
         NISTDataType.SaturationPressure,
-        NISTDataType.SurfaceTension
+        NISTDataType.SurfaceTension,
     ]
 
     parameters = numpy.array([epsilon, sigma, bond_length, quadrupole])

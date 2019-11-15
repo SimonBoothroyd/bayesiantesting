@@ -1,8 +1,8 @@
 import autograd
 import numpy
 import numpy as np
-import torch.distributions
-from bayesiantesting.utils import distributions
+import torch
+import bayesiantesting.utils.distributions as distributions
 
 
 class Model:
@@ -108,7 +108,7 @@ class Model:
                 # The loc argument is not supported in PyTorch.
                 raise NotImplementedError()
 
-            prior = torch.distributions.Exponential(rate=1.0 / prior_values[1])
+            prior = distributions.Exponential(rate=1.0 / prior_values[1])
 
         elif prior_type == "gamma":
 
@@ -116,13 +116,11 @@ class Model:
                 # The loc argument is not supported in PyTorch.
                 raise NotImplementedError()
 
-            prior = torch.distributions.Gamma(
-                prior_values[0], rate=1.0 / prior_values[2]
-            )
+            prior = distributions.Gamma(prior_values[0], rate=1.0 / prior_values[2])
 
         elif prior_type == "normal":
 
-            prior = torch.distributions.Normal(prior_values[0], prior_values[1])
+            prior = distributions.Normal(prior_values[0], prior_values[1])
 
         else:
             raise NotImplementedError()
@@ -143,7 +141,7 @@ class Model:
         initial_parameters = np.zeros(self.n_total_parameters)
 
         for index, prior in enumerate(self._priors):
-            initial_parameters[index] = prior.rsample().item()
+            initial_parameters[index] = prior.sample()
 
         for index, parameter in enumerate(self._fixed_parameters):
             initial_parameters[index + self.n_trainable_parameters] = parameter
@@ -167,7 +165,7 @@ class Model:
         """
         return sum(
             [
-                prior.log_prob(parameters[index]).item()
+                prior.log_pdf(parameters[index])
                 for index, prior in enumerate(self._priors)
             ]
         )
@@ -266,7 +264,7 @@ class ModelCollection:
         for model in self._models:
 
             if all(
-                isinstance(prior, torch.distributions.Exponential)
+                isinstance(prior, (distributions.Exponential, distributions.Normal))
                 for prior in model.priors
             ):
                 continue
@@ -306,11 +304,8 @@ class ModelCollection:
             and parameter_index < model_b.n_trainable_parameters
         ):
 
-            prior_0_rate = model_a.priors[parameter_index].rate.item()
-            prior_1_rate = model_b.priors[parameter_index].rate.item()
-
-            cdf_x = distributions.exponential_cdf(parameter, prior_0_rate)
-            return distributions.exponential_inverse_cdf(cdf_x, prior_1_rate)
+            cdf_x = model_a.priors[parameter_index].cdf(parameter)
+            return model_b.priors[parameter_index].inverse_cdf(cdf_x)
 
         elif (
             model_a.n_trainable_parameters
@@ -319,8 +314,7 @@ class ModelCollection:
         ):
 
             # Handle the case where we are mapping to a model with a lower dimension.
-            prior_0_rate = model_a.priors[parameter_index].rate.item()
-            return distributions.exponential_cdf(parameter, prior_0_rate)
+            return model_a.priors[parameter_index].cdf(parameter)
 
         elif (
             model_a.n_trainable_parameters
@@ -329,8 +323,7 @@ class ModelCollection:
         ):
 
             # Handle the case where we are mapping to a model with a higher dimension.
-            prior_1_rate = model_b.priors[parameter_index].rate.item()
-            return distributions.exponential_inverse_cdf(parameter, prior_1_rate)
+            return model_b.priors[parameter_index].inverse_cdf(parameter)
 
         raise NotImplementedError()
 
