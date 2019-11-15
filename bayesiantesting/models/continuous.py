@@ -5,11 +5,12 @@ all continuous.
 Models in this module should inherit from the `Model`
 subclass.
 """
-import numpy as np
-import torch.distributions
+import numpy
+import autograd.numpy
 
 from bayesiantesting import unit
 from bayesiantesting.models import Model
+from bayesiantesting.utils import distributions as distributions
 
 
 class TwoCenterLJModel(Model):
@@ -72,10 +73,10 @@ class TwoCenterLJModel(Model):
 
         for property_type in self._property_types:
 
-            self._reference_data[property_type] = np.asarray(
+            self._reference_data[property_type] = numpy.asarray(
                 reference_data_set.get_data(property_type)
             )
-            self._reference_precisions[property_type] = np.asarray(
+            self._reference_precisions[property_type] = numpy.asarray(
                 reference_data_set.get_precision(property_type)
             )
 
@@ -110,16 +111,16 @@ class TwoCenterLJModel(Model):
                 property_type, parameters, temperatures
             )
 
-            surrogate_values = torch.from_numpy(surrogate_values)
-            precisions = torch.from_numpy(precisions) ** -2.0
-            reference_values = torch.from_numpy(reference_values)
+            surrogate_values = surrogate_values
+            precisions = precisions ** -2.0
+            reference_values = reference_values
 
             # Compute likelihood based on gaussian penalty function
-            log_p += torch.sum(
-                torch.distributions.Normal(surrogate_values, precisions).log_prob(
+            log_p += autograd.numpy.sum(
+                distributions.Normal(surrogate_values, precisions).log_pdf(
                     reference_values
                 )
-            ).item()
+            )
 
         return log_p
 
@@ -139,7 +140,7 @@ class TwoCenterLJModel(Model):
             deviation_vector = (
                 (reference_values - surrogate_values) / reference_values
             ) ** 2
-            mean_percentage_deviation = np.sqrt(np.mean(deviation_vector)) * 100
+            mean_percentage_deviation = numpy.sqrt(numpy.mean(deviation_vector)) * 100
 
             deviations[property_type] = mean_percentage_deviation
 

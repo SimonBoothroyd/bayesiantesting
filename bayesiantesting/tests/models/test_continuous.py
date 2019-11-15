@@ -4,69 +4,92 @@ Unit and regression test for the datasets module.
 import autograd
 import numpy
 
-from bayesiantesting import unit
-from bayesiantesting.datasets.nist import NISTDataType
+from random import random
+
+import pytest
+from bayesiantesting.datasets.nist import NISTDataSet
+from bayesiantesting.models import Model
+from bayesiantesting.models.continuous import TwoCenterLJModel
 from bayesiantesting.surrogates import StollWerthSurrogate
-from bayesiantesting.surrogates.surrogates import D_to_sqrtJm3, m3_to_nm3, k_B
 
 
-def generate_parameters():
+def _get_two_center_model():
 
-    # epsilon_distribution = torch.distributions.Exponential(rate=1.0/400.0)
-    # sigma_distribution = torch.distributions.Exponential(rate=1.0/5.0)
-    # bond_length_distribution = torch.distributions.Exponential(rate=1.0/3.0)
-    # quadrupole_distribution = torch.distributions.Exponential(rate=1.0/1.0)
-    #
-    # epsilon = epsilon_distribution.rsample().item()
-    # sigma = sigma_distribution.rsample().item()
-    # bond_length = bond_length_distribution.rsample().item()
-    # quadrupole = quadrupole_distribution.rsample().item()
+    data_set = NISTDataSet('C2H2')
+    property_types = [*data_set.data_types]
 
-    epsilon = 79.89
-    sigma = 0.35819
-    bond_length = 0.12976000000000001
-    quadrupole = 0.508
+    priors = {
+        "epsilon": ("exponential", [0.0, random() * 400.0]),
+        "sigma": ("exponential", [0.0, random() * 5.0]),
+        "L": ("exponential", [0.0, random() * 3.0]),
+        "Q": ("exponential", [0.0, random() * 1.0]),
+    }
+    fixed = {}
 
-    quadrupole_sqr = (quadrupole * D_to_sqrtJm3) ** 2 * m3_to_nm3
-    quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
-
-    bond_length_star = bond_length / sigma
-
-    return (
-        epsilon,
-        sigma,
-        bond_length,
-        bond_length_star,
-        quadrupole,
-        quadrupole_star_sqr,
+    model = TwoCenterLJModel(
+        'AUA+Q',
+        priors,
+        fixed,
+        data_set,
+        property_types,
+        StollWerthSurrogate(data_set.molecular_weight),
     )
 
-
-def _sum_property_values(parameters, model, property_types, temperatures):
-
-    total_value = 0.0
-
-    for property_type in property_types:
-        total_value += model.evaluate(property_type, parameters, temperatures)
-
-    return total_value
+    return model
 
 
-def test_for_loops():
+def test_evaluate_log_prior():
 
-    model = StollWerthSurrogate(26.038 * unit.gram / unit.mole)  # C2H2
-    epsilon, sigma, bond_length, _, quadrupole, _ = generate_parameters()
+    prior_settings = {
+        "a": ("exponential", [0.0, random()]),
+        "b": ("normal", [0.0, random()]),
+    }
 
-    property_types = [
-        NISTDataType.LiquidDensity,
-        NISTDataType.SaturationPressure,
-        NISTDataType.SurfaceTension,
-    ]
+    model = Model('test', prior_settings, {})
+    parameters = model.sample_priors()
 
-    parameters = numpy.array([epsilon, sigma, bond_length, quadrupole])
-    temperatures = numpy.array([298.0, 300.0, 308.0])
+    # Make sure the method call doesn't fail.
+    model.evaluate_log_prior(parameters)
 
-    gradient_function = autograd.jacobian(_sum_property_values, 0)
-    gradient = gradient_function(parameters, model, property_types, temperatures)
+    # Test the gradient.
+    prior_gradient_function = autograd.grad(model.evaluate_log_prior)
+    prior_gradients = prior_gradient_function(parameters)
 
-    print(gradient)
+    assert len(prior_gradients) == len(parameters)
+    assert not numpy.allclose(prior_gradients, 0.0)
+
+
+@pytest.mark.parametrize(
+    "model", [_get_two_center_model()]
+)
+def test_evaluate_log_likelihood(model):
+
+    parameters = model.sample_priors()
+
+    # Make sure the method call doesn't fail.
+    model.evaluate_log_likelihood(parameters)
+
+    # Test the gradient.
+    prior_gradient_function = autograd.grad(model.evaluate_log_likelihood)
+    prior_gradients = prior_gradient_function(parameters)
+
+    assert len(prior_gradients) == len(parameters)
+    assert not numpy.allclose(prior_gradients, 0.0)
+
+
+@pytest.mark.parametrize(
+    "model", [_get_two_center_model()]
+)
+def test_evaluate_log_posterior(model):
+
+    parameters = model.sample_priors()
+
+    # Make sure the method call doesn't fail.
+    model.evaluate_log_posterior(parameters)
+
+    # Test the gradient.
+    prior_gradient_function = autograd.grad(model.evaluate_log_posterior)
+    prior_gradients = prior_gradient_function(parameters)
+
+    assert len(prior_gradients) == len(parameters)
+    assert not numpy.allclose(prior_gradients, 0.0)

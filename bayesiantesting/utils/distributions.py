@@ -32,12 +32,15 @@ class Exponential(Distribution):
         self.rate = rate
 
     def log_pdf(self, x):
+        # noinspection PyUnresolvedReferences
         return autograd.numpy.log(self.rate) - self.rate * x
 
     def cdf(self, x):
+        # noinspection PyUnresolvedReferences
         return 1 - autograd.numpy.exp(-self.rate * x)
 
     def inverse_cdf(self, x):
+        # noinspection PyUnresolvedReferences
         return -autograd.numpy.log(1 - x) / self.rate
 
     def sample(self):
@@ -53,8 +56,10 @@ class Normal(Distribution):
     def log_pdf(self, x):
 
         var = self.scale ** 2
+        # noinspection PyUnresolvedReferences
         log_scale = autograd.numpy.log(self.scale)
 
+        # noinspection PyUnresolvedReferences
         return (
             -((x - self.loc) ** 2) / (2 * var)
             - log_scale
@@ -62,6 +67,7 @@ class Normal(Distribution):
         )
 
     def cdf(self, x):
+        # noinspection PyUnresolvedReferences
         return 0.5 * (
             1
             + autograd.scipy.special.erf(
@@ -70,12 +76,39 @@ class Normal(Distribution):
         )
 
     def inverse_cdf(self, x):
+        # noinspection PyUnresolvedReferences
         return self.loc + self.scale * autograd.scipy.special.erfinv(
             2 * x - 1
         ) * autograd.numpy.sqrt(2)
 
     def sample(self):
         return torch.distributions.Normal(self.loc, self.scale).rsample().item()
+
+
+class Uniform(Distribution):
+    def __init__(self, low=0.0, high=1.0):
+
+        self.low = low
+        self.high = high
+
+    def log_pdf(self, x):
+
+        if self.low <= x <= self.high:
+            # noinspection PyUnresolvedReferences
+            return -autograd.numpy.log(self.high - self.low)
+
+        return 0.0
+
+    def cdf(self, x):
+        result = (x - self.low) / (self.high - self.low)
+        # noinspection PyUnresolvedReferences
+        return autograd.numpy.clip(result, 0.0, 1.0)
+
+    def inverse_cdf(self, x):
+        return x * (self.high - self.low) + self.low
+
+    def sample(self):
+        return torch.distributions.Uniform(self.low, self.high).rsample().item()
 
 
 class HalfNormal(Distribution):
@@ -101,7 +134,7 @@ class Gamma(Distribution):
         self.rate = rate
 
     def log_pdf(self, x):
-
+        # noinspection PyUnresolvedReferences
         return (
             self.alpha * autograd.numpy.log(self.rate)
             + (self.alpha - 1) * autograd.numpy.log(x)
@@ -116,4 +149,4 @@ class Gamma(Distribution):
         raise NotImplementedError()
 
     def sample(self):
-        return torch.distributions.Gamma(self.rate).rsample().item()
+        return torch.distributions.Gamma(self.alpha, self.rate).rsample().item()

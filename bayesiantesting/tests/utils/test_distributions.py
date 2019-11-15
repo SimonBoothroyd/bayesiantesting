@@ -17,6 +17,7 @@ import torch.distributions as references
     [
         (distributions.Exponential, references.Exponential, [random()]),
         (distributions.Normal, references.Normal, [random(), random()]),
+        (distributions.Uniform, references.Uniform, [random(), 1.0 + random()]),
     ],
 )
 def test_values(distribution_type, reference_type, args):
@@ -41,6 +42,7 @@ def test_values(distribution_type, reference_type, args):
     [
         (distributions.Exponential, references.Exponential, [random()]),
         (distributions.Normal, references.Normal, [random(), random()]),
+        (distributions.Uniform, references.Uniform, [random(), 1.0 + random()]),
     ],
 )
 def test_gradients(distribution_type, reference_type, args):
@@ -71,5 +73,7 @@ def test_gradients(distribution_type, reference_type, args):
 
     sample_tensor = torch.tensor(sample, requires_grad=True)
     reference_log_p = reference.log_prob(sample_tensor)
-    reference_log_p.backward()
-    assert numpy.isclose(log_p_gradient, sample_tensor.grad.item())
+
+    if reference_log_p._grad_fn is not None:
+        reference_log_p.backward()
+        assert numpy.isclose(log_p_gradient, sample_tensor.grad.item())

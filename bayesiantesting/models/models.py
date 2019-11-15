@@ -3,7 +3,7 @@ import numpy
 import numpy as np
 import torch
 import bayesiantesting.utils.distributions as distributions
-
+import scipy.optimize
 
 class Model:
     """ Sets up a simply model based on the user-specified prior
@@ -148,6 +148,58 @@ class Model:
 
         return initial_parameters
 
+    def find_maximum_a_posteriori(self, initial_parameters=None, optimisation_method='L-BFGS-B'):
+        """ Find the maximum a posteriori of the posterior by doing a simply
+        minimisation.
+
+        Parameters
+        ---------
+        initial_parameters: numpy.ndarray, optional
+            The initial values to start from when doing the minimisation
+            with shape=(n_trainable_parameters). If None, these values are
+            sampled randomly from the priors.
+        optimisation_method: str
+            The optimizing method to use.
+        """
+
+        if initial_parameters is None:
+            initial_parameters = self.sample_priors()[0:self.n_trainable_parameters]
+
+        if len(initial_parameters) != self.n_trainable_parameters:
+
+            raise ValueError("The initial parameters must have a length "
+                             "equal to the number of parameters to train.")
+
+        # Create an array which contains the fixed parameters,
+        # and which can be updated with the current trainable
+        # parameters.
+        def negative_log_posterior(x):
+
+            working_parameters = [*x]
+
+            for index, parameter in enumerate(self._fixed_parameters):
+                working_parameters.append(parameter)
+
+            working_parameters = numpy.array(working_parameters)
+
+            return -1 * self.evaluate_log_posterior(working_parameters)
+
+        gradient_function = autograd.grad(negative_log_posterior)
+
+        results = scipy.optimize.minimize(
+            fun=negative_log_posterior,
+            x0=initial_parameters,
+            jac=gradient_function,
+            method=optimisation_method
+        )
+
+        final_parameters = [*results.x]
+
+        for index, parameter in enumerate(self._fixed_parameters):
+            final_parameters.append(parameter)
+
+        return numpy.array(final_parameters)
+
     def evaluate_log_prior(self, parameters):
         """Evaluates the log value of the prior for a
         set of parameters.
@@ -163,12 +215,12 @@ class Model:
         float
             The sum of the log values of priors evaluated at `parameters`.
         """
-        return sum(
-            [
-                prior.log_pdf(parameters[index])
-                for index, prior in enumerate(self._priors)
-            ]
-        )
+        log_prior = 0.0
+
+        for index, prior in enumerate(self._priors):
+            log_prior += prior.log_pdf(parameters[index])
+
+        return log_prior
 
     def evaluate_log_likelihood(self, parameters):
         """Evaluates the log value of the this models likelihood for
