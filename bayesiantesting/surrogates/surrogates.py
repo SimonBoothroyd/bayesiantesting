@@ -1,7 +1,7 @@
 import abc
 import os
 
-import numpy as np
+from autograd import numpy as np
 import yaml
 from pkg_resources import resource_filename
 
@@ -23,7 +23,7 @@ class SurrogateModel(abc.ABC):
     be cheaply evaluated.
     """
 
-    def evaluate(self, property_type, parameters, **kwargs):
+    def evaluate(self, property_type, parameters, temperatures):
         """Evaluate this model for a set of parameters.
 
         Parameters
@@ -31,8 +31,11 @@ class SurrogateModel(abc.ABC):
         property_type: NISTDataType
             The property to evaluate.
         parameters: numpy.ndarray
-            The values of the parameters (with shape=(n parameters, 1))
-            to evaluate at.
+            The values of the parameters to evaluate at with
+            shape=(n parameters, 1).
+        temperatures: numpy.ndarray
+            The temperatures to evaluate the properties at with
+            shape=(n_temperatures).
 
         Returns
         -------
@@ -98,14 +101,14 @@ class StollWerthSurrogate(SurrogateModel):
 
         self._B = np.array(parameters["Werth"]["A_star_params"]["B_params"])
 
-    def critical_temperature_star(self, quadrupole_star, bond_length_star):
+    def critical_temperature_star(self, quadrupole_star_sqr, bond_length_star):
         """Computes the reduced critical temperature of the two-center
         Lennard-Jones model for a given set of model parameters.
 
         Parameters
         ----------
-        quadrupole_star: float
-            The reduced quadrupole parameter.
+        quadrupole_star_sqr: float
+            The reduced quadrupole parameter squared.
         bond_length_star: float
             The reduced bond-length parameter
 
@@ -117,22 +120,17 @@ class StollWerthSurrogate(SurrogateModel):
 
         b = self.critical_temperature_star_parameters
 
-        x = np.array(
-            [
-                1,
-                quadrupole_star ** 2,
-                quadrupole_star ** 3,
-                1.0 / (0.1 + bond_length_star ** 2),
-                1.0 / (0.1 + bond_length_star ** 5),
-                quadrupole_star ** 2 / (0.1 + bond_length_star ** 2),
-                quadrupole_star ** 2 / (0.1 + bond_length_star ** 5),
-                quadrupole_star ** 3 / (0.1 + bond_length_star ** 2),
-                quadrupole_star ** 3 / (0.1 + bond_length_star ** 5),
-            ]
+        t_c_star = (
+            1 * b[0]
+            + quadrupole_star_sqr ** 2 * b[1]
+            + quadrupole_star_sqr ** 3 * b[2]
+            + 1.0 / (0.1 + bond_length_star ** 2) * b[3]
+            + 1.0 / (0.1 + bond_length_star ** 5) * b[4]
+            + quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 2) * b[5]
+            + quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 5) * b[6]
+            + quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 2) * b[7]
+            + quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 5) * b[8]
         )
-
-        t_c_star = x * b
-        t_c_star = t_c_star.sum()
 
         return t_c_star
 
@@ -156,7 +154,6 @@ class StollWerthSurrogate(SurrogateModel):
         float
             The critical temperature in units of K.
         """
-
         quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
         quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
 
@@ -190,93 +187,90 @@ class StollWerthSurrogate(SurrogateModel):
 
         b = self.density_star_parameters
 
-        x = np.array(
-            [
-                1,
-                quadrupole_star ** 2,
-                quadrupole_star ** 3,
-                bond_length_star ** 2 / (0.11 + bond_length_star ** 2),
-                bond_length_star ** 5 / (0.11 + bond_length_star ** 5),
-                bond_length_star ** 2
-                * quadrupole_star ** 2
-                / (0.11 + bond_length_star ** 2),
-                bond_length_star ** 5
-                * quadrupole_star ** 2
-                / (0.11 + bond_length_star ** 5),
-                bond_length_star ** 2
-                * quadrupole_star ** 3
-                / (0.11 + bond_length_star ** 2),
-                bond_length_star ** 5
-                * quadrupole_star ** 3
-                / (0.11 + bond_length_star ** 5),
-            ]
+        rho_c_star = (
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star ** 2 / (0.11 + bond_length_star ** 2) * b[3]
+            + bond_length_star ** 5 / (0.11 + bond_length_star ** 5) * b[4]
+            + bond_length_star ** 2
+            * quadrupole_star ** 2
+            / (0.11 + bond_length_star ** 2)
+            * b[5]
+            + bond_length_star ** 5
+            * quadrupole_star ** 2
+            / (0.11 + bond_length_star ** 5)
+            * b[6]
+            + bond_length_star ** 2
+            * quadrupole_star ** 3
+            / (0.11 + bond_length_star ** 2)
+            * b[7]
+            + bond_length_star ** 5
+            * quadrupole_star ** 3
+            / (0.11 + bond_length_star ** 5)
+            * b[8]
         )
 
-        rho_c_star = x * b
-        rho_c_star = rho_c_star.sum()
         return rho_c_star
 
     @staticmethod
     def _correlation_function_1(quadrupole_star, bond_length_star, b):
 
-        result = np.array(
-            [
-                1,
-                quadrupole_star ** 2,
-                quadrupole_star ** 3,
-                bond_length_star ** 3 / (bond_length_star + 0.4) ** 3,
-                bond_length_star ** 4 / (bond_length_star + 0.4) ** 5,
-                quadrupole_star ** 2 * bond_length_star ** 2 / (bond_length_star + 0.4),
-                quadrupole_star ** 2
-                * bond_length_star ** 3
-                / (bond_length_star + 0.4) ** 7,
-                quadrupole_star ** 3 * bond_length_star ** 2 / (bond_length_star + 0.4),
-                quadrupole_star ** 3
-                * bond_length_star ** 3
-                / (bond_length_star + 0.4) ** 7,
-            ]
+        result = (
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star ** 3 / (bond_length_star + 0.4) ** 3 * b[3]
+            + bond_length_star ** 4 / (bond_length_star + 0.4) ** 5 * b[4]
+            + quadrupole_star ** 2
+            * bond_length_star ** 2
+            / (bond_length_star + 0.4)
+            * b[5]
+            + quadrupole_star ** 2
+            * bond_length_star ** 3
+            / (bond_length_star + 0.4) ** 7
+            * b[6]
+            + quadrupole_star ** 3
+            * bond_length_star ** 2
+            / (bond_length_star + 0.4)
+            * b[7]
+            + quadrupole_star ** 3
+            * bond_length_star ** 3
+            / (bond_length_star + 0.4) ** 7
+            * b[8]
         )
-        result = result * b
-        result = result.sum()
 
         return result
 
     @staticmethod
     def _correlation_function_2(quadrupole_star, bond_length_star, b):
 
-        result = np.array(
-            [
-                1,
-                quadrupole_star ** 2,
-                quadrupole_star ** 3,
-                bond_length_star ** 2,
-                bond_length_star ** 3,
-                quadrupole_star ** 2 * bond_length_star ** 2,
-                quadrupole_star ** 2 * bond_length_star ** 3,
-                quadrupole_star ** 3 * bond_length_star ** 2,
-            ]
+        result = (
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star ** 2 * b[3]
+            + bond_length_star ** 3 * b[4]
+            + quadrupole_star ** 2 * bond_length_star ** 2 * b[5]
+            + quadrupole_star ** 2 * bond_length_star ** 3 * b[6]
+            + quadrupole_star ** 3 * bond_length_star ** 2 * b[7]
         )
-        result = result * b
-        result = result.sum()
+
         return result
 
     @staticmethod
     def _correlation_function_3(quadrupole_star, bond_length_star, b):
 
-        result = np.array(
-            [
-                1,
-                quadrupole_star ** 2,
-                quadrupole_star ** 3,
-                bond_length_star,
-                bond_length_star ** 4,
-                quadrupole_star ** 2 * bond_length_star,
-                quadrupole_star ** 2 * bond_length_star ** 4,
-                quadrupole_star ** 3 * bond_length_star ** 4,
-            ]
+        result = (
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star * b[3]
+            + bond_length_star ** 4 * b[4]
+            + quadrupole_star ** 2 * bond_length_star * b[5]
+            + quadrupole_star ** 2 * bond_length_star ** 4 * b[6]
+            + quadrupole_star ** 3 * bond_length_star ** 4 * b[7]
         )
-        result = result * b
-        result = result.sum()
 
         return result
 
@@ -316,15 +310,9 @@ class StollWerthSurrogate(SurrogateModel):
         )
         rho_c_star = self.critical_density_star(quadrupole_star, bond_length_star)
 
-        tau = critical_temperature_star - temperature_star  # Tc* - T*
+        tau = critical_temperature_star - temperature_star
 
         if all(tau > 0):
-
-            x = np.ones([len(tau), 4])  # First column is supposed to be all ones
-
-            x[:, 1] = tau ** (1.0 / 3)
-            x[:, 2] = tau
-            x[:, 3] = tau ** (3.0 / 2)
 
             coefficient_1 = self._correlation_function_1(
                 quadrupole_star, bond_length_star, _b_C1
@@ -338,29 +326,30 @@ class StollWerthSurrogate(SurrogateModel):
                 coefficient_3 = self._correlation_function_3(
                     quadrupole_star, bond_length_star, _b_C3_L
                 )
-                b = np.array([rho_c_star, coefficient_1, coefficient_2, coefficient_3])
 
             elif phase == "vapor":
 
+                coefficient_1 = -coefficient_1
                 coefficient_2 = self._correlation_function_2(
                     quadrupole_star, bond_length_star, _b_C2_v
                 )
                 coefficient_3 = self._correlation_function_3(
                     quadrupole_star, bond_length_star, _b_C3_v
                 )
-                b = np.array([rho_c_star, -coefficient_1, coefficient_2, coefficient_3])
 
             else:
-                return 0
 
-            # rho_star = b[0]+b[1]*tau**(1./3)+b[2]*tau+b[3]*tau**(3./2) #The brute force approach
-            rho_star = x * b
-            rho_star = rho_star.sum(
-                axis=1
-            )  # To add up the rows (that pertain to a specific temperature_star)
+                raise NotImplementedError()
+
+            x_0 = 1.0 * rho_c_star
+            x_1 = tau ** (1.0 / 3.0) * coefficient_1
+            x_2 = tau * coefficient_2
+            x_3 = tau ** (3.0 / 2.0) * coefficient_3
+
+            rho_star = x_0 + x_1 + x_2 + x_3
 
         else:
-            rho_star = np.zeros([len(tau)])
+            rho_star = np.zeros(len(tau))
 
         return rho_star
 
@@ -488,49 +477,57 @@ class StollWerthSurrogate(SurrogateModel):
 
         _b_c1, _b_c2, _b_c3 = self._b_c1, self._b_c2, self._b_c3
 
-        x_c1 = [
-            1.0,
-            quadrupole_star ** 2,
-            quadrupole_star ** 3,
-            bond_length_star ** 2 / (bond_length_star ** 2 + 0.75),
-            bond_length_star ** 3 / (bond_length_star ** 3 + 0.75),
-            bond_length_star ** 2
+        c1 = (
+            1.0 * _b_c1[0]
+            + quadrupole_star ** 2 * _b_c1[1]
+            + quadrupole_star ** 3 * _b_c1[2]
+            + bond_length_star ** 2 / (bond_length_star ** 2 + 0.75) * _b_c1[3]
+            + bond_length_star ** 3 / (bond_length_star ** 3 + 0.75) * _b_c1[4]
+            + bond_length_star ** 2
             * quadrupole_star ** 2
-            / (bond_length_star ** 2 + 0.75),
-            bond_length_star ** 3
+            / (bond_length_star ** 2 + 0.75)
+            * _b_c1[5]
+            + bond_length_star ** 3
             * quadrupole_star ** 2
-            / (bond_length_star ** 3 + 0.75),
-            bond_length_star ** 2
+            / (bond_length_star ** 3 + 0.75)
+            * _b_c1[6]
+            + bond_length_star ** 2
             * quadrupole_star ** 3
-            / (bond_length_star ** 2 + 0.75),
-            bond_length_star ** 3
+            / (bond_length_star ** 2 + 0.75)
+            * _b_c1[7]
+            + bond_length_star ** 3
             * quadrupole_star ** 3
-            / (bond_length_star ** 3 + 0.75),
-        ]
-        x_c2 = [
-            1.0,
-            quadrupole_star ** 2,
-            quadrupole_star ** 3,
-            bond_length_star ** 2 / (bond_length_star + 0.75) ** 2,
-            bond_length_star ** 3 / (bond_length_star + 0.75) ** 3,
-            bond_length_star ** 2
+            / (bond_length_star ** 3 + 0.75)
+            * _b_c1[8]
+        )
+        c2 = (
+            1.0 * _b_c2[0]
+            + quadrupole_star ** 2 * _b_c2[1]
+            + quadrupole_star ** 3 * _b_c2[2]
+            + bond_length_star ** 2 / (bond_length_star + 0.75) ** 2 * _b_c2[3]
+            + bond_length_star ** 3 / (bond_length_star + 0.75) ** 3 * _b_c2[4]
+            + bond_length_star ** 2
             * quadrupole_star ** 2
-            / (bond_length_star + 0.75) ** 2,
-            bond_length_star ** 3
+            / (bond_length_star + 0.75) ** 2
+            * _b_c2[5]
+            + bond_length_star ** 3
             * quadrupole_star ** 2
-            / (bond_length_star + 0.75) ** 3,
-            bond_length_star ** 2
+            / (bond_length_star + 0.75) ** 3
+            * _b_c2[6]
+            + bond_length_star ** 2
             * quadrupole_star ** 3
-            / (bond_length_star + 0.75) ** 2,
-            bond_length_star ** 3
+            / (bond_length_star + 0.75) ** 2
+            * _b_c2[7]
+            + bond_length_star ** 3
             * quadrupole_star ** 3
-            / (bond_length_star + 0.75) ** 3,
-        ]
-        x_c3 = [quadrupole_star ** 2, quadrupole_star ** 5, bond_length_star ** 0.5]
-
-        c1 = (x_c1 * _b_c1).sum()
-        c2 = (x_c2 * _b_c2).sum()
-        c3 = (x_c3 * _b_c3).sum()
+            / (bond_length_star + 0.75) ** 3
+            * _b_c2[8]
+        )
+        c3 = (
+            quadrupole_star ** 2 * _b_c3[0]
+            + quadrupole_star ** 5 * _b_c3[1]
+            + bond_length_star ** 0.5
+        )
 
         saturation_pressure_star = np.exp(
             c1 + c2 / temperature_star + c3 / (temperature_star ** 4)
@@ -588,33 +585,25 @@ class StollWerthSurrogate(SurrogateModel):
 
     def _a_correlation_function(self, quadrupole_star, bond_length_star):
 
-        a, b, c, d, e = self._A_a, self._A_b, self._A_c, self._A_d, self._A_e
+        c_a, c_b, c_c, c_d, c_e = self._A_a, self._A_b, self._A_c, self._A_d, self._A_e
 
-        x_a = np.array([1])
-        x_b = np.array(
-            [quadrupole_star, quadrupole_star ** 2.0, quadrupole_star ** 3.0]
+        a = 1.0 * c_a
+        b = (
+            quadrupole_star * c_b[0]
+            + quadrupole_star ** 2.0 * c_b[1]
+            + quadrupole_star ** 3.0 * c_b[2]
         )
-        x_c = np.array([1.0 / (bond_length_star ** 2.0 + 0.1)])
-        x_d = np.array(
-            [
-                quadrupole_star ** 2.0 * bond_length_star ** 2.0,
-                quadrupole_star ** 2.0 * bond_length_star ** 3.0,
-            ]
+        c = 1.0 / (bond_length_star ** 2.0 + 0.1) * c_c[0]
+        d = (
+            quadrupole_star ** 2.0 * bond_length_star ** 2.0 * c_d[0]
+            + quadrupole_star ** 2.0 * bond_length_star ** 3.0 * c_d[1]
         )
-        x_e = np.array(
-            [
-                quadrupole_star ** 2 / (bond_length_star ** 2.0 + 0.1),
-                quadrupole_star ** 2.0 / (bond_length_star ** 5.0 + 0.1),
-            ]
+        e = (
+            quadrupole_star ** 2 / (bond_length_star ** 2.0 + 0.1) * c_e[0]
+            + quadrupole_star ** 2.0 / (bond_length_star ** 5.0 + 0.1) * c_e[1]
         )
 
-        _a_correlation = (x_a * a).sum()
-        _a_correlation += (x_b * b).sum()
-        _a_correlation += (x_c * c).sum()
-        _a_correlation += (x_d * d).sum()
-        _a_correlation += (x_e * e).sum()
-
-        return _a_correlation
+        return a + b + c + d + e
 
     def surface_tension_star(self, temperature_star, quadrupole_star, bond_length_star):
         """Computes the reduced surface tension of the two-center
@@ -687,7 +676,7 @@ class StollWerthSurrogate(SurrogateModel):
         surface_tension = surface_tension_star * epsilon / sigma ** 2 * k_B * m2_to_nm2
         return surface_tension  # [J/m2]
 
-    def evaluate(self, property_type, parameters, temperatures=None):
+    def evaluate(self, property_type, parameters, temperatures):
 
         if property_type == NISTDataType.LiquidDensity:
             return self.liquid_density(temperatures, *parameters)

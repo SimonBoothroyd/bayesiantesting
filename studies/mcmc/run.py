@@ -105,19 +105,26 @@ def get_model(model_name, data_set, property_types, simulation_params):
     return model
 
 
-def generate_initial_parameters(model):
+def generate_initial_parameters(model, attempts=5):
 
-    initial_log_p = math.nan
+    initial_log_p = -math.inf
     initial_parameters = None
 
     counter = 0
 
-    while math.isnan(initial_log_p) and counter < 1000:
+    while counter < attempts:
 
-        initial_parameters = model.sample_priors()
-        initial_log_p = model.evaluate_log_posterior(initial_parameters)
+        parameters = model.sample_priors()[0 : model.n_trainable_parameters]
+        parameters = model.find_maximum_a_posteriori(parameters)
 
+        log_p = model.evaluate_log_posterior(parameters)
         counter += 1
+
+        if math.isnan(log_p) or log_p < initial_log_p:
+            continue
+
+        initial_parameters = parameters
+        initial_log_p = log_p
 
     if numpy.isnan(initial_log_p):
 
@@ -140,7 +147,7 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("AUA+Q", data_set, property_types, simulation_params)
+    model = get_model("UA", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
     initial_parameters = generate_initial_parameters(model)

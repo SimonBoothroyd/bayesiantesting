@@ -5,8 +5,8 @@ This code was originally authored by Owen Madin (github name ocmadin).
 
 import numpy as np
 import torch
-import torch.distributions
 from bayesiantesting.models import Model, ModelCollection
+from bayesiantesting.utils import distributions as distributions
 from tqdm import tqdm
 
 
@@ -255,7 +255,7 @@ class MCMCSimulation:
         parameter_index = torch.randint(model.n_trainable_parameters, (1,))
 
         # Sample the new parameters from a normal distribution.
-        proposed_parameters[parameter_index] = torch.distributions.Normal(
+        proposed_parameters[parameter_index] = distributions.Normal(
             proposed_parameters[parameter_index], proposal_scales[parameter_index]
         ).sample()
 
