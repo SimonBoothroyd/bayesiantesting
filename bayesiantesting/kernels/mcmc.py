@@ -21,7 +21,7 @@ class MCMCSimulation:
         steps=100000,
         tune_frequency=5000,
         discard_warm_up_data=True,
-        sampler=None
+        sampler=None,
     ):
         """Initializes the basic state of the simulator object.
 
@@ -239,7 +239,9 @@ class MCMCSimulation:
             acceptance = self._accept_reject(alpha)
         else:
             # Perform a more advanced sampler move.
-            proposed_parameters, acceptance = self._sampler.step(current_parameters, adapt_moves)
+            proposed_parameters, acceptance = self._sampler.step(
+                current_parameters, adapt_moves
+            )
 
             model = self._model_collection.models[current_model_index]
             proposed_log_p = model.evaluate_log_posterior(proposed_parameters)

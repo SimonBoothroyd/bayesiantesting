@@ -41,10 +41,15 @@ class RJMCSimulation(MCMCSimulation):
             )
 
         if sampler is not None:
-            raise ValueError('Samplers cannot currently be used with RJMC')
+            raise ValueError("Samplers cannot currently be used with RJMC")
 
         super().__init__(
-            model_collection, warm_up_steps, steps, tune_frequency, discard_warm_up_data, sampler
+            model_collection,
+            warm_up_steps,
+            steps,
+            tune_frequency,
+            discard_warm_up_data,
+            sampler,
         )
 
         self._swap_frequency = swap_frequency
@@ -57,7 +62,7 @@ class RJMCSimulation(MCMCSimulation):
         current_log_p,
         move_proposals,
         move_acceptances,
-        adapt=False
+        adapt=False,
     ):
 
         proposed_parameters = current_parameters.copy()

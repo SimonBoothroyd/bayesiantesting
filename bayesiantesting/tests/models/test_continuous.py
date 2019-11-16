@@ -101,8 +101,8 @@ def test_gradient_speed():
     mu = numpy.array([94.8, 0.353, 0.120, 0.0])
     sigma = mu / 50.0
 
-    prior_gradient_function = autograd.jit(autograd.grad(model.evaluate_log_posterior))
-    n_iter = 10000
+    prior_gradient_function = autograd.grad(model.evaluate_log_posterior)
+    n_iter = 1000
 
     start = perf_counter_ns()
 

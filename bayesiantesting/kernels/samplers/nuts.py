@@ -162,7 +162,12 @@ class NUTS(Hamiltonian):
         log_p_gradient = log_p_gradient_0
 
         # Get into a regime where things are finite / not NaN using the
-        while np.isinf(log_p) or np.isnan(log_p) or any(np.isinf(log_p_gradient)) or any(np.isnan(log_p_gradient)):
+        while (
+            np.isinf(log_p)
+            or np.isnan(log_p)
+            or any(np.isinf(log_p_gradient))
+            or any(np.isnan(log_p_gradient))
+        ):
 
             e0 *= 0.5
 
@@ -173,7 +178,7 @@ class NUTS(Hamiltonian):
 
         log_alpha = log_p - log_p_0 - 0.5 * (np.dot(r1, r1) - np.dot(r0, r0))
 
-        accept = 1.0 if log_alpha > np.log(0.5) else -1.
+        accept = 1.0 if log_alpha > np.log(0.5) else -1.0
 
         while accept * log_alpha > -accept * np.log(2):
 
@@ -192,7 +197,7 @@ class NUTS(Hamiltonian):
         if adapt:
             self._has_adapted = True
         elif not self._has_adapted:
-            raise ValueError('This sampler must be adaptively stepped at least once.')
+            raise ValueError("This sampler must be adaptively stepped at least once.")
 
         x = parameters
         r0 = self.initial_momentum(self._scale)
