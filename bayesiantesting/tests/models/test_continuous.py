@@ -1,6 +1,9 @@
 """
 Unit and regression test for the datasets module.
 """
+from time import perf_counter_ns
+
+import autograd
 import autograd
 import numpy
 
@@ -89,3 +92,25 @@ def test_evaluate_log_posterior(model):
 
     assert len(prior_gradients) == len(parameters)
     assert not numpy.allclose(prior_gradients, 0.0)
+
+
+def test_gradient_speed():
+
+    model = _get_two_center_model()
+
+    mu = numpy.array([94.8, 0.353, 0.120, 0.0])
+    sigma = mu / 50.0
+
+    prior_gradient_function = autograd.jit(autograd.grad(model.evaluate_log_posterior))
+    n_iter = 10000
+
+    start = perf_counter_ns()
+
+    for i in range(n_iter):
+        parameters = numpy.random.normal(mu, sigma)
+        prior_gradient_function(parameters)
+
+    stop = perf_counter_ns()
+
+    time = ((stop - start) / n_iter) * 1e-9
+    print(time)

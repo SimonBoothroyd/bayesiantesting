@@ -101,118 +101,6 @@ class StollWerthSurrogate(SurrogateModel):
 
         self._B = np.array(parameters["Werth"]["A_star_params"]["B_params"])
 
-    def critical_temperature_star(self, quadrupole_star_sqr, bond_length_star):
-        """Computes the reduced critical temperature of the two-center
-        Lennard-Jones model for a given set of model parameters.
-
-        Parameters
-        ----------
-        quadrupole_star_sqr: float
-            The reduced quadrupole parameter squared.
-        bond_length_star: float
-            The reduced bond-length parameter
-
-        Returns
-        -------
-        float
-            The reduced critical temperature.
-        """
-
-        b = self.critical_temperature_star_parameters
-
-        t_c_star = (
-            1 * b[0]
-            + quadrupole_star_sqr ** 2 * b[1]
-            + quadrupole_star_sqr ** 3 * b[2]
-            + 1.0 / (0.1 + bond_length_star ** 2) * b[3]
-            + 1.0 / (0.1 + bond_length_star ** 5) * b[4]
-            + quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 2) * b[5]
-            + quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 5) * b[6]
-            + quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 2) * b[7]
-            + quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 5) * b[8]
-        )
-
-        return t_c_star
-
-    def critical_temperature(self, epsilon, sigma, bond_length, quadrupole):
-        """Computes the critical temperature of the two-center
-        Lennard-Jones model for a given set of model parameters.
-
-        Parameters
-        ----------
-        epsilon: float
-            The epsilon parameter in units of K.
-        sigma: float
-            The sigma parameter in units of nm.
-        bond_length: float
-            The bond-length parameter in units of nm.
-        quadrupole: float
-            The quadrupole parameter in units of Debye * nm.
-
-        Returns
-        -------
-        float
-            The critical temperature in units of K.
-        """
-        quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
-        quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
-
-        # Note that epsilon is defined as epsilon / kB
-        quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
-        bond_length_star = bond_length / sigma
-
-        critical_temperature_star = self.critical_temperature_star(
-            quadrupole_star_sqr, bond_length_star
-        )
-        critical_temperature = critical_temperature_star * epsilon
-
-        return critical_temperature
-
-    def critical_density_star(self, quadrupole_star, bond_length_star):
-        """Computes the reduced critical density of the two-center
-        Lennard-Jones model for a given set of model parameters.
-
-        Parameters
-        ----------
-        quadrupole_star: float
-            The reduced quadrupole parameter.
-        bond_length_star: float
-            The reduced bond-length parameter
-
-        Returns
-        -------
-        float
-            The reduced critical density.
-        """
-
-        b = self.density_star_parameters
-
-        rho_c_star = (
-            1 * b[0]
-            + quadrupole_star ** 2 * b[1]
-            + quadrupole_star ** 3 * b[2]
-            + bond_length_star ** 2 / (0.11 + bond_length_star ** 2) * b[3]
-            + bond_length_star ** 5 / (0.11 + bond_length_star ** 5) * b[4]
-            + bond_length_star ** 2
-            * quadrupole_star ** 2
-            / (0.11 + bond_length_star ** 2)
-            * b[5]
-            + bond_length_star ** 5
-            * quadrupole_star ** 2
-            / (0.11 + bond_length_star ** 5)
-            * b[6]
-            + bond_length_star ** 2
-            * quadrupole_star ** 3
-            / (0.11 + bond_length_star ** 2)
-            * b[7]
-            + bond_length_star ** 5
-            * quadrupole_star ** 3
-            / (0.11 + bond_length_star ** 5)
-            * b[8]
-        )
-
-        return rho_c_star
-
     @staticmethod
     def _correlation_function_1(quadrupole_star, bond_length_star, b):
 
@@ -274,6 +162,119 @@ class StollWerthSurrogate(SurrogateModel):
 
         return result
 
+    def critical_temperature_star(self, quadrupole_star_sqr, bond_length_star):
+        """Computes the reduced critical temperature of the two-center
+        Lennard-Jones model for a given set of model parameters.
+
+        Parameters
+        ----------
+        quadrupole_star_sqr: float
+            The reduced quadrupole parameter squared.
+        bond_length_star: float
+            The reduced bond-length parameter
+
+        Returns
+        -------
+        float
+            The reduced critical temperature.
+        """
+
+        b = self.critical_temperature_star_parameters
+
+        t_c_star = (
+            1 * b[0]
+            + quadrupole_star_sqr ** 2 * b[1]
+            + quadrupole_star_sqr ** 3 * b[2]
+            + 1.0 / (0.1 + bond_length_star ** 2) * b[3]
+            + 1.0 / (0.1 + bond_length_star ** 5) * b[4]
+            + quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 2) * b[5]
+            + quadrupole_star_sqr ** 2 / (0.1 + bond_length_star ** 5) * b[6]
+            + quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 2) * b[7]
+            + quadrupole_star_sqr ** 3 / (0.1 + bond_length_star ** 5) * b[8]
+        )
+
+        return t_c_star
+
+    def critical_temperature(self, epsilon, sigma, bond_length, quadrupole):
+        """Computes the critical temperature of the two-center
+        Lennard-Jones model for a given set of model parameters.
+
+        Parameters
+        ----------
+        epsilon: float
+            The epsilon parameter in units of K.
+        sigma: float
+            The sigma parameter in units of nm.
+        bond_length: float
+            The bond-length parameter in units of nm.
+        quadrupole: float
+            The quadrupole parameter in units of Debye * nm.
+
+        Returns
+        -------
+        float
+            The critical temperature in units of K.
+        """
+        # quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
+        # quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
+        #
+        # # Note that epsilon is defined as epsilon / kB
+        # quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
+        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (epsilon * 1.38065 * sigma ** 5)
+        bond_length_star = bond_length / sigma
+
+        critical_temperature_star = self.critical_temperature_star(
+            quadrupole_star_sqr, bond_length_star
+        )
+        critical_temperature = critical_temperature_star * epsilon
+
+        return critical_temperature
+
+    def critical_density_star(self, quadrupole_star, bond_length_star):
+        """Computes the reduced critical density of the two-center
+        Lennard-Jones model for a given set of model parameters.
+
+        Parameters
+        ----------
+        quadrupole_star: float
+            The reduced quadrupole parameter.
+        bond_length_star: float
+            The reduced bond-length parameter
+
+        Returns
+        -------
+        float
+            The reduced critical density.
+        """
+
+        b = self.density_star_parameters
+
+        rho_c_star = (
+            1 * b[0]
+            + quadrupole_star ** 2 * b[1]
+            + quadrupole_star ** 3 * b[2]
+            + bond_length_star ** 2 / (0.11 + bond_length_star ** 2) * b[3]
+            + bond_length_star ** 5 / (0.11 + bond_length_star ** 5) * b[4]
+            + bond_length_star ** 2
+            * quadrupole_star ** 2
+            / (0.11 + bond_length_star ** 2)
+            * b[5]
+            + bond_length_star ** 5
+            * quadrupole_star ** 2
+            / (0.11 + bond_length_star ** 5)
+            * b[6]
+            + bond_length_star ** 2
+            * quadrupole_star ** 3
+            / (0.11 + bond_length_star ** 2)
+            * b[7]
+            + bond_length_star ** 5
+            * quadrupole_star ** 3
+            / (0.11 + bond_length_star ** 5)
+            * b[8]
+        )
+
+        return rho_c_star
+
     def density_star(self, temperature_star, quadrupole_star, bond_length_star, phase):
         """Computes the reduced critical temperature of the two-center
         Lennard-Jones model in the specified phase for a given set of model parameters over
@@ -312,7 +313,7 @@ class StollWerthSurrogate(SurrogateModel):
 
         tau = critical_temperature_star - temperature_star
 
-        if all(tau > 0):
+        if np.all(tau > 0):
 
             coefficient_1 = self._correlation_function_1(
                 quadrupole_star, bond_length_star, _b_C1
@@ -385,9 +386,10 @@ class StollWerthSurrogate(SurrogateModel):
         # Note that epsilon is defined as epsilon/kB
         temperature_star = temperature / epsilon
 
-        quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
-        quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
-        quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
+        # quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
+        # quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
+        # quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
+        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (epsilon * 1.38065 * sigma ** 5)
 
         bond_length_star = bond_length / sigma
 
@@ -562,11 +564,12 @@ class StollWerthSurrogate(SurrogateModel):
             temperature / epsilon
         )  # note that epsilon is defined as epsilon/kB
 
-        quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
-        quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
-
-        # Note that epsilon is defined as epsilon/kB
-        quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
+        # quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
+        # quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
+        #
+        # # Note that epsilon is defined as epsilon/kB
+        # quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
+        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (epsilon * 1.38065 * sigma ** 5)
 
         bond_length_star = bond_length / sigma
 
@@ -664,9 +667,10 @@ class StollWerthSurrogate(SurrogateModel):
         # Note that epsilon is defined as epsilon/kB
         temperature_star = temperature / epsilon
 
-        quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
-        quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
-        quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
+        # quadrupole = quadrupole * D_to_sqrtJm3  # [(J*m3)^(1/2) nm]
+        # quadrupole_sqr = quadrupole ** 2 * m3_to_nm3  # [J*nm5]
+        # quadrupole_star_sqr = quadrupole_sqr / (epsilon * k_B * sigma ** 5)
+        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (epsilon * 1.38065 * sigma ** 5)
 
         bond_length_star = bond_length / sigma
 
