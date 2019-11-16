@@ -8,7 +8,6 @@ import autograd
 import autograd.numpy
 import autograd.scipy.special
 import autograd.scipy.stats.gamma
-import numpy
 
 import torch.distributions
 
@@ -50,6 +49,12 @@ class Exponential(Distribution):
 class Normal(Distribution):
     def __init__(self, loc, scale):
 
+        if isinstance(loc, autograd.numpy.float64):
+            loc = autograd.numpy.array([loc])
+
+        if isinstance(scale, autograd.numpy.float64):
+            scale = autograd.numpy.array([scale])
+
         self.loc = loc
         self.scale = scale
 
@@ -63,7 +68,7 @@ class Normal(Distribution):
         return (
             -((x - self.loc) ** 2) / (2 * var)
             - log_scale
-            - autograd.numpy.log(autograd.numpy.sqrt(2 * numpy.pi))
+            - autograd.numpy.log(autograd.numpy.sqrt(2 * autograd.numpy.pi))
         )
 
     def cdf(self, x):

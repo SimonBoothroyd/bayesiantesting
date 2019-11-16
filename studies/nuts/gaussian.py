@@ -18,27 +18,25 @@ from bayesiantesting.utils.distributions import Normal
 def main():
 
     mu = numpy.array([0.0, 0.0])
-    sigma = numpy.array([1.0, 1.0])
+    sigma = numpy.array([1.0, 5000.0])
 
-    scale = numpy.array([1.0, 1.0])
+    scale = 1.0 / (3.0 * sigma)
 
     gaussian = Normal(mu, sigma)
 
     def log_pdf(parameters):
-        return autograd.numpy.sum(gaussian.log_pdf(parameters))
+        return autograd.numpy.sum(gaussian.log_pdf(parameters / scale))
 
     # Draw the initial parameter values from the model priors.
-    initial_parameters = gaussian.sample()
+    initial_parameters = gaussian.sample() * scale
 
     # Run the simulation.
     step_size = NUTS.find_reasonable_epsilon(initial_parameters,
-                                             log_pdf,
-                                             scale)
+                                             log_pdf)
 
     sampler = NUTS(log_pdf,
                    len(mu),
-                   step_size,
-                   scale=scale)
+                   step_size)
 
     trace = []
     step_size = []
@@ -51,8 +49,8 @@ def main():
         current_parameters, _ = sampler.step(current_parameters, step < 1000)
         step_size.append(sampler._step_size)
 
-        trace.append(current_parameters)
-        log_p_trace.append(gaussian.log_pdf(current_parameters))
+        trace.append(current_parameters / scale)
+        log_p_trace.append(log_pdf(current_parameters))
 
     step_size = autograd.numpy.asarray(step_size)
 
@@ -68,7 +66,7 @@ def main():
         pyplot.draw()
         pyplot.show()
 
-        pyplot.hist(trace[:])
+        pyplot.hist(trace[:, i])
         pyplot.draw()
         pyplot.show()
 

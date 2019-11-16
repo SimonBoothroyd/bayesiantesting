@@ -136,23 +136,20 @@ class Model:
         Returns
         -------
         numpy.ndarray:
-            The sampled parameters with shape=(`n_total_parameters`).
+            The sampled parameters with shape=(`n_trainable_parameters`).
         """
 
-        initial_parameters = np.zeros(self.n_total_parameters)
+        initial_parameters = np.zeros(self.n_trainable_parameters)
 
         for index, prior in enumerate(self._priors):
             initial_parameters[index] = prior.sample()
-
-        for index, parameter in enumerate(self._fixed_parameters):
-            initial_parameters[index + self.n_trainable_parameters] = parameter
 
         return initial_parameters
 
     def find_maximum_a_posteriori(
         self, initial_parameters=None, optimisation_method="L-BFGS-B"
     ):
-        """ Find the maximum a posteriori of the posterior by doing a simply
+        """ Find the maximum a posteriori of the posterior by doing a simple
         minimisation.
 
         Parameters
@@ -175,19 +172,9 @@ class Model:
                 "equal to the number of parameters to train."
             )
 
-        # Create an array which contains the fixed parameters,
-        # and which can be updated with the current trainable
-        # parameters.
+        # Define the function to minimize.
         def negative_log_posterior(x):
-
-            working_parameters = [*x]
-
-            for index, parameter in enumerate(self._fixed_parameters):
-                working_parameters.append(parameter)
-
-            working_parameters = numpy.array(working_parameters)
-
-            return -1 * self.evaluate_log_posterior(working_parameters)
+            return -self.evaluate_log_posterior(x)
 
         gradient_function = autograd.grad(negative_log_posterior)
 
@@ -198,12 +185,7 @@ class Model:
             method=optimisation_method,
         )
 
-        final_parameters = [*results.x]
-
-        for index, parameter in enumerate(self._fixed_parameters):
-            final_parameters.append(parameter)
-
-        return numpy.array(final_parameters)
+        return numpy.array(results.x)
 
     def evaluate_log_prior(self, parameters):
         """Evaluates the log value of the prior for a
@@ -426,63 +408,6 @@ class ModelCollection:
 
     def transition_probabilities(self, model_index_a, model_index_b):
         return 1.0
-
-    def evaluate_log_prior(self, model_index, parameters):
-        """Evaluates the log value of the prior for a
-        given model and corresponding parameters.
-
-        Parameters
-        ----------
-        model_index: int
-            The index of the model to evaluate.
-        parameters: numpy.ndarray
-            The values of the parameters (with shape=n_parameters)
-            to evaluate at.
-
-        Returns
-        -------
-        float
-            The sum of the log values of priors evaluated at `parameters`.
-        """
-        return self._models[model_index].evaluate_log_prior(parameters)
-
-    def evaluate_log_likelihood(self, model_index, parameters):
-        """Evaluates the log value of the this models likelihood for a
-        given model and corresponding parameters.
-
-        Parameters
-        ----------
-        model_index: int
-            The index of the model to evaluate.
-        parameters: numpy.ndarray
-            The values of the parameters (with shape=n_parameters)
-            to evaluate at.
-
-        Returns
-        -------
-        float
-            The log value of the likelihood evaluated at `parameters`.
-        """
-        return self._models[model_index].evaluate_log_likelihood(parameters)
-
-    def evaluate_log_posterior(self, model_index, parameters):
-        """Evaluates the *unnormalized* log posterior for a
-        given model and corresponding parameters.
-
-        Parameters
-        ----------
-        model_index: int
-            The index of the model to evaluate.
-        parameters: numpy.ndarray
-            The values of the parameters (with shape=n_parameters)
-            to evaluate at.
-
-        Returns
-        -------
-        float
-            The log value of the posterior evaluated at `parameters`.
-        """
-        return self._models[model_index].evaluate_log_posterior(parameters)
 
     def __len__(self):
         return self.n_models

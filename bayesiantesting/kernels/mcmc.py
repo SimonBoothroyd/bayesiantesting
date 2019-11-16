@@ -81,15 +81,15 @@ class MCMCSimulation:
         maximum_n_parameters = 0
 
         for model in self._model_collection.models:
-            maximum_n_parameters = max(maximum_n_parameters, model.n_total_parameters)
+            maximum_n_parameters = max(maximum_n_parameters, model.n_trainable_parameters)
 
         if len(initial_parameters) != maximum_n_parameters:
 
             raise ValueError(
                 f"The initial parameters vector is too small "
-                f"{len(initial_parameters)} to store the maximum "
-                f"number of the parameters from across all models "
-                f"({maximum_n_parameters})."
+                f"({len(initial_parameters)}) to store the maximum "
+                f"number of the trainable parameters from across "
+                f"all models ({maximum_n_parameters})."
             )
 
     def run(self, initial_parameters, initial_model_index=0):

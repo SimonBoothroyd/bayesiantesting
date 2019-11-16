@@ -115,7 +115,7 @@ def generate_initial_parameters(model, attempts=5):
 
     while counter < attempts:
 
-        parameters = model.sample_priors()[0 : model.n_trainable_parameters]
+        parameters = model.sample_priors()
         parameters = model.find_maximum_a_posteriori(parameters)
 
         log_p = model.evaluate_log_posterior(parameters)
@@ -148,22 +148,23 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("AUA+Q", data_set, property_types, simulation_params)
+    model = get_model("UA", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
     # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([94.8, 0.353, 0.120, 0.0])
+    initial_parameters = numpy.array([300.0, 0.3])
 
     # Run the simulation.
-    step_size = NUTS.find_reasonable_epsilon(initial_parameters, model.evaluate_log_posterior)
-
-    sampler = NUTS(model.evaluate_log_posterior,
-                   model.n_trainable_parameters,
-                   step_size)
+    # step_size = NUTS.find_reasonable_epsilon(initial_parameters, model.evaluate_log_posterior)
+    #
+    # sampler = NUTS(model.evaluate_log_posterior,
+    #                model.n_trainable_parameters,
+    #                step_size)
+    sampler = None
 
     simulation = MCMCSimulation(
         model_collection=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.2),
+        warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
         sampler=sampler
@@ -172,7 +173,7 @@ def main():
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
 
     # Plot the output.
-    for i in range(4):
+    for i in range(model.n_trainable_parameters):
         pyplot.plot(trace[:, i + 1])
         pyplot.draw()
         pyplot.show()
