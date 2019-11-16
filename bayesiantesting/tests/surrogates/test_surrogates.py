@@ -108,18 +108,14 @@ def test_critical_density_gradient():
         quadrupole_star_sqr,
     ) = generate_parameters()
 
-    rho_c_star_function = autograd.grad(model.critical_density_star, (0, 1))
-    rho_c_star_gradient = rho_c_star_function(quadrupole_star_sqr, bond_length_star)
+    reduced_gradient_function = autograd.grad(model.critical_density_star, (0, 1))
+    gradient_function = autograd.grad(model.critical_temperature, (0, 1, 2, 3))
 
-    rho_c_function = autograd.grad(model.critical_temperature, (0, 1, 2, 3))
-    rho_c_gradient = rho_c_function(epsilon, sigma, bond_length, quadrupole)
+    reduced_gradient = reduced_gradient_function(quadrupole_star_sqr, bond_length_star)
+    gradient = gradient_function(epsilon, sigma, bond_length, quadrupole)
 
-    # rho_c_star_grad_analytical = critical_density_gradient_analytical(model, quadrupole_star_sqr, bond_length_star)
-    # rho_c_grad_analytical = rho_c_star_grad_analytical
-
-    assert len(rho_c_star_gradient) == 2 and not numpy.allclose(
-        rho_c_star_gradient, 0.0
-    )
+    assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
+    assert len(gradient) == 4 and not numpy.allclose(gradient, 0.0)
 
 
 def test_liquid_density():
@@ -135,34 +131,19 @@ def test_liquid_density():
         quadrupole_star_sqr,
     ) = generate_parameters()
 
-    temperatures = numpy.array([298.0, 308.0])
+    temperatures = numpy.array([308.0])
     temperatures_star = temperatures / epsilon
 
-    model.liquid_density_star(temperatures_star, quadrupole_star_sqr, bond_length_star)
+    reduced_gradient_function = autograd.grad(model.liquid_density_star, (1, 2))
+    gradient_function = autograd.grad(model.liquid_density, (1, 2, 3, 4))
 
-    # We have to build a separate gradient for each parameter due the
-    # autograd jacobian method not supporting tuples for the argument
-    # number. This won't be an issue if the change is made to JAX.
-    bond_length_gradient_function = autograd.jacobian(model.liquid_density_star, 1)
-    quadrupole_gradient_function = autograd.jacobian(model.liquid_density_star, 2)
-
-    bond_length_gradient = bond_length_gradient_function(
+    reduced_gradient = reduced_gradient_function(
         temperatures_star, quadrupole_star_sqr, bond_length_star
     )
-    quadrupole_gradient = quadrupole_gradient_function(
-        temperatures_star, quadrupole_star_sqr, bond_length_star
-    )
+    gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
-    # <class 'tuple'>: (array(-0.07604066), array(1.6157372))
-    # <class 'tuple'>: (array(-0.08812341), array(1.91128129))
-    # <class 'tuple'>: (array(-0.10083591), array(2.23236391))
-
-    assert len(bond_length_gradient) == 2 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
-    assert len(quadrupole_gradient) == 2 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
+    assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
+    assert len(gradient) == 4 and not numpy.allclose(gradient, 0.0)
 
 
 def test_saturation_pressure():
@@ -178,59 +159,19 @@ def test_saturation_pressure():
         quadrupole_star_sqr,
     ) = generate_parameters()
 
-    temperatures = numpy.array([298.0, 308.0, 318.0])
+    temperatures = numpy.array([308.0])
     temperatures_star = temperatures / epsilon
 
-    # We have to build a separate gradient for each parameter due the
-    # autograd jacobian method not supporting tuples for the argument
-    # number. This won't be an issue if the change is made to JAX.
-    bond_length_gradient_function = autograd.jacobian(model.saturation_pressure_star, 1)
-    quadrupole_gradient_function = autograd.jacobian(model.saturation_pressure_star, 2)
+    reduced_gradient_function = autograd.grad(model.saturation_pressure_star, (1, 2))
+    gradient_function = autograd.grad(model.saturation_pressure, (1, 2, 3, 4))
 
-    bond_length_gradient = bond_length_gradient_function(
+    reduced_gradient = reduced_gradient_function(
         temperatures_star, quadrupole_star_sqr, bond_length_star
     )
-    quadrupole_gradient = quadrupole_gradient_function(
-        temperatures_star, quadrupole_star_sqr, bond_length_star
-    )
+    gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
-    # <class 'tuple'>: (array(-0.07604066), array(1.6157372))
-    # <class 'tuple'>: (array(-0.08812341), array(1.91128129))
-    # <class 'tuple'>: (array(-0.10083591), array(2.23236391))
-
-    assert len(bond_length_gradient) == 3 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
-    assert len(quadrupole_gradient) == 3 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
-
-    epsilon_gradient_function = autograd.jacobian(model.saturation_pressure, 1)
-    sigma_gradient_function = autograd.jacobian(model.saturation_pressure, 2)
-    bond_length_gradient_function = autograd.jacobian(model.saturation_pressure, 3)
-    quadrupole_gradient_function = autograd.jacobian(model.saturation_pressure, 4)
-
-    epsilon_gradient = epsilon_gradient_function(
-        temperatures, epsilon, sigma, bond_length, quadrupole
-    )
-    sigma_gradient = sigma_gradient_function(
-        temperatures, epsilon, sigma, bond_length, quadrupole
-    )
-    bond_length_gradient = bond_length_gradient_function(
-        temperatures, epsilon, sigma, bond_length, quadrupole
-    )
-    quadrupole_gradient = quadrupole_gradient_function(
-        temperatures, epsilon, sigma, bond_length, quadrupole
-    )
-
-    assert len(epsilon_gradient) == 3 and not numpy.allclose(epsilon_gradient, 0.0)
-    assert len(sigma_gradient) == 3 and not numpy.allclose(sigma_gradient, 0.0)
-    assert len(bond_length_gradient) == 3 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
-    assert len(quadrupole_gradient) == 3 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
+    assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
+    assert len(gradient) == 4 and not numpy.allclose(gradient, 0.0)
 
 
 def test_surface_tension():
@@ -246,55 +187,19 @@ def test_surface_tension():
         quadrupole_star_sqr,
     ) = generate_parameters()
 
-    temperatures = numpy.array([298.0, 308.0, 318.0])
+    temperatures = numpy.array([308.0])
     temperatures_star = temperatures / epsilon
 
-    # We have to build a separate gradient for each parameter due the
-    # autograd jacobian method not supporting tuples for the argument
-    # number. This won't be an issue if the change is made to JAX.
-    bond_length_gradient_function = autograd.jacobian(model.surface_tension_star, 1)
-    quadrupole_gradient_function = autograd.jacobian(model.surface_tension_star, 2)
+    reduced_gradient_function = autograd.grad(model.surface_tension_star, (1, 2))
+    gradient_function = autograd.grad(model.surface_tension, (1, 2, 3, 4))
 
-    bond_length_gradient = bond_length_gradient_function(
+    reduced_gradient = reduced_gradient_function(
         temperatures_star, quadrupole_star_sqr, bond_length_star
     )
-    quadrupole_gradient = quadrupole_gradient_function(
-        temperatures_star, quadrupole_star_sqr, bond_length_star
-    )
+    gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
-    assert len(bond_length_gradient) == 3 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
-    assert len(quadrupole_gradient) == 3 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
-
-    epsilon_gradient_function = autograd.jacobian(model.surface_tension, 1)
-    sigma_gradient_function = autograd.jacobian(model.surface_tension, 2)
-    bond_length_gradient_function = autograd.jacobian(model.surface_tension, 3)
-    quadrupole_gradient_function = autograd.jacobian(model.surface_tension, 4)
-
-    epsilon_gradient = epsilon_gradient_function(
-        temperatures, epsilon, sigma, bond_length, quadrupole
-    )
-    sigma_gradient = sigma_gradient_function(
-        temperatures, epsilon, sigma, bond_length, quadrupole
-    )
-    bond_length_gradient = bond_length_gradient_function(
-        temperatures, epsilon, sigma, bond_length, quadrupole
-    )
-    quadrupole_gradient = quadrupole_gradient_function(
-        temperatures, epsilon, sigma, bond_length, quadrupole
-    )
-
-    assert len(epsilon_gradient) == 3 and not numpy.allclose(epsilon_gradient, 0.0)
-    assert len(sigma_gradient) == 3 and not numpy.allclose(sigma_gradient, 0.0)
-    assert len(bond_length_gradient) == 3 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
-    assert len(quadrupole_gradient) == 3 and not numpy.allclose(
-        bond_length_gradient, 0.0
-    )
+    assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
+    assert len(gradient) == 4 and not numpy.allclose(gradient, 0.0)
 
 
 def test_evaluate():
