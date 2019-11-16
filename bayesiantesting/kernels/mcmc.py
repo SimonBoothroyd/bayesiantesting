@@ -21,6 +21,7 @@ class MCMCSimulation:
         steps=100000,
         tune_frequency=5000,
         discard_warm_up_data=True,
+        sampler=None
     ):
         """Initializes the basic state of the simulator object.
 
@@ -38,6 +39,8 @@ class MCMCSimulation:
         discard_warm_up_data: bool
             If true, all data generated during the warm-up period will
             be discarded.
+        sampler: optional
+            The sampler to use for in-model proposals.
         """
 
         self.warm_up_steps = warm_up_steps
@@ -60,6 +63,8 @@ class MCMCSimulation:
         self._initial_values = None
         self._initial_model_index = None
         self._initial_log_p = None
+
+        self._sampler = sampler
 
     def _validate_parameter_shapes(self, initial_parameters, initial_model_index):
 
@@ -149,6 +154,7 @@ class MCMCSimulation:
                 current_log_p,
                 move_proposals,
                 move_acceptances,
+                i < self.warm_up_steps,
             )
             new_percent_deviation = current_percent_deviation
 
@@ -218,16 +224,25 @@ class MCMCSimulation:
         current_log_p,
         move_proposals,
         move_acceptances,
+        adapt_moves=False,
     ):
 
         proposed_parameters = current_parameters.copy()
 
-        proposed_parameters, proposed_log_p = self.parameter_proposal(
-            proposed_parameters, current_model_index, proposal_scales
-        )
-        alpha = proposed_log_p - current_log_p
+        if self._sampler is None:
+            # Perform a standard Metropolis–Hastings move.
+            proposed_parameters, proposed_log_p = self.parameter_proposal(
+                proposed_parameters, current_model_index, proposal_scales
+            )
+            alpha = proposed_log_p - current_log_p
 
-        acceptance = self._accept_reject(alpha)
+            acceptance = self._accept_reject(alpha)
+        else:
+            # Perform a more advanced sampler move.
+            proposed_parameters, acceptance = self._sampler.step(current_parameters, adapt_moves)
+
+            model = self._model_collection.models[current_model_index]
+            proposed_log_p = model.evaluate_log_posterior(proposed_parameters)
 
         move_proposals[current_model_index, current_model_index] += 1
 

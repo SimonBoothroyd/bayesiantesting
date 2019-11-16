@@ -14,6 +14,7 @@ import yaml
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.kernels import MCMCSimulation
+from bayesiantesting.kernels.samplers import NUTS
 from bayesiantesting.models.continuous import TwoCenterLJModel
 from bayesiantesting.surrogates import StollWerthSurrogate
 from matplotlib import pyplot
@@ -147,17 +148,25 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("UA", data_set, property_types, simulation_params)
+    model = get_model("AUA+Q", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
-    initial_parameters = generate_initial_parameters(model)
+    # initial_parameters = generate_initial_parameters(model)
+    initial_parameters = numpy.array([94.8, 0.353, 0.120, 0.0])
 
     # Run the simulation.
+    step_size = NUTS.find_reasonable_epsilon(initial_parameters, model.evaluate_log_posterior)
+
+    sampler = NUTS(model.evaluate_log_posterior,
+                   model.n_trainable_parameters,
+                   step_size)
+
     simulation = MCMCSimulation(
         model_collection=model,
         warm_up_steps=int(simulation_params["steps"] * 0.2),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
+        sampler=sampler
     )
 
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)

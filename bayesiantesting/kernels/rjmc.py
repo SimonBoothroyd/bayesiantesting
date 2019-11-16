@@ -22,6 +22,7 @@ class RJMCSimulation(MCMCSimulation):
         steps=100000,
         tune_frequency=5000,
         discard_warm_up_data=True,
+        sampler=None,
         swap_frequency=0.3,
     ):
         """
@@ -39,8 +40,11 @@ class RJMCSimulation(MCMCSimulation):
                 "sub-models to jump between."
             )
 
+        if sampler is not None:
+            raise ValueError('Samplers cannot currently be used with RJMC')
+
         super().__init__(
-            model_collection, warm_up_steps, steps, tune_frequency, discard_warm_up_data
+            model_collection, warm_up_steps, steps, tune_frequency, discard_warm_up_data, sampler
         )
 
         self._swap_frequency = swap_frequency
@@ -53,6 +57,7 @@ class RJMCSimulation(MCMCSimulation):
         current_log_p,
         move_proposals,
         move_acceptances,
+        adapt=False
     ):
 
         proposed_parameters = current_parameters.copy()
