@@ -265,10 +265,15 @@ class NISTDataSet:
                 data_frame.values[:, 0] < maximum_temperature_kelvin
             ]
 
-            if int(np.floor(data_frame.shape[0] / (maximum_data_points - 1))) == 0:
+            if (
+                maximum_data_points > 1
+                and int(np.floor(data_frame.shape[0] / (maximum_data_points - 1))) == 0
+            ):
                 slicer = 1
             else:
-                slicer = int(np.floor(data_frame.shape[0] / (maximum_data_points - 1)))
+                slicer = int(
+                    np.floor(data_frame.shape[0] / max(1, maximum_data_points - 1))
+                )
 
             self._data[data_type] = data_frame[::slicer]
 
