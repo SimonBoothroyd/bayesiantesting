@@ -81,7 +81,9 @@ class MCMCSimulation:
         maximum_n_parameters = 0
 
         for model in self._model_collection.models:
-            maximum_n_parameters = max(maximum_n_parameters, model.n_trainable_parameters)
+            maximum_n_parameters = max(
+                maximum_n_parameters, model.n_trainable_parameters
+            )
 
         if len(initial_parameters) != maximum_n_parameters:
 

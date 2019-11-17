@@ -14,7 +14,6 @@ import yaml
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.kernels import MCMCSimulation
-from bayesiantesting.kernels.samplers import NUTS
 from bayesiantesting.models.continuous import TwoCenterLJModel
 from bayesiantesting.surrogates import StollWerthSurrogate
 from matplotlib import pyplot
@@ -167,7 +166,7 @@ def main():
         warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
-        sampler=sampler
+        sampler=sampler,
     )
 
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)

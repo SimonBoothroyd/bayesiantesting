@@ -290,7 +290,11 @@ class NUTS(Hamiltonian):
             delta_energy = energy - energy_0
 
             n1 = np.log(u) - delta_energy <= 0
-            s1 = np.log(u) - delta_energy < energy_max and not np.isnan(energy) and not np.isinf(energy)
+            s1 = (
+                np.log(u) - delta_energy < energy_max
+                and not np.isnan(energy)
+                and not np.isinf(energy)
+            )
             return (
                 x1,
                 r1,

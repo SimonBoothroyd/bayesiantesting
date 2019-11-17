@@ -31,12 +31,9 @@ def main():
     initial_parameters = gaussian.sample() * scale
 
     # Run the simulation.
-    step_size = NUTS.find_reasonable_epsilon(initial_parameters,
-                                             log_pdf)
+    step_size = NUTS.find_reasonable_epsilon(initial_parameters, log_pdf)
 
-    sampler = NUTS(log_pdf,
-                   len(mu),
-                   step_size)
+    sampler = NUTS(log_pdf, len(mu), step_size)
 
     trace = []
     step_size = []

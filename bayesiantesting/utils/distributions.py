@@ -87,8 +87,13 @@ class Normal(Distribution):
         ) * autograd.numpy.sqrt(2)
 
     def sample(self):
-        return torch.distributions.Normal(torch.from_numpy(self.loc),
-                                          torch.from_numpy(self.scale)).rsample().numpy()
+        return (
+            torch.distributions.Normal(
+                torch.from_numpy(self.loc), torch.from_numpy(self.scale)
+            )
+            .rsample()
+            .numpy()
+        )
 
 
 class Uniform(Distribution):
