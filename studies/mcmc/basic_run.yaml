@@ -5,7 +5,7 @@ biasing_factor:
 - 0
 compound: C2H2
 label: production
-number_data_points: 10
+number_data_points: 1
 opt_bounds: Expanded
 optimum_matching:
 - 'True'

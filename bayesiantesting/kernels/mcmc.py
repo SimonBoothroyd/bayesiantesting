@@ -247,6 +247,25 @@ class MCMCSimulation:
 
         return new_params, current_model_index, new_log_p, acceptance
 
+    def _evaluate_log_p(self, parameters, model_index):
+        """Evaluates the (possibly un-normalized) target distribution
+        for the given set of parameters.
+
+        Parameters
+        ----------
+        parameters: numpy.ndarray
+            The parameters to evaluate at.
+        model_index:
+            The index of the model to evaluate.
+
+        Returns
+        -------
+        float
+            The evaluated log p (x).
+        """
+        model = self._model_collection.models[model_index]
+        return model.evaluate_log_posterior(parameters)
+
     def parameter_proposal(
         self, proposed_parameters, current_model_index, proposal_scales
     ):
@@ -261,7 +280,7 @@ class MCMCSimulation:
             proposed_parameters[parameter_index], proposal_scales[parameter_index]
         ).sample()
 
-        proposed_log_p = model.evaluate_log_posterior(proposed_parameters)
+        proposed_log_p = self._evaluate_log_p(proposed_parameters, current_model_index)
 
         return proposed_parameters, proposed_log_p
 
