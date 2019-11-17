@@ -368,31 +368,25 @@ class ModelCollection:
 
     def map_parameters(self, parameters, model_index_a, model_index_b):
 
-        current_parameters = parameters.copy()
+        model_a = self._models[model_index_a]
+        model_b = self._models[model_index_b]
 
-        new_parameters = numpy.empty(parameters.shape)
-        jacobians = numpy.empty(parameters.shape)
+        n_parameters = max(model_a.n_total_parameters, model_b.n_total_parameters)
 
-        n_parameters = max(
-            self._models[model_index_a].n_total_parameters,
-            self._models[model_index_b].n_total_parameters,
-        )
+        current_parameters = numpy.array([*parameters, *model_a.fixed_parameters])
+        new_parameters = numpy.empty(n_parameters)
 
         jacobian_function = autograd.grad(self._mapping_function)
+        jacobians = numpy.empty(n_parameters)
 
-        if (
-            self._models[model_index_a].n_trainable_parameters
-            < self._models[model_index_b].n_trainable_parameters
-        ):
+        if model_a.n_trainable_parameters < model_b.n_trainable_parameters:
 
             # If we are moving to a higher dimensional model, we
             # set the 'ghost' parameters to a random number drawn
             # from a uniform distribution.
             for j in range(
-                self._models[model_index_a].n_trainable_parameters,
-                self._models[model_index_b].n_trainable_parameters,
+                model_a.n_trainable_parameters, model_b.n_trainable_parameters
             ):
-
                 current_parameters[j] = torch.rand((1,)).item()
 
         for i in range(n_parameters):
@@ -404,7 +398,11 @@ class ModelCollection:
                 current_parameters[i], model_index_a, model_index_b, i
             )
 
-        return current_parameters, new_parameters, jacobians
+        return (
+            current_parameters,
+            new_parameters[: model_b.n_trainable_parameters],
+            jacobians,
+        )
 
     def transition_probabilities(self, model_index_a, model_index_b):
         return 1.0
