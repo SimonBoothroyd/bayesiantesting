@@ -114,7 +114,7 @@ def generate_initial_parameters(model, attempts=5):
 
     while counter < attempts:
 
-        parameters = model.sample_priors()[0 : model.n_trainable_parameters]
+        parameters = model.sample_priors()
         parameters = model.find_maximum_a_posteriori(parameters)
 
         log_p = model.evaluate_log_posterior(parameters)
@@ -150,7 +150,8 @@ def main():
     model = get_model("UA", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
-    initial_parameters = generate_initial_parameters(model)
+    # initial_parameters = generate_initial_parameters(model)
+    initial_parameters = numpy.array([90.0, 0.3])
 
     # Run the simulation.
     simulation = MCMCSimulation(
@@ -163,7 +164,7 @@ def main():
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
 
     # Plot the output.
-    for i in range(4):
+    for i in range(model.n_trainable_parameters):
         pyplot.plot(trace[:, i + 1])
         pyplot.draw()
         pyplot.show()

@@ -99,6 +99,8 @@ class TwoCenterLJModel(Model):
         """
         log_p = 0.0
 
+        all_parameters = numpy.array([*parameters, *self._fixed_parameters])
+
         for property_type in self._property_types:
 
             reference_data = self._reference_data[property_type]
@@ -108,7 +110,7 @@ class TwoCenterLJModel(Model):
 
             reference_values = reference_data[:, 1]
             surrogate_values = self._surrogate_model.evaluate(
-                property_type, parameters, temperatures
+                property_type, all_parameters, temperatures
             )
 
             surrogate_values = surrogate_values
@@ -128,13 +130,15 @@ class TwoCenterLJModel(Model):
 
         deviations = {}
 
+        all_parameters = numpy.array([*parameters, *self._fixed_parameters])
+
         for property_type in self._property_types:
 
             reference_data = self._reference_data[property_type]
 
             reference_values = reference_data[:, 1]
             surrogate_values = self._surrogate_model.evaluate(
-                property_type, parameters, reference_data[:, 0]
+                property_type, all_parameters, reference_data[:, 0]
             )
 
             deviation_vector = (
