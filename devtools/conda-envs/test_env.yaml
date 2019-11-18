@@ -23,6 +23,8 @@ dependencies:
   - statsmodels
   - pint
   - uncertainties
+  - arviz
+  - corner
 
     # PyMC3
   - mkl-service

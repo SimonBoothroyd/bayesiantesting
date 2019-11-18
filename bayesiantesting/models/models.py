@@ -1,9 +1,12 @@
+import arviz
 import autograd
+import corner
 import numpy
 import numpy as np
 import torch
 import bayesiantesting.utils.distributions as distributions
 import scipy.optimize
+from matplotlib import pyplot
 
 
 class Model:
@@ -266,6 +269,157 @@ class Model:
 
         """
         raise NotImplementedError()
+
+    def plot_trace(self, trace, show=False):
+        """Use `Arviz` to plot a trace of the trainable parameters,
+        alongside a histogram of their distribution.
+
+        Parameters
+        ----------
+        trace: numpy.ndarray
+            The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        show: bool
+            If true, the plot will be shown.
+
+        Returns
+        -------
+        matplotlib.pyplot.Figure
+            The plotted figure.
+        """
+
+        trace_dict = {}
+
+        for index, label in enumerate(self._prior_labels):
+            trace_dict[label] = trace[:, index + 1]
+
+        data = arviz.convert_to_inference_data(trace_dict)
+
+        axes = arviz.plot_trace(data)
+        figure = axes[0][0].figure
+
+        if show:
+            figure.show()
+
+        return figure
+
+    def plot_corner(self, trace, show=False):
+        """Use `corner` to plot a corner plot of the parameter
+        distributions.
+
+        Parameters
+        ----------
+        trace: numpy.ndarray
+            The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        show: bool
+            If true, the plot will be shown.
+
+        Returns
+        -------
+        matplotlib.pyplot.Figure
+            The plotted figure.
+        """
+
+        figure = corner.corner(trace[:, 1:], labels=self._prior_labels, color="#17becf")
+
+        if show:
+            figure.show()
+
+        return figure
+
+    def plot_log_p(self, log_p, show=False, label="$log p$"):
+        """Plot the log p trace.
+
+        Parameters
+        ----------
+        log_p: numpy.ndarray
+            The log p trace with shape=(n_steps, 1)
+        show: bool
+            If true, the plot will be shown.
+        label: str
+            The y-axis label to use.
+
+        Returns
+        -------
+        matplotlib.pyplot.Figure
+            The plotted figure.
+        """
+        figure, axes = pyplot.subplots(1, 1)
+
+        axes.plot(log_p, color="#17becf")
+        axes.set_title(f"{self._name}")
+        axes.set_xlabel("steps")
+        axes.set_ylabel(f"{label}")
+
+        if show:
+            figure.show()
+
+        return figure
+
+    def plot_percentage_deviations(self, percentage_deviations, show=False):
+        """Plot the trace of the deviations of the trained model
+        from the reference data.
+
+        Parameters
+        ----------
+        percentage_deviations: dict of str and numpy.ndarray
+            The deviations, whose values are arrays with shape=(n_steps, 1)
+        show: bool
+            If true, the plot will be shown.
+
+        Returns
+        -------
+        matplotlib.pyplot.Figure
+            The plotted figure.
+        """
+
+        figure, axes = pyplot.subplots(1, 1)
+
+        for property_label in percentage_deviations:
+            axes.plot(percentage_deviations[property_label], label=property_label.value)
+
+        axes.set_xlabel("steps")
+        axes.set_ylabel("%")
+
+        axes.set_title(f"{self._name} Percentage Deviations")
+
+        axes.legend(
+            loc="center",
+            bbox_to_anchor=(0.5, -0.2),
+            ncol=min(len(percentage_deviations), 3),
+        )
+
+        if show:
+            figure.show()
+
+        return figure
+
+    def plot(self, trace, log_p, percentage_deviations, show=False):
+        """Produce plots of this models traces. This is equivalent to
+        calling `plot_trace`, `plot_corner`, `plot_log_p`,
+        `plot_percentage_deviations`.
+
+        Parameters
+        ----------
+        trace: numpy.ndarray
+            The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        log_p: numpy.ndarray
+            The log p trace with shape=(n_steps, 1)
+        percentage_deviations: dict of str and numpy.ndarray
+            The deviations, whose values are arrays with shape=(n_steps, 1)
+        show: bool
+            If true, the plots will be shown.
+
+        Returns
+        -------
+        tuple of matplotlib.pyplot.Figure
+            The plotted figures.
+        """
+        return (
+            self.plot_trace(trace, show),
+            self.plot_corner(trace, show),
+            self.plot_log_p(log_p, show),
+            self.plot_percentage_deviations(percentage_deviations, show),
+        )
 
 
 class ModelCollection:

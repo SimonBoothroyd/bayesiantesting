@@ -10,13 +10,11 @@ import os
 
 import numpy
 import yaml
-
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.models.continuous import TwoCenterLJModel
 from bayesiantesting.surrogates import StollWerthSurrogate
-from matplotlib import pyplot
 
 
 def parse_input_yaml(filepath):
@@ -147,78 +145,38 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("UA", data_set, property_types, simulation_params)
+    model = get_model("AUA", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
     # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([90.0, 0.3])
+    initial_parameters = numpy.array([90.0, 0.3, 0.12])
 
     # Run the simulation.
     simulation = MCMCSimulation(
         model_collection=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.2),
+        warm_up_steps=int(simulation_params["steps"] * 0.3),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
     )
 
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
 
-    # Plot the output.
-    for i in range(model.n_trainable_parameters):
-        pyplot.plot(trace[:, i + 1])
-        pyplot.draw()
-        pyplot.show()
+    # Save the traces
+    trace_directory = f"{model.name}_figures"
+    os.makedirs(trace_directory, exist_ok=True)
 
-        pyplot.hist(trace[:, i + 1])
-        pyplot.draw()
-        pyplot.show()
+    figures = model.plot(trace, log_p_trace, percent_deviation_trace)
 
-    pyplot.plot(log_p_trace)
-    pyplot.show()
+    for index, file_name in enumerate(
+        ["trace.pdf", "corner.pdf", "log_p.pdf", "percentages.pdf"]
+    ):
+        figures[index].savefig(os.path.join(trace_directory, file_name))
 
-    for property_label in percent_deviation_trace:
-        pyplot.plot(percent_deviation_trace[property_label], label=property_label)
-
-    pyplot.legend()
-    pyplot.draw()
-    pyplot.show()
-
-    os.makedirs("traces", exist_ok=True)
-
-    numpy.save(os.path.join("traces", "trace.npy"), trace)
-    numpy.save(os.path.join("traces", "log_p_trace.npy"), log_p_trace)
-    numpy.save(os.path.join("traces", "percent_dev_trace.npy"), percent_deviation_trace)
-
-    # trace, logp_trace, percent_dev_trace, BAR_trace = rjmc_simulator.Report(
-    #     USE_BAR=simulation_params["USE_BAR"]
-    # )
-    #
-    # rjmc_simulator.write_output(
-    #     simulation_params["priors"],
-    #     tag=simulation_params["label"],
-    #     save_traj=simulation_params["save_traj"],
-    # )
-    #
-    # path = (
-    #     "output/"
-    #     + simulation_params["compound"]
-    #     + "/"
-    #     + simulation_params["properties"]
-    #     + "/"
-    #     + simulation_params["compound"]
-    #     + "_"
-    #     + simulation_params["properties"]
-    #     + "_"
-    #     + str(simulation_params["steps"])
-    #     + "_"
-    #     + simulation_params["label"]
-    #     + "_"
-    #     + str(date.today())
-    #     + "/runfile.yaml"
-    # )
-    #
-    # with open(path, "w") as outfile:
-    #     yaml.dump(simulation_params, outfile, default_flow_style=False)
+    numpy.save(os.path.join(trace_directory, "trace.npy"), trace)
+    numpy.save(os.path.join(trace_directory, "log_p_trace.npy"), log_p_trace)
+    numpy.save(
+        os.path.join(trace_directory, "percent_dev_trace.npy"), percent_deviation_trace
+    )
 
     print("Finished!")
 
