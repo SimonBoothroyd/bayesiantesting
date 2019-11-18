@@ -123,6 +123,10 @@ class Model:
 
             prior = distributions.Normal(prior_values[0], prior_values[1])
 
+        elif prior_type == "uniform":
+
+            prior = distributions.Uniform(prior_values[0], prior_values[1])
+
         else:
             raise NotImplementedError()
 
@@ -302,7 +306,7 @@ class ModelCollection:
 
         for model in self._models:
 
-            if all(
+            if model.n_trainable_parameters <= 1 or all(
                 isinstance(prior, (distributions.Exponential, distributions.Normal))
                 for prior in model.priors
             ):

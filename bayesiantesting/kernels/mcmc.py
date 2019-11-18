@@ -89,7 +89,7 @@ class MCMCSimulation:
                 f"all models ({maximum_n_parameters})."
             )
 
-    def run(self, initial_parameters, initial_model_index=0):
+    def run(self, initial_parameters, initial_model_index=0, progress_bar=True):
 
         # Make sure the parameters are the correct shape for the
         # specified model.
@@ -100,7 +100,7 @@ class MCMCSimulation:
 
         initial_model = self._model_collection.models[initial_model_index]
 
-        initial_log_p = initial_model.evaluate_log_posterior(self._initial_values)
+        initial_log_p = self._evaluate_log_p(self._initial_values, initial_model_index)
         initial_deviations = initial_model.compute_percentage_deviations(
             self._initial_values
         )
@@ -135,7 +135,10 @@ class MCMCSimulation:
         print("Running Simulation...")
         print("==============================")
 
-        for i in tqdm(range(self.warm_up_steps + self.steps)):
+        if progress_bar is True:
+            progress_bar = tqdm(total=self.warm_up_steps + self.steps + 1)
+
+        for i in range(self.warm_up_steps + self.steps):
 
             current_model_index = int(trace[i][0])
             current_parameters = trace[i][1:]
@@ -181,6 +184,9 @@ class MCMCSimulation:
                 move_acceptances = np.zeros(
                     (self._model_collection.n_models, self._model_collection.n_models)
                 )
+
+            if progress_bar is not None and progress_bar is not False:
+                progress_bar.update()
 
         if self._discard_warm_up_data:
 
@@ -247,6 +253,25 @@ class MCMCSimulation:
 
         return new_params, current_model_index, new_log_p, acceptance
 
+    def _evaluate_log_p(self, parameters, model_index):
+        """Evaluates the (possibly un-normalized) target distribution
+        for the given set of parameters.
+
+        Parameters
+        ----------
+        parameters: numpy.ndarray
+            The parameters to evaluate at.
+        model_index:
+            The index of the model to evaluate.
+
+        Returns
+        -------
+        float
+            The evaluated log p (x).
+        """
+        model = self._model_collection.models[model_index]
+        return model.evaluate_log_posterior(parameters)
+
     def parameter_proposal(
         self, proposed_parameters, current_model_index, proposal_scales
     ):
@@ -261,7 +286,7 @@ class MCMCSimulation:
             proposed_parameters[parameter_index], proposal_scales[parameter_index]
         ).sample()
 
-        proposed_log_p = model.evaluate_log_posterior(proposed_parameters)
+        proposed_log_p = self._evaluate_log_p(proposed_parameters, current_model_index)
 
         return proposed_parameters, proposed_log_p
 
