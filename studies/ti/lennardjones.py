@@ -125,10 +125,13 @@ def main():
         discard_warm_up_data=True,
     )
 
-    results, integral = simulation.run(initial_parameters, number_of_threads=20)
+    results, integral, error = simulation.run(initial_parameters, number_of_threads=20)
 
-    print(f"Final Integral:", integral)
+    print(f"Final Integral:", integral, " +/- ", error)
     print("==============================")
+
+    with open('result.txt', 'w') as file:
+        file.write(f'{integral} +/- {error}')
 
     d_log_p_d_lambdas = numpy.zeros(len(results))
     d_log_p_d_lambdas_std = numpy.zeros(len(results))
@@ -148,19 +151,19 @@ def main():
         axes[1, 0].plot(log_p_trace)
         axes[1, 1].plot(d_lop_p_d_lambda)
 
-        pyplot.draw()
-        pyplot.show()
+        figure.savefig(f'{index}.png')
 
         d_log_p_d_lambdas[index] = numpy.mean(d_lop_p_d_lambda)
-        d_log_p_d_lambdas_std[index] = numpy.std(d_lop_p_d_lambda)
+        d_log_p_d_lambdas_std[index] = numpy.std(d_lop_p_d_lambda) / numpy.sqrt(simulation_params["steps"])
 
+    pyplot.close('all')
     pyplot.errorbar(
         list(range(len(d_log_p_d_lambdas))),
         d_log_p_d_lambdas,
         yerr=d_log_p_d_lambdas_std,
     )
     pyplot.draw()
-    pyplot.show()
+    pyplot.savefig(f'ti.png')
 
 
 if __name__ == "__main__":

@@ -32,6 +32,10 @@ class Exponential(Distribution):
         self.rate = rate
 
     def log_pdf(self, x):
+
+        if x < 0.0:
+            return -autograd.numpy.inf
+
         # noinspection PyUnresolvedReferences
         return autograd.numpy.log(self.rate) - self.rate * x
 

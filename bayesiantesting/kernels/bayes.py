@@ -136,15 +136,21 @@ class ThermodynamicIntegration:
             results = pool.map(run_with_args, zip(self._lambda_values, lambda_ids))
 
             integral = 0.0
+            variance = 0.0
 
             for index, result in enumerate(results):
 
-                _, _, d_lop_p_d_lambda = result
+                _, _, d_log_p_d_lambda = result
 
-                average_d_lambda = numpy.mean(d_lop_p_d_lambda)
+                average_d_lambda = numpy.mean(d_log_p_d_lambda)
+
+                window_std_error = numpy.std(d_log_p_d_lambda) / numpy.sqrt(len(d_log_p_d_lambda))
+                window_variance = window_std_error ** 2
+
                 integral += average_d_lambda * self._lambda_weights[index]
+                variance += self._lambda_weights[index] ** 2 * window_variance
 
-        return results, integral
+        return results, integral, numpy.sqrt(variance)
 
     @staticmethod
     def _run_window(
