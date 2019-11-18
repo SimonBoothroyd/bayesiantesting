@@ -171,10 +171,7 @@ class ThermodynamicIntegration:
         trace, log_p_trace, _ = simulation.run(initial_parameters, 0, None)
 
         # Decorrelate the data.
-        _, g, _ = timeseries.detectEquilibration(log_p_trace, fast=False)
-
-        trace = trace[_:]
-        log_p_trace = log_p_trace[_:]
+        g = timeseries.statisticalInefficiency(log_p_trace, fast=True, fft=True)
 
         indices = timeseries.subsampleCorrelatedData(log_p_trace, g=g)
 
