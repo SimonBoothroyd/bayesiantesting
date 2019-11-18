@@ -171,7 +171,7 @@ class ThermodynamicIntegration:
         trace, log_p_trace, _ = simulation.run(initial_parameters, 0, None)
 
         # Decorrelate the data.
-        g = timeseries.statisticalInefficiency(log_p_trace, fast=True, fft=True)
+        g = timeseries.statisticalInefficiency(log_p_trace, fast=False, fft=True)
 
         indices = timeseries.subsampleCorrelatedData(log_p_trace, g=g)
 
