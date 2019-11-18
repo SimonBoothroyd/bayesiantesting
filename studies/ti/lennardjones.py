@@ -5,9 +5,11 @@ Created on Thu Oct 31 14:42:37 2019
 
 @author: owenmadin
 """
+import os
 
 import numpy
 import yaml
+from bayesiantesting.utils.utils import temporarily_change_directory
 from matplotlib import pyplot
 
 from bayesiantesting import unit
@@ -130,7 +132,11 @@ def main():
     print(f"Final Integral:", integral, " +/- ", error)
     print("==============================")
 
-    with open("result.txt", "w") as file:
+    # Save the results.
+    directory = f"{model.name}_results"
+    os.makedirs(directory, exist_ok=True)
+
+    with open(os.path.join(directory, "result.txt"), "w") as file:
         file.write(f"{integral} +/- {error}")
 
     d_log_p_d_lambdas = numpy.zeros(len(results))
@@ -140,32 +146,43 @@ def main():
 
         trace, log_p_trace, d_lop_p_d_lambda = result
 
-        figure, axes = pyplot.subplots(
-            nrows=2, ncols=model.n_trainable_parameters, dpi=200, figsize=(10, 10)
-        )
-
-        # Plot the output.
-        for i in range(model.n_trainable_parameters):
-            axes[0, i].plot(trace[:, i + 1])
-
-        axes[1, 0].plot(log_p_trace)
-        axes[1, 1].plot(d_lop_p_d_lambda)
-
-        figure.savefig(f"{index}.png")
-
         d_log_p_d_lambdas[index] = numpy.mean(d_lop_p_d_lambda)
         d_log_p_d_lambdas_std[index] = numpy.std(d_lop_p_d_lambda) / numpy.sqrt(
             simulation_params["steps"]
         )
 
-    pyplot.close("all")
-    pyplot.errorbar(
-        list(range(len(d_log_p_d_lambdas))),
-        d_log_p_d_lambdas,
-        yerr=d_log_p_d_lambdas_std,
-    )
-    pyplot.draw()
-    pyplot.savefig(f"ti.png")
+        lambda_directory = os.path.join(directory, str(index))
+        os.makedirs(lambda_directory, exist_ok=True)
+
+        with temporarily_change_directory(lambda_directory):
+
+            trace_figure = model.plot_trace(trace)
+            trace_figure.savefig(f"trace.pdf")
+            pyplot.close(trace_figure)
+
+            log_p_figure = model.plot_log_p(log_p_trace)
+            log_p_figure.savefig("log_p.pdf")
+            pyplot.close(log_p_figure)
+
+            d_lambda_figure = model.plot_log_p(
+                d_lop_p_d_lambda,
+                label=r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$",
+            )
+            d_lambda_figure.savefig(f"d_lambda.pdf")
+            pyplot.close(d_lambda_figure)
+
+            numpy.save("trace.npy", trace)
+            numpy.save("log_p_trace.npy", log_p_trace)
+
+    figure, axes = pyplot.subplots(1, 1)
+
+    axes.plot(d_log_p_d_lambdas, color="#17becf")
+    axes.set_xlabel(r"$\lambda$")
+    axes.set_ylabel(r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$")
+
+    figure.tight_layout()
+    figure.savefig(os.path.join(directory, f"lambdas.pdf"))
+    pyplot.close(figure)
 
 
 if __name__ == "__main__":

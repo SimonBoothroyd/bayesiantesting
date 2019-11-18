@@ -270,7 +270,7 @@ class Model:
         """
         raise NotImplementedError()
 
-    def plot_trace(self, trace):
+    def plot_trace(self, trace, show=False):
         """Use `Arviz` to plot a trace of the trainable parameters,
         alongside a histogram of their distribution.
 
@@ -278,6 +278,8 @@ class Model:
         ----------
         trace: numpy.ndarray
             The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        show: bool
+            If true, the plot will be shown.
 
         Returns
         -------
@@ -295,12 +297,12 @@ class Model:
         axes = arviz.plot_trace(data)
         figure = axes[0][0].figure
 
-        figure.tight_layout()
-        figure.show()
+        if show:
+            figure.show()
 
         return figure
 
-    def plot_corner(self, trace):
+    def plot_corner(self, trace, show=False):
         """Use `corner` to plot a corner plot of the parameter
         distributions.
 
@@ -308,6 +310,8 @@ class Model:
         ----------
         trace: numpy.ndarray
             The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        show: bool
+            If true, the plot will be shown.
 
         Returns
         -------
@@ -316,19 +320,23 @@ class Model:
         """
 
         figure = corner.corner(trace[:, 1:], labels=self._prior_labels, color="#17becf")
-        figure.tight_layout()
-        figure.subplots_adjust(top=0.88)
-        figure.show()
+
+        if show:
+            figure.show()
 
         return figure
 
-    def plot_log_p(self, log_p):
+    def plot_log_p(self, log_p, show=False, label="$log p$"):
         """Plot the log p trace.
 
         Parameters
         ----------
         log_p: numpy.ndarray
             The log p trace with shape=(n_steps, 1)
+        show: bool
+            If true, the plot will be shown.
+        label: str
+            The y-axis label to use.
 
         Returns
         -------
@@ -338,17 +346,16 @@ class Model:
         figure, axes = pyplot.subplots(1, 1)
 
         axes.plot(log_p, color="#17becf")
-        axes.set_title(f"{self._name} $log p$")
+        axes.set_title(f"{self._name}")
         axes.set_xlabel("steps")
-        axes.set_ylabel("$log p$")
+        axes.set_ylabel(f"{label}")
 
-        figure.legend()
-        figure.tight_layout()
-        figure.show()
+        if show:
+            figure.show()
 
         return figure
 
-    def plot_percentage_deviations(self, percentage_deviations):
+    def plot_percentage_deviations(self, percentage_deviations, show=False):
         """Plot the trace of the deviations of the trained model
         from the reference data.
 
@@ -356,6 +363,8 @@ class Model:
         ----------
         percentage_deviations: dict of str and numpy.ndarray
             The deviations, whose values are arrays with shape=(n_steps, 1)
+        show: bool
+            If true, the plot will be shown.
 
         Returns
         -------
@@ -379,12 +388,12 @@ class Model:
             ncol=min(len(percentage_deviations), 3),
         )
 
-        figure.tight_layout()
-        figure.show()
+        if show:
+            figure.show()
 
         return figure
 
-    def plot(self, trace, log_p, percentage_deviations):
+    def plot(self, trace, log_p, percentage_deviations, show=False):
         """Produce plots of this models traces. This is equivalent to
         calling `plot_trace`, `plot_corner`, `plot_log_p`,
         `plot_percentage_deviations`.
@@ -397,6 +406,8 @@ class Model:
             The log p trace with shape=(n_steps, 1)
         percentage_deviations: dict of str and numpy.ndarray
             The deviations, whose values are arrays with shape=(n_steps, 1)
+        show: bool
+            If true, the plots will be shown.
 
         Returns
         -------
@@ -404,10 +415,10 @@ class Model:
             The plotted figures.
         """
         return (
-            self.plot_trace(trace),
-            self.plot_corner(trace),
-            self.plot_log_p(log_p),
-            self.plot_percentage_deviations(percentage_deviations),
+            self.plot_trace(trace, show),
+            self.plot_corner(trace, show),
+            self.plot_log_p(log_p, show),
+            self.plot_percentage_deviations(percentage_deviations, show),
         )
 
 

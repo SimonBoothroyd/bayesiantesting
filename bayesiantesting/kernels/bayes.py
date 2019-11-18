@@ -60,6 +60,11 @@ class LambdaSimulation(MCMCSimulation):
 
 
 class ThermodynamicIntegration:
+    @property
+    def lambdas(self):
+        """numpy.ndarray: The location of each lambda window."""
+        return self._lambda_values
+
     def __init__(
         self,
         legendre_gauss_degree,
