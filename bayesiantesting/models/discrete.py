@@ -18,7 +18,17 @@ class TwoCenterLJModelCollection(ModelCollection):
     as RJMC.
     """
 
-    def __init__(self, name, models):
+    def __init__(self, name, models, maximum_a_posteriori=None):
+        """
+        Parameters
+        ----------
+        maximum_a_posteriori: List of numpy.ndarray, optional
+            The maximum a posteriori values of the trainable
+            parameters. These are used to map the parameters
+            between models during RJMC model proposal moves. If
+            None, the default mapping based on the model priors
+            will be used.
+        """
 
         supported_models = ["AUA", "AUA+Q", "UA"]
 
@@ -26,6 +36,37 @@ class TwoCenterLJModelCollection(ModelCollection):
         assert all(model.name in supported_models for model in models)
 
         super().__init__(name, models)
+
+        self._maximum_a_posteriori = maximum_a_posteriori
+
+        if self._maximum_a_posteriori is not None:
+
+            assert len(self._maximum_a_posteriori) == self.n_models
+
+            for values, model in zip(self._maximum_a_posteriori, self.models):
+                assert len(values) == model.n_trainable_parameters
+
+    def _mapping_function(
+        self, parameter, model_index_a, model_index_b, parameter_index
+    ):
+
+        model_a = self._models[model_index_a]
+        model_b = self._models[model_index_b]
+
+        if (
+            parameter_index < model_a.n_trainable_parameters
+            and parameter_index < model_b.n_trainable_parameters
+            and self._maximum_a_posteriori is not None
+        ):
+
+            ratio = (self._maximum_a_posteriori[model_index_b][parameter_index] /
+                     self._maximum_a_posteriori[model_index_a][parameter_index])
+
+            return ratio * parameter
+
+        return super(TwoCenterLJModelCollection, self)._mapping_function(
+            parameter, model_index_a, model_index_b, parameter_index
+        )
 
     # def transition_probabilities(self):
     #

@@ -471,6 +471,24 @@ class ModelCollection:
     def _mapping_function(
         self, parameter, model_index_a, model_index_b, parameter_index
     ):
+        """Attempts to map a given parameter from model a into a
+        parameter in model b which yields a non-zero posterior
+        probability.
+
+        Parameters
+        ----------
+        parameter: float
+            The value of the model a parameter.
+        model_index_a: int
+            The index of model a in this model collection.
+        model_index_b: int
+            The index of model b in this model collection.
+
+        Returns
+        -------
+        float
+            The mapped parameter.
+        """
 
         model_a = self._models[model_index_a]
         model_b = self._models[model_index_b]
@@ -525,6 +543,30 @@ class ModelCollection:
         raise NotImplementedError()
 
     def map_parameters(self, parameters, model_index_a, model_index_b):
+        """Attempts to map a set of trainable parameters from model
+        a into a set of parameters with a non-zero posterior in model
+        b.
+
+        Parameters
+        ----------
+        parameters: numpy.ndarray
+            The current parameters of model a, with shape=(model_a.n_trainable_parameters).
+        model_index_a: int
+            The index of model a in this model collection.
+        model_index_b: int
+            The index of model b in this model collection.
+
+        Returns
+        -------
+        numpy.ndarray
+            The current parameters of model a with any 'ghost' parameters
+            added (shape=(model_b.n_total_parameters)).
+        numpy.ndarray
+            The mapped parameters with shape=(model_b.n_trainable_parameters).
+        numpy.ndarray
+            The jacobian associated with the mapping with
+            shape=(model_b.n_trainable_parameters).
+        """
 
         model_a = self._models[model_index_a]
         model_b = self._models[model_index_b]

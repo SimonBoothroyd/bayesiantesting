@@ -126,8 +126,8 @@ class RJMCSimulation(MCMCSimulation):
             current_parameters, current_model_index, proposed_model_index
         )
 
-        proposed_log_p = self._model_collection.evaluate_log_posterior(
-            proposed_model_index, proposed_parameters
+        proposed_log_p = self._evaluate_log_p(
+            proposed_parameters, proposed_model_index
         )
 
         jacobian = np.prod(jacobian_array)
