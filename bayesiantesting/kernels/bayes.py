@@ -144,7 +144,9 @@ class ThermodynamicIntegration:
 
                 average_d_lambda = numpy.mean(d_log_p_d_lambda)
 
-                window_std_error = numpy.std(d_log_p_d_lambda) / numpy.sqrt(len(d_log_p_d_lambda))
+                window_std_error = numpy.std(d_log_p_d_lambda) / numpy.sqrt(
+                    len(d_log_p_d_lambda)
+                )
                 window_variance = window_std_error ** 2
 
                 integral += average_d_lambda * self._lambda_weights[index]
