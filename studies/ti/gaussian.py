@@ -7,6 +7,7 @@ Created on Thu Oct 31 14:42:37 2019
 """
 
 import numpy
+
 # from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.kernels.bayes import ThermodynamicIntegration
 from bayesiantesting.models import Model
