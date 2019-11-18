@@ -5,11 +5,11 @@ is a hyperparameter which interpolates between the prior and
 posterior distributions.
 """
 import functools
-from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import Pool
 
 import numpy
-
 from bayesiantesting.kernels import MCMCSimulation
+from pymbar import timeseries
 
 
 class LambdaSimulation(MCMCSimulation):
@@ -19,13 +19,13 @@ class LambdaSimulation(MCMCSimulation):
 
     The samples will be generated from the following simple distribution:
 
-        ln p(x|D, λ) = (1-λ) * ln p(x) + λ * ln p(x|D)
+        p(x|D, λ) = p(x) * p(D|x)^lambda
 
-    where p(x) is the prior on x, and p(x|D) is the posterior distribution
-    given by
+    or rather
 
-        p(x|D) = p(x)p(x|D)
+        ln p(x|D, λ) = ln p(x) + λ ln p(D|x)
 
+    where p(x) is the prior on x, and p(D|x) is the likelihood distribution
     At λ=0.0 only the prior is sampled, at λ=1.0 the full prior is sampled.
     """
 
@@ -54,11 +54,9 @@ class LambdaSimulation(MCMCSimulation):
     def _evaluate_log_p(self, parameters, model_index):
 
         model = self._model_collection.models[model_index]
-
-        prior_weight = (1.0 - self._lambda) * model.evaluate_log_prior(parameters)
-        posterior_weight = self._lambda * model.evaluate_log_posterior(parameters)
-
-        return prior_weight + posterior_weight
+        return model.evaluate_log_prior(
+            parameters
+        ) + self._lambda * model.evaluate_log_likelihood(parameters)
 
 
 class ThermodynamicIntegration:
@@ -99,7 +97,9 @@ class ThermodynamicIntegration:
         self._discard_warm_up_data = discard_warm_up_data
 
         # Choose the lambda values
-        lambda_values, lambda_weights = numpy.polynomial.legendre.leggauss(legendre_gauss_degree)
+        lambda_values, lambda_weights = numpy.polynomial.legendre.leggauss(
+            legendre_gauss_degree
+        )
 
         self._lambda_values = lambda_values * 0.5 + 0.5
         self._lambda_weights = lambda_weights * 0.5
@@ -120,19 +120,31 @@ class ThermodynamicIntegration:
         self._validate_parameter_shapes(initial_parameters)
 
         # Simulate in each lambda window.
-        with ThreadPool(number_of_threads) as pool:
+        with Pool(number_of_threads) as pool:
 
-            run_with_args = functools.partial(ThermodynamicIntegration._run_window,
-                                              self._model,
-                                              self._warm_up_steps,
-                                              self._steps,
-                                              self._tune_frequency,
-                                              self._discard_warm_up_data,
-                                              initial_parameters)
+            run_with_args = functools.partial(
+                ThermodynamicIntegration._run_window,
+                self._model,
+                self._warm_up_steps,
+                self._steps,
+                self._tune_frequency,
+                self._discard_warm_up_data,
+                initial_parameters,
+            )
 
-            results = pool.map(run_with_args, self._lambda_values)
+            lambda_ids = list(range(len(self._lambda_values)))
+            results = pool.map(run_with_args, zip(self._lambda_values, lambda_ids))
 
-        return results
+            integral = 0.0
+
+            for index, result in enumerate(results):
+
+                _, _, d_lop_p_d_lambda = result
+
+                average_d_lambda = numpy.mean(d_lop_p_d_lambda)
+                integral += average_d_lambda * self._lambda_weights[index]
+
+        return results, integral
 
     @staticmethod
     def _run_window(
@@ -142,8 +154,10 @@ class ThermodynamicIntegration:
         tune_frequency,
         discard_warm_up_data,
         initial_parameters,
-        lambda_value
+        lambda_tuple,
     ):
+
+        lambda_value, lambda_index = lambda_tuple
 
         simulation = LambdaSimulation(
             model_collection=model,
@@ -151,20 +165,29 @@ class ThermodynamicIntegration:
             steps=steps,
             tune_frequency=tune_frequency,
             discard_warm_up_data=discard_warm_up_data,
-            lambda_value=lambda_value
+            lambda_value=lambda_value,
         )
 
-        trace, log_p_trace, _ = simulation.run(initial_parameters, 0)
+        trace, log_p_trace, _ = simulation.run(initial_parameters, 0, None)
 
-        # TODO: Thin data / equilibration detection?
+        # Decorrelate the data.
+        _, g, _ = timeseries.detectEquilibration(log_p_trace, fast=False)
+
+        trace = trace[_:]
+        log_p_trace = log_p_trace[_:]
+
+        indices = timeseries.subsampleCorrelatedData(log_p_trace, g=g)
+
+        trace = trace[indices]
+        log_p_trace = log_p_trace[indices]
+
+        print(f"Lamda Window {lambda_index}: g={g} N_samples={len(log_p_trace)}")
+
+        # Compute d log p / d lambda
         d_lop_p_d_lambda = numpy.empty(log_p_trace.shape)
 
         for index in range(trace.shape[0]):
-
             # TODO: Vectorize this.
-            d_lop_p_d_lambda[index] = (
-                model.evaluate_log_posterior(trace[index][1:]) -
-                model.evaluate_log_prior(trace[index][1:])
-            )
+            d_lop_p_d_lambda[index] = model.evaluate_log_likelihood(trace[index][1:])
 
         return trace, log_p_trace, d_lop_p_d_lambda

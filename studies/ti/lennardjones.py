@@ -111,28 +111,35 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("UA", data_set, property_types, simulation_params)
+    model = get_model("AUA", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
     # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([95.0, 0.35])
+    initial_parameters = numpy.array([95.0, 0.35, 0.2])
 
     simulation = ThermodynamicIntegration(
-        legendre_gauss_degree=4,
+        legendre_gauss_degree=20,
         model=model,
         warm_up_steps=int(simulation_params["steps"] * 0.2),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
     )
 
-    results = simulation.run(initial_parameters, number_of_threads=4)
+    results, integral = simulation.run(initial_parameters, number_of_threads=20)
 
-    for trace, log_p_trace, d_lop_p_d_lambda in results:
+    print(f"Final Integral:", integral)
+    print("==============================")
 
-        figure, axes = pyplot.subplots(nrows=2,
-                                       ncols=2,
-                                       dpi=200,
-                                       figsize=(10, 10))
+    d_log_p_d_lambdas = numpy.zeros(len(results))
+    d_log_p_d_lambdas_std = numpy.zeros(len(results))
+
+    for index, result in enumerate(results):
+
+        trace, log_p_trace, d_lop_p_d_lambda = result
+
+        figure, axes = pyplot.subplots(
+            nrows=2, ncols=model.n_trainable_parameters, dpi=200, figsize=(10, 10)
+        )
 
         # Plot the output.
         for i in range(model.n_trainable_parameters):
@@ -143,6 +150,17 @@ def main():
 
         pyplot.draw()
         pyplot.show()
+
+        d_log_p_d_lambdas[index] = numpy.mean(d_lop_p_d_lambda)
+        d_log_p_d_lambdas_std[index] = numpy.std(d_lop_p_d_lambda)
+
+    pyplot.errorbar(
+        list(range(len(d_log_p_d_lambdas))),
+        d_log_p_d_lambdas,
+        yerr=d_log_p_d_lambdas_std,
+    )
+    pyplot.draw()
+    pyplot.show()
 
 
 if __name__ == "__main__":
