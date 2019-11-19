@@ -124,7 +124,7 @@ def main():
         warm_up_steps=int(simulation_params["steps"] * 0.2),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
-        output_directory_path='lennardjones'
+        output_directory_path="lennardjones",
     )
 
     _, integral, error = simulation.run(initial_parameters, number_of_threads=20)
