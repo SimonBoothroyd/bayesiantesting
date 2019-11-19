@@ -3,7 +3,7 @@ biasing_factor:
 - 0
 - 0
 - 0
-compound: C2H2
+compound: C2H6
 label: production
 number_data_points: 10
 opt_bounds: Expanded

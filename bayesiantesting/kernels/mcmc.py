@@ -465,6 +465,7 @@ class MCMCSimulation:
                 ["trace.pdf", "corner.pdf", "log_p.pdf", "percentages.pdf"]
             ):
                 figures[figure_index].savefig(os.path.join(model_directory, file_name))
+                pyplot.close(figures[figure_index])
 
             np.save(os.path.join(model_directory, "trace.npy"), model_trace)
             np.save(os.path.join(model_directory, "log_p.npy"), model_log_p)
@@ -479,3 +480,4 @@ class MCMCSimulation:
         axes[1].set_xlabel("Model Index")
 
         figure.savefig(os.path.join(self._output_directory_path, "model_histogram.pdf"))
+        pyplot.close(figure)
