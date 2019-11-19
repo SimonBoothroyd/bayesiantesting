@@ -43,7 +43,7 @@ jobs:
       - name: Code coverage
         run: |
           eval "$($HOME/miniconda/bin/conda shell.bash hook)" && conda activate test
-          codecov
+          codecov --token=${{ secrets.CODECOV_TOKEN }}
 
   lint:
 
