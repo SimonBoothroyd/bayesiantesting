@@ -126,9 +126,7 @@ class RJMCSimulation(MCMCSimulation):
             current_parameters, current_model_index, proposed_model_index
         )
 
-        proposed_log_p = self._evaluate_log_p(
-            proposed_parameters, proposed_model_index
-        )
+        proposed_log_p = self._evaluate_log_p(proposed_parameters, proposed_model_index)
 
         jacobian = np.prod(jacobian_array)
         transition_probability = self._model_collection.transition_probabilities(
@@ -328,3 +326,44 @@ class RJMCSimulation(MCMCSimulation):
     #         self.percent_dev_trace_tuned,
     #         self.BAR_trace,
     #     )
+
+
+class BiasedRJMCSimulation(RJMCSimulation):
+    """An extension of the `RJMCSimulation` class which allows the
+    user to specify biases on specific models.
+    """
+
+    def __init__(
+        self,
+        model_collection,
+        warm_up_steps=100000,
+        steps=100000,
+        tune_frequency=5000,
+        discard_warm_up_data=True,
+        swap_frequency=0.3,
+        log_biases=None,
+    ):
+        """
+        Parameters
+        ----------
+        log_biases: numpy.ndarray
+            The log biasing factors to add to the posterior
+            distribution of each model (shape=(model_collection.n_models)).
+        """
+        super().__init__(
+            model_collection,
+            warm_up_steps,
+            steps,
+            tune_frequency,
+            discard_warm_up_data,
+            swap_frequency,
+        )
+
+        self._log_biases = log_biases
+        assert len(log_biases) == model_collection.n_models
+
+    def _evaluate_log_p(self, parameters, model_index):
+        return (
+            super(BiasedRJMCSimulation, self)._evaluate_log_p(parameters, model_index)
+            + self._log_biases[model_index]
+        )

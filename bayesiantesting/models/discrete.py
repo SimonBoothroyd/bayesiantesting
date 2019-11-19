@@ -59,8 +59,10 @@ class TwoCenterLJModelCollection(ModelCollection):
             and self._maximum_a_posteriori is not None
         ):
 
-            ratio = (self._maximum_a_posteriori[model_index_b][parameter_index] /
-                     self._maximum_a_posteriori[model_index_a][parameter_index])
+            ratio = (
+                self._maximum_a_posteriori[model_index_b][parameter_index]
+                / self._maximum_a_posteriori[model_index_a][parameter_index]
+            )
 
             return ratio * parameter
 
