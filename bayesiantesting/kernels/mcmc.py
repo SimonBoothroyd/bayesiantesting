@@ -2,11 +2,14 @@
 Code to perform MCMC simulations on simple toy models.
 This code was originally authored by Owen Madin (github name ocmadin).
 """
+import json
+import os
 
 import numpy as np
 import torch
 from bayesiantesting.models import Model, ModelCollection
 from bayesiantesting.utils import distributions as distributions
+from matplotlib import pyplot
 from tqdm import tqdm
 
 
@@ -21,6 +24,7 @@ class MCMCSimulation:
         steps=100000,
         tune_frequency=5000,
         discard_warm_up_data=True,
+        output_directory_path="",
     ):
         """Initializes the basic state of the simulator object.
 
@@ -38,6 +42,8 @@ class MCMCSimulation:
         discard_warm_up_data: bool
             If true, all data generated during the warm-up period will
             be discarded.
+        output_directory_path: str
+            The path to save the simulation results in.
         """
 
         self.warm_up_steps = warm_up_steps
@@ -46,7 +52,7 @@ class MCMCSimulation:
         self._tune_frequency = tune_frequency
         self._discard_warm_up_data = discard_warm_up_data
 
-        self.optimum_bounds = "Normal"
+        self._output_directory_path = output_directory_path
 
         if isinstance(model_collection, Model):
             # Convert any standalone models to model collections
@@ -216,6 +222,15 @@ class MCMCSimulation:
 
         self._print_statistics(move_proposals, move_acceptances)
 
+        self._save_results(
+            trace,
+            log_p_trace,
+            percent_deviation_trace_arrays,
+            move_proposals,
+            move_acceptances,
+            proposal_scales,
+        )
+
         return trace, log_p_trace, percent_deviation_trace_arrays
 
     def _run_step(
@@ -348,135 +363,119 @@ class MCMCSimulation:
         print(transition_matrix)
         print("==============================")
 
-    # def write_output(self, prior_dict, tag=None, save_traj=False):
-    #
-    #     # Ask if output exists
-    #     run_identifier = f'{self._model_collection.name}_{self.steps}_{tag}_{str(date.today())}'
-    #
-    #     figure_directory = os.path.join('output', run_identifier, 'figures')
-    #     os.makedirs(figure_directory, exist_ok=True)
-    #
-    #     pyplot.plot(self.logp_trace_tuned)
-    #     pyplot.savefig(os.path.join(figure_directory, "logp_trace.png"))
-    #     pyplot.close()
-    #
-    #     plt.plot(self.trace_tuned[:, 0])
-    #     plt.savefig(path + "/figures/model_trace.png")
-    #     plt.close()
-    #
-    #     utils.create_param_triangle_plot_4D(
-    #         self.trace_model_0,
-    #         "triangle_plot_trace_model_0",
-    #         self.lit_params,
-    #         self.properties,
-    #         self.compound,
-    #         self.steps,
-    #         file_loc=path + "/figures/",
-    #     )
-    #     utils.create_param_triangle_plot_4D(
-    #         self.trace_model_1,
-    #         "triangle_plot_trace_model_1",
-    #         self.lit_params,
-    #         self.properties,
-    #         self.compound,
-    #         self.steps,
-    #         file_loc=path + "/figures/",
-    #     )
-    #     utils.create_param_triangle_plot_4D(
-    #         self.trace_model_2,
-    #         "triangle_plot_trace_model_2",
-    #         self.lit_params,
-    #         self.properties,
-    #         self.compound,
-    #         self.steps,
-    #         file_loc=path + "/figures/",
-    #     )
-    #     utils.create_percent_dev_triangle_plot(
-    #         self.percent_dev_trace_tuned,
-    #         "triangle_plot_percent_dev_trace",
-    #         self.lit_devs,
-    #         self.properties,
-    #         self.compound,
-    #         self.steps,
-    #         file_loc=path + "/figures/",
-    #     )
-    #     utils.plot_bar_chart(
-    #         self.prob,
-    #         self.properties,
-    #         self.compound,
-    #         self.steps,
-    #         self.n_models,
-    #         file_loc=path + "/figures/",
-    #     )
-    #
-    #     # print("Writing metadata...")
-    #     # print("==============================")
-    #     # self.write_datapoints(path)
-    #     #
-    #     # self.write_metadata(path, prior_dict)
-    #     #
-    #     # self.write_simulation_results(path)
-    #     #
-    #     # if save_traj:
-    #     #     print("Saving Trajectories")
-    #     #     print("==============================")
-    #     #     self.write_traces(path)
-    #
-    # def write_datapoints(self, path):
-    #
-    #     datapoints = {
-    #         "Density Temperatures": self.thermo_data_rhoL[:, 0],
-    #         "Density Values": self.thermo_data_rhoL[:, 1],
-    #         "Density Measurement Uncertainties": self.thermo_data_rhoL[:, 2],
-    #         "Saturation Pressure Temperatures": self.thermo_data_Pv[:, 0],
-    #         "Saturation Pressure Values": self.thermo_data_Pv[:, 1],
-    #         "Saturation Pressure Uncertainties": self.thermo_data_Pv[:, 2],
-    #         "Surface Tension Temperatures": self.thermo_data_SurfTens[:, 0],
-    #         "Surface Tension Values": self.thermo_data_SurfTens[:, 1],
-    #         "Surface Tension Uncertainties": self.thermo_data_SurfTens[:, 2],
-    #         "Literature Critical Temperature": self.Tc_lit[0],
-    #     }
-    #
-    #     filename = path + "/datapoints.pkl"
-    #
-    #     with open(filename, "wb") as f:
-    #         pickle.dump(datapoints, f)
-    #
-    # def write_metadata(self, path, prior_dict):
-    #
-    #     metadata = self.get_attributes()
-    #     filename = path + "/metadata.pkl"
-    #
-    #     with open(filename, "wb") as f:
-    #         pickle.dump(metadata, f)
-    #
-    # def write_simulation_results(self, path):
-    #     results = {
-    #         "Proposed Moves": move_proposals,
-    #         "Tuning Frequency": self.tune_freq,
-    #         "Tuning Length": self.tune_for,
-    #         "Final Move SD": self.prop_sd,
-    #         "Accepted Moves": move_acceptances,
-    #         "Transition Matrix": self.transition_matrix,
-    #         "Model Probabilities": self.prob,
-    #         "Timestamp": str(datetime.today()),
-    #         "Bayes Factors (Sampling Ratio)": self.Exp_ratio,
-    #         "Model Probability confidence intervals": self.prob_conf,
-    #         "Unbiased Probabilities": self.unbiased_prob,
-    #     }
-    #     if self.BF_BAR is not None:
-    #         results["Bayes Factors (BAR)"] = self.BF_BAR
-    #
-    #     filename = path + "/results.pkl"
-    #     with open(filename, "wb") as f:
-    #         pickle.dump(results, f)
-    #
-    # def write_traces(self, path):
-    #     if os.path.isdir(path + "/trace") == False:
-    #         os.mkdir(path + "/trace")
-    #     np.save(path + "/trace/trace.npy", self.trace_tuned)
-    #     np.save(path + "/trace/logp_trace.npy", self.logp_trace_tuned)
-    #     np.save(
-    #         path + "/trace/percent_dev_trace_tuned.npy", self.percent_dev_trace_tuned
-    #     )
-    #     np.save(path + "/trace/BAR_trace.npy", self.BAR_trace)
+    def _save_results(
+        self,
+        trace,
+        log_p_trace,
+        percentage_deviations,
+        move_proposals,
+        move_acceptances,
+        proposal_scales,
+    ):
+        """Saves the results of the simulation to the output
+        directory.
+
+        Parameters
+        ----------
+        trace: numpy.ndarray
+            The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        log_p_trace: numpy.ndarray
+            The log p trace with shape=(n_steps, 1)
+        percentage_deviations: dict of str and numpy.ndarray
+            The deviations, whose values are arrays with shape=(n_steps, 1)
+        move_proposals: numpy.ndarray
+            An array of the counts of the proposed moves.
+        move_acceptances: numpy.ndarray
+            An array of the counts of the accepted moves.
+        proposal_scales: numpy.ndarray
+            The scale of the gaussian distributions used
+            when proposing in model sampling moves.
+        """
+
+        # Make sure the output directory exists
+        if len(self._output_directory_path) > 0:
+            os.makedirs(self._output_directory_path, exist_ok=True)
+
+        # Save the traces
+        self._save_traces(trace, log_p_trace, percentage_deviations)
+
+        # Save the move statistics
+        self._save_statistics(move_proposals, move_acceptances, proposal_scales)
+
+    def _save_statistics(self, move_proposals, move_acceptances, proposal_scales):
+        """Save statistics about the simulation.
+
+        Parameters
+        ----------
+        move_proposals: numpy.ndarray
+            An array of the counts of the proposed moves.
+        move_acceptances: numpy.ndarray
+            An array of the counts of the accepted moves.
+        proposal_scales: numpy.ndarray
+            The scale of the gaussian distributions used
+            when proposing in model sampling moves.
+        """
+        results = {
+            "Proposed Moves": move_proposals.tolist(),
+            "Final Move SD": proposal_scales.tolist(),
+            "Accepted Moves": move_acceptances.tolist(),
+        }
+
+        filename = os.path.join(self._output_directory_path, "statistics.json")
+
+        with open(filename, "w") as file:
+            json.dump(results, file, sort_keys=True, indent=4, separators=(",", ": "))
+
+    def _save_traces(self, trace, log_p_trace, percentage_deviations):
+        """Saves the raw traces, as well as plots of the traces
+        to the output directory.
+
+        Parameters
+        ----------
+        trace: numpy.ndarray
+            The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        log_p_trace: numpy.ndarray
+            The log p trace with shape=(n_steps, 1)
+        percentage_deviations: dict of str and numpy.ndarray
+            The deviations, whose values are arrays with shape=(n_steps, 1)
+        """
+
+        model_counts = np.zeros(self._model_collection.n_models)
+
+        for index, model in enumerate(self._model_collection.models):
+
+            model_directory = os.path.join(self._output_directory_path, model.name)
+
+            if len(model_directory) > 0:
+                os.makedirs(model_directory, exist_ok=True)
+
+            model_trace_indices = trace[:, 0] == index
+
+            model_trace = trace[model_trace_indices]
+            model_log_p = log_p_trace[model_trace_indices]
+            model_counts[index] = len(model_trace)
+            model_deviations = {}
+
+            for key in percentage_deviations:
+                model_deviations[key] = percentage_deviations[key][model_trace_indices]
+
+            figures = model.plot(model_trace, model_log_p, model_deviations)
+
+            for figure_index, file_name in enumerate(
+                ["trace.pdf", "corner.pdf", "log_p.pdf", "percentages.pdf"]
+            ):
+                figures[figure_index].savefig(os.path.join(model_directory, file_name))
+
+            np.save(os.path.join(model_directory, "trace.npy"), model_trace)
+            np.save(os.path.join(model_directory, "log_p.npy"), model_log_p)
+            np.save(os.path.join(model_directory, "percentages.npy"), model_deviations)
+
+        figure, axes = pyplot.subplots(1, 2, figsize=(10, 5))
+
+        axes[0].plot(trace[:, 0])
+        axes[1].hist(trace[:, 0])
+
+        axes[0].set_xlabel("Model Index")
+        axes[1].set_xlabel("Model Index")
+
+        figure.savefig(os.path.join(self._output_directory_path, "model_histogram.pdf"))

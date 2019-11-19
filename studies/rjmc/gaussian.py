@@ -4,7 +4,6 @@ import torch
 from bayesiantesting.kernels.rjmc import BiasedRJMCSimulation
 from bayesiantesting.models import Model, ModelCollection
 from bayesiantesting.utils import distributions
-from matplotlib import pyplot
 
 
 class GaussianModel(Model):
@@ -60,41 +59,12 @@ def main():
         warm_up_steps=100000,
         steps=200000,
         discard_warm_up_data=True,
+        output_directory_path="gaussian",
         swap_frequency=0.1,
         log_biases=log_biases,
     )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(
-        initial_parameters, initial_model_index
-    )
-
-    model_counts = numpy.zeros(model_collection.n_models)
-
-    for model_index in range(model_collection.n_models):
-
-        model_trace_indices = trace[:, 0] == model_index
-
-        model_trace = trace[model_trace_indices]
-        model_log_p_trace = log_p_trace[model_trace_indices]
-
-        model_collection.models[model_index].plot_trace(model_trace, show=True)
-        model_collection.models[model_index].plot_corner(model_trace, show=True)
-        model_collection.models[model_index].plot_log_p(model_log_p_trace, show=True)
-
-        print(f"Model {model_index} count: {len(model_trace)}")
-        model_counts[model_index] = len(model_trace)
-
-    print(f"Model ratios: {model_counts / numpy.max(model_counts)}")
-
-    figure, axes = pyplot.subplots(1, 2, figsize=(10, 5))
-
-    axes[0].plot(trace[:, 0])
-    axes[1].hist(trace[:, 0])
-
-    axes[0].set_xlabel("Model Index")
-    axes[1].set_xlabel("Model Index")
-
-    figure.show()
+    simulation.run(initial_parameters, initial_model_index)
 
 
 if __name__ == "__main__":

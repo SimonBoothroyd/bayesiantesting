@@ -382,11 +382,13 @@ class Model:
 
         axes.set_title(f"{self._name} Percentage Deviations")
 
-        axes.legend(
-            loc="center",
-            bbox_to_anchor=(0.5, -0.2),
-            ncol=min(len(percentage_deviations), 3),
-        )
+        if len(percentage_deviations) > 0:
+
+            axes.legend(
+                loc="center",
+                bbox_to_anchor=(0.5, -0.2),
+                ncol=min(len(percentage_deviations), 3),
+            )
 
         if show:
             figure.show()

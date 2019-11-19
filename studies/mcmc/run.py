@@ -6,7 +6,6 @@ Created on Thu Oct 31 14:42:37 2019
 @author: owenmadin
 """
 import math
-import os
 
 import numpy
 import yaml
@@ -160,23 +159,7 @@ def main():
     )
 
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
-
-    # Save the traces
-    trace_directory = f"{model.name}_figures"
-    os.makedirs(trace_directory, exist_ok=True)
-
-    figures = model.plot(trace, log_p_trace, percent_deviation_trace)
-
-    for index, file_name in enumerate(
-        ["trace.pdf", "corner.pdf", "log_p.pdf", "percentages.pdf"]
-    ):
-        figures[index].savefig(os.path.join(trace_directory, file_name))
-
-    numpy.save(os.path.join(trace_directory, "trace.npy"), trace)
-    numpy.save(os.path.join(trace_directory, "log_p_trace.npy"), log_p_trace)
-    numpy.save(
-        os.path.join(trace_directory, "percent_dev_trace.npy"), percent_deviation_trace
-    )
+    model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
 
     print("Finished!")
 

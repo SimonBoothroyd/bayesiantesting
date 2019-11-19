@@ -5,10 +5,15 @@ is a hyperparameter which interpolates between the prior and
 posterior distributions.
 """
 import functools
+import json
+import os
 from multiprocessing.pool import Pool
 
 import numpy
 from bayesiantesting.kernels import MCMCSimulation
+from bayesiantesting.models import Model
+from bayesiantesting.utils.utils import temporarily_change_directory
+from matplotlib import pyplot
 from pymbar import timeseries
 
 
@@ -36,6 +41,7 @@ class LambdaSimulation(MCMCSimulation):
         steps=100000,
         tune_frequency=5000,
         discard_warm_up_data=True,
+        output_directory_path="",
         lambda_value=1.0,
     ):
         """
@@ -46,7 +52,12 @@ class LambdaSimulation(MCMCSimulation):
         """
 
         super().__init__(
-            model_collection, warm_up_steps, steps, tune_frequency, discard_warm_up_data
+            model_collection,
+            warm_up_steps,
+            steps,
+            tune_frequency,
+            discard_warm_up_data,
+            output_directory_path,
         )
 
         self._lambda = lambda_value
@@ -73,6 +84,7 @@ class ThermodynamicIntegration:
         steps=100000,
         tune_frequency=5000,
         discard_warm_up_data=True,
+        output_directory_path="",
     ):
         """
         Parameters
@@ -93,7 +105,11 @@ class ThermodynamicIntegration:
         discard_warm_up_data: bool
             If true, all data generated during the warm-up period will
             be discarded.
+        output_directory_path: str
+            The path to save the simulation results in.
         """
+
+        assert isinstance(model, Model)
 
         self._model = model
         self._warm_up_steps = warm_up_steps
@@ -108,6 +124,11 @@ class ThermodynamicIntegration:
 
         self._lambda_values = lambda_values * 0.5 + 0.5
         self._lambda_weights = lambda_weights * 0.5
+
+        if len(output_directory_path) > 0:
+            os.makedirs(output_directory_path, exist_ok=True)
+
+        self._output_directory_path = output_directory_path
 
     def _validate_parameter_shapes(self, initial_parameters):
 
@@ -134,6 +155,7 @@ class ThermodynamicIntegration:
                 self._steps,
                 self._tune_frequency,
                 self._discard_warm_up_data,
+                self._output_directory_path,
                 initial_parameters,
             )
 
@@ -157,6 +179,9 @@ class ThermodynamicIntegration:
                 integral += average_d_lambda * self._lambda_weights[index]
                 variance += self._lambda_weights[index] ** 2 * window_variance
 
+        # Save the output
+        self._save_results(results, integral, numpy.sqrt(variance))
+
         return results, integral, numpy.sqrt(variance)
 
     @staticmethod
@@ -166,11 +191,14 @@ class ThermodynamicIntegration:
         steps,
         tune_frequency,
         discard_warm_up_data,
+        output_directory_path,
         initial_parameters,
         lambda_tuple,
     ):
 
         lambda_value, lambda_index = lambda_tuple
+
+        lambda_directory = os.path.join(output_directory_path, str(lambda_index))
 
         simulation = LambdaSimulation(
             model_collection=model,
@@ -178,13 +206,15 @@ class ThermodynamicIntegration:
             steps=steps,
             tune_frequency=tune_frequency,
             discard_warm_up_data=discard_warm_up_data,
+            output_directory_path=lambda_directory,
             lambda_value=lambda_value,
         )
 
         trace, log_p_trace, _ = simulation.run(initial_parameters, 0, None)
 
-        # Decorrelate the data.
-        g = timeseries.statisticalInefficiency(log_p_trace, fast=False, fft=True)
+        # TODO: Properly decorrelate the data.
+        # g = timeseries.statisticalInefficiency(log_p_trace, fast=False, fft=True)
+        g = 1000.0
 
         indices = timeseries.subsampleCorrelatedData(log_p_trace, g=g)
 
@@ -201,3 +231,72 @@ class ThermodynamicIntegration:
             d_lop_p_d_lambda[index] = model.evaluate_log_likelihood(trace[index][1:])
 
         return trace, log_p_trace, d_lop_p_d_lambda
+
+    def _save_results(self, results, integral, integral_std):
+        """Saves the results of the simulation to the output
+        directory.
+
+        Parameters
+        ----------
+        results: tuple of tuple
+            The results of each simulation in the different lambda windows
+        integral: float
+            The value of the integrated model evidence.
+        integral_std: float
+            The uncertainty in the integrated model evidence.
+        """
+
+        d_log_p_d_lambdas = numpy.zeros(len(results))
+        d_log_p_d_lambdas_std = numpy.zeros(len(results))
+
+        for index, result in enumerate(results):
+
+            _, _, d_lop_p_d_lambda = result
+
+            d_log_p_d_lambdas[index] = numpy.mean(d_lop_p_d_lambda)
+            d_log_p_d_lambdas_std[index] = numpy.std(d_lop_p_d_lambda) / numpy.sqrt(
+                self._steps
+            )
+
+            lambda_directory = os.path.join(self._output_directory_path, str(index))
+
+            with temporarily_change_directory(lambda_directory):
+
+                d_lambda_figure = self._model.plot_log_p(
+                    d_lop_p_d_lambda,
+                    label=r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$",
+                )
+                d_lambda_figure.savefig(f"d_log_p_d_lambda.pdf")
+                pyplot.close(d_lambda_figure)
+
+        figure, axes = pyplot.subplots(1, 1)
+
+        axes.plot(d_log_p_d_lambdas, color="#17becf")
+        axes.set_xlabel(r"$\lambda$")
+        axes.set_ylabel(r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$")
+
+        figure.savefig(os.path.join(self._output_directory_path, f"lambdas.pdf"))
+
+        # Save the output as a json file and numpy files.
+        results = {
+            "model_evidence": integral,
+            "model_evidence_std": integral_std,
+            "lambdas": self._lambda_values.tolist(),
+            "weights": self._lambda_weights.tolist(),
+            "d_log_p_d_lambdas": d_log_p_d_lambdas.tolist(),
+            "d_log_p_d_lambdas_std": d_log_p_d_lambdas_std.tolist(),
+        }
+
+        with open(
+            os.path.join(self._output_directory_path, "results.json"), "w"
+        ) as file:
+            json.dump(results, file, sort_keys=True, indent=4, separators=(",", ": "))
+
+        numpy.save(
+            os.path.join(self._output_directory_path, "d_log_p_d_lambdas.npy"),
+            d_log_p_d_lambdas,
+        )
+        numpy.save(
+            os.path.join(self._output_directory_path, "d_log_p_d_lambdas_std.npy"),
+            d_log_p_d_lambdas_std,
+        )
