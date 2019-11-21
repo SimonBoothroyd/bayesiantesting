@@ -22,6 +22,8 @@ class RJMCSimulation(MCMCSimulation):
         steps=100000,
         tune_frequency=5000,
         discard_warm_up_data=True,
+        output_directory_path="",
+        save_trace_plots=True,
         swap_frequency=0.3,
     ):
         """
@@ -40,7 +42,13 @@ class RJMCSimulation(MCMCSimulation):
             )
 
         super().__init__(
-            model_collection, warm_up_steps, steps, tune_frequency, discard_warm_up_data
+            model_collection,
+            warm_up_steps,
+            steps,
+            tune_frequency,
+            discard_warm_up_data,
+            output_directory_path,
+            save_trace_plots,
         )
 
         self._swap_frequency = swap_frequency
@@ -340,6 +348,8 @@ class BiasedRJMCSimulation(RJMCSimulation):
         steps=100000,
         tune_frequency=5000,
         discard_warm_up_data=True,
+        output_directory_path="",
+        save_trace_plots=True,
         swap_frequency=0.3,
         log_biases=None,
     ):
@@ -356,6 +366,8 @@ class BiasedRJMCSimulation(RJMCSimulation):
             steps,
             tune_frequency,
             discard_warm_up_data,
+            output_directory_path,
+            save_trace_plots,
             swap_frequency,
         )
 

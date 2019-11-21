@@ -6,7 +6,6 @@ Created on Thu Oct 31 14:42:37 2019
 @author: owenmadin
 """
 import math
-import os
 
 import numpy
 import yaml
@@ -145,11 +144,11 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("AUA", data_set, property_types, simulation_params)
+    model = get_model("AUA+Q", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
     # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([90.0, 0.3, 0.12])
+    initial_parameters = numpy.array([140.0, 0.35, 0.26, 0.05])
 
     # Run the simulation.
     simulation = MCMCSimulation(
@@ -160,23 +159,7 @@ def main():
     )
 
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
-
-    # Save the traces
-    trace_directory = f"{model.name}_figures"
-    os.makedirs(trace_directory, exist_ok=True)
-
-    figures = model.plot(trace, log_p_trace, percent_deviation_trace)
-
-    for index, file_name in enumerate(
-        ["trace.pdf", "corner.pdf", "log_p.pdf", "percentages.pdf"]
-    ):
-        figures[index].savefig(os.path.join(trace_directory, file_name))
-
-    numpy.save(os.path.join(trace_directory, "trace.npy"), trace)
-    numpy.save(os.path.join(trace_directory, "log_p_trace.npy"), log_p_trace)
-    numpy.save(
-        os.path.join(trace_directory, "percent_dev_trace.npy"), percent_deviation_trace
-    )
+    model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
 
     print("Finished!")
 

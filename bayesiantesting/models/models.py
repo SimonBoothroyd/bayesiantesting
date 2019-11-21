@@ -319,7 +319,11 @@ class Model:
             The plotted figure.
         """
 
-        figure = corner.corner(trace[:, 1:], labels=self._prior_labels, color="#17becf")
+        figure = corner.corner(
+            trace[:, 1 : 1 + len(self._prior_labels)],
+            labels=self._prior_labels,
+            color="#17becf",
+        )
 
         if show:
             figure.show()
@@ -343,7 +347,7 @@ class Model:
         matplotlib.pyplot.Figure
             The plotted figure.
         """
-        figure, axes = pyplot.subplots(1, 1)
+        figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
 
         axes.plot(log_p, color="#17becf")
         axes.set_title(f"{self._name}")
@@ -372,7 +376,7 @@ class Model:
             The plotted figure.
         """
 
-        figure, axes = pyplot.subplots(1, 1)
+        figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
 
         for property_label in percentage_deviations:
             axes.plot(percentage_deviations[property_label], label=property_label.value)
@@ -382,11 +386,13 @@ class Model:
 
         axes.set_title(f"{self._name} Percentage Deviations")
 
-        axes.legend(
-            loc="center",
-            bbox_to_anchor=(0.5, -0.2),
-            ncol=min(len(percentage_deviations), 3),
-        )
+        if len(percentage_deviations) > 0:
+
+            axes.legend(
+                loc="center",
+                bbox_to_anchor=(0.5, -0.2),
+                ncol=min(len(percentage_deviations), 3),
+            )
 
         if show:
             figure.show()

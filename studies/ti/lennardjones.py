@@ -5,12 +5,9 @@ Created on Thu Oct 31 14:42:37 2019
 
 @author: owenmadin
 """
-import os
 
 import numpy
 import yaml
-from bayesiantesting.utils.utils import temporarily_change_directory
-from matplotlib import pyplot
 
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
@@ -112,77 +109,33 @@ def main():
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
+    # Set some reasonable initial parameters:
+    initial_parameters = {
+        "UA": numpy.array([100.0, 0.35]),
+        "AUA": numpy.array([120.0, 0.35, 0.12]),
+        "AUA+Q": numpy.array([140.0, 0.35, 0.26, 0.05]),
+    }
+
     # Build the model / models.
-    model = get_model("AUA", data_set, property_types, simulation_params)
+    for model_name in initial_parameters:
 
-    # Draw the initial parameter values from the model priors.
-    # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([95.0, 0.35, 0.2])
+        model = get_model(model_name, data_set, property_types, simulation_params)
 
-    simulation = ThermodynamicIntegration(
-        legendre_gauss_degree=20,
-        model=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.2),
-        steps=simulation_params["steps"],
-        discard_warm_up_data=True,
-    )
-
-    results, integral, error = simulation.run(initial_parameters, number_of_threads=20)
-
-    print(f"Final Integral:", integral, " +/- ", error)
-    print("==============================")
-
-    # Save the results.
-    directory = f"{model.name}_results"
-    os.makedirs(directory, exist_ok=True)
-
-    with open(os.path.join(directory, "result.txt"), "w") as file:
-        file.write(f"{integral} +/- {error}")
-
-    d_log_p_d_lambdas = numpy.zeros(len(results))
-    d_log_p_d_lambdas_std = numpy.zeros(len(results))
-
-    for index, result in enumerate(results):
-
-        trace, log_p_trace, d_lop_p_d_lambda = result
-
-        d_log_p_d_lambdas[index] = numpy.mean(d_lop_p_d_lambda)
-        d_log_p_d_lambdas_std[index] = numpy.std(d_lop_p_d_lambda) / numpy.sqrt(
-            simulation_params["steps"]
+        simulation = ThermodynamicIntegration(
+            legendre_gauss_degree=20,
+            model=model,
+            warm_up_steps=int(simulation_params["steps"] * 0.2),
+            steps=simulation_params["steps"],
+            discard_warm_up_data=True,
+            output_directory_path=f"ti_{model_name}",
         )
 
-        lambda_directory = os.path.join(directory, str(index))
-        os.makedirs(lambda_directory, exist_ok=True)
+        _, integral, error = simulation.run(
+            initial_parameters[model_name], number_of_threads=20
+        )
 
-        with temporarily_change_directory(lambda_directory):
-
-            trace_figure = model.plot_trace(trace)
-            trace_figure.savefig(f"trace.pdf")
-            pyplot.close(trace_figure)
-
-            log_p_figure = model.plot_log_p(log_p_trace)
-            log_p_figure.savefig("log_p.pdf")
-            pyplot.close(log_p_figure)
-
-            d_lambda_figure = model.plot_log_p(
-                d_lop_p_d_lambda,
-                label=r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$",
-            )
-            d_lambda_figure.savefig(f"d_lambda.pdf")
-            pyplot.close(d_lambda_figure)
-
-            numpy.save("trace.npy", trace)
-            numpy.save("log_p_trace.npy", log_p_trace)
-
-    figure, axes = pyplot.subplots(1, 1)
-
-    axes.plot(d_log_p_d_lambdas, color="#17becf")
-    axes.set_xlabel(r"$\lambda$")
-    axes.set_ylabel(r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$")
-
-    figure.tight_layout()
-    figure.savefig(os.path.join(directory, f"lambdas.pdf"))
-    pyplot.close(figure)
+        print(f"{model_name} Final Integral:", integral, " +/- ", error)
+        print("==============================")
 
 
 if __name__ == "__main__":
