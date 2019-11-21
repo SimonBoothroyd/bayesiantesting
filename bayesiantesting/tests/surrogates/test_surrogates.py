@@ -55,7 +55,9 @@ def test_critical_temperature():
     gradient = gradient_function(epsilon, sigma, bond_length, quadrupole)
 
     assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
-    assert numpy.allclose(gradient, numpy.array([3.17342591, 452.59372786, -1140.53645031, 0.00153665]))
+    assert numpy.allclose(
+        gradient, numpy.array([3.17342591, 452.59372786, -1140.53645031, 0.00153665])
+    )
 
 
 def test_critical_density():
@@ -109,7 +111,9 @@ def test_liquid_density():
     gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
     assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
-    assert numpy.allclose(gradient, numpy.array([28.12601669, 2044.99241265, -10856.5686318, 0.01421091]))
+    assert numpy.allclose(
+        gradient, numpy.array([28.12601669, 2044.99241265, -10856.5686318, 0.01421091])
+    )
 
 
 def test_saturation_pressure():
@@ -128,7 +132,9 @@ def test_saturation_pressure():
     temperatures = numpy.array([308.0])
     temperatures_star = temperatures / epsilon
 
-    value = model.saturation_pressure(temperatures, epsilon, sigma, bond_length, quadrupole)
+    value = model.saturation_pressure(
+        temperatures, epsilon, sigma, bond_length, quadrupole
+    )
     assert numpy.isclose(value, 5089.09761408)
 
     reduced_gradient_function = autograd.grad(model.saturation_pressure_star, (1, 2))
@@ -140,7 +146,10 @@ def test_saturation_pressure():
     gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
     assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
-    assert numpy.allclose(gradient, numpy.array([-235.19495191, -69856.91940789, 74257.50320125, -0.11145016]))
+    assert numpy.allclose(
+        gradient,
+        numpy.array([-235.19495191, -69856.91940789, 74257.50320125, -0.11145016]),
+    )
 
 
 def test_surface_tension():
@@ -171,7 +180,9 @@ def test_surface_tension():
     gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
     assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
-    assert numpy.allclose(gradient, numpy.array([0.00023103, 0.03215253, -0.08337817, 9.44823625e-07]))
+    assert numpy.allclose(
+        gradient, numpy.array([0.00023103, 0.03215253, -0.08337817, 9.44823625e-07])
+    )
 
 
 def test_evaluate():
