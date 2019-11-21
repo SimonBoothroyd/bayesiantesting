@@ -5,13 +5,13 @@ Created on Thu Oct 31 14:42:37 2019
 
 @author: owenmadin
 """
-import math
 
 import numpy
 import yaml
+
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
-from bayesiantesting.kernels import MCMCSimulation
+from bayesiantesting.kernels.bayes import ThermodynamicIntegration
 from bayesiantesting.models.continuous import TwoCenterLJModel
 from bayesiantesting.surrogates import StollWerthSurrogate
 
@@ -102,66 +102,40 @@ def get_model(model_name, data_set, property_types, simulation_params):
     return model
 
 
-def generate_initial_parameters(model, attempts=5):
-
-    initial_log_p = -math.inf
-    initial_parameters = None
-
-    counter = 0
-
-    while counter < attempts:
-
-        parameters = model.sample_priors()
-        parameters = model.find_maximum_a_posteriori(parameters)
-
-        log_p = model.evaluate_log_posterior(parameters)
-        counter += 1
-
-        if math.isnan(log_p) or log_p < initial_log_p:
-            continue
-
-        initial_parameters = parameters
-        initial_log_p = log_p
-
-    if numpy.isnan(initial_log_p):
-
-        raise ValueError(
-            "The initial values could not be set without yielding "
-            "a NaN log posterior"
-        )
-
-    return initial_parameters
-
-
 def main():
 
-    print("Parsing simulation params")
     simulation_params = parse_input_yaml("basic_run.yaml")
-
-    print(simulation_params["priors"])
 
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
+    # Set some reasonable initial parameters:
+    initial_parameters = {
+        "UA": numpy.array([100.0, 0.35]),
+        "AUA": numpy.array([120.0, 0.35, 0.12]),
+        "AUA+Q": numpy.array([140.0, 0.35, 0.26, 0.05]),
+    }
+
     # Build the model / models.
-    model = get_model("AUA+Q", data_set, property_types, simulation_params)
+    for model_name in initial_parameters:
 
-    # Draw the initial parameter values from the model priors.
-    # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([140.0, 0.35, 0.26, 0.05])
+        model = get_model(model_name, data_set, property_types, simulation_params)
 
-    # Run the simulation.
-    simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.3),
-        steps=simulation_params["steps"],
-        discard_warm_up_data=True,
-    )
+        simulation = ThermodynamicIntegration(
+            legendre_gauss_degree=20,
+            model=model,
+            warm_up_steps=int(simulation_params["steps"] * 0.2),
+            steps=simulation_params["steps"],
+            discard_warm_up_data=True,
+            output_directory_path=f"ti_{model_name}",
+        )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
-    model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
+        _, integral, error = simulation.run(
+            initial_parameters[model_name], number_of_threads=20
+        )
 
-    print("Finished!")
+        print(f"{model_name} Final Integral:", integral, " +/- ", error)
+        print("==============================")
 
 
 if __name__ == "__main__":

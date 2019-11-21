@@ -5,11 +5,12 @@ all continuous.
 Models in this module should inherit from the `Model`
 subclass.
 """
-import numpy as np
-import torch.distributions
+import numpy
+import autograd.numpy
 
 from bayesiantesting import unit
 from bayesiantesting.models import Model
+from bayesiantesting.utils import distributions as distributions
 
 
 class TwoCenterLJModel(Model):
@@ -72,10 +73,10 @@ class TwoCenterLJModel(Model):
 
         for property_type in self._property_types:
 
-            self._reference_data[property_type] = np.asarray(
+            self._reference_data[property_type] = numpy.asarray(
                 reference_data_set.get_data(property_type)
             )
-            self._reference_precisions[property_type] = np.asarray(
+            self._reference_precisions[property_type] = numpy.asarray(
                 reference_data_set.get_precision(property_type)
             )
 
@@ -98,6 +99,8 @@ class TwoCenterLJModel(Model):
         """
         log_p = 0.0
 
+        all_parameters = numpy.array([*parameters, *self._fixed_parameters])
+
         for property_type in self._property_types:
 
             reference_data = self._reference_data[property_type]
@@ -107,19 +110,22 @@ class TwoCenterLJModel(Model):
 
             reference_values = reference_data[:, 1]
             surrogate_values = self._surrogate_model.evaluate(
-                property_type, parameters, temperatures
+                property_type, all_parameters, temperatures
             )
 
-            surrogate_values = torch.from_numpy(surrogate_values)
-            precisions = torch.from_numpy(precisions) ** -2.0
-            reference_values = torch.from_numpy(reference_values)
+            surrogate_values = surrogate_values
+            precisions = precisions ** -2.0
+            reference_values = reference_values
+
+            if any(autograd.numpy.isnan(surrogate_values)):
+                return -numpy.inf
 
             # Compute likelihood based on gaussian penalty function
-            log_p += torch.sum(
-                torch.distributions.Normal(surrogate_values, precisions).log_prob(
+            log_p += autograd.numpy.sum(
+                distributions.Normal(surrogate_values, precisions).log_pdf(
                     reference_values
                 )
-            ).item()
+            )
 
         return log_p
 
@@ -127,19 +133,21 @@ class TwoCenterLJModel(Model):
 
         deviations = {}
 
+        all_parameters = numpy.array([*parameters, *self._fixed_parameters])
+
         for property_type in self._property_types:
 
             reference_data = self._reference_data[property_type]
 
             reference_values = reference_data[:, 1]
             surrogate_values = self._surrogate_model.evaluate(
-                property_type, parameters, reference_data[:, 0]
+                property_type, all_parameters, reference_data[:, 0]
             )
 
             deviation_vector = (
                 (reference_values - surrogate_values) / reference_values
             ) ** 2
-            mean_percentage_deviation = np.sqrt(np.mean(deviation_vector)) * 100
+            mean_percentage_deviation = numpy.sqrt(numpy.mean(deviation_vector)) * 100
 
             deviations[property_type] = mean_percentage_deviation
 

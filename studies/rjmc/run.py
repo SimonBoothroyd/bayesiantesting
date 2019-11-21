@@ -5,14 +5,17 @@ Created on Thu Oct 31 14:42:37 2019
 
 @author: owenmadin
 """
+
 import math
 
 import numpy
+import torch
 import yaml
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
-from bayesiantesting.kernels import MCMCSimulation
+from bayesiantesting.kernels.rjmc import BiasedRJMCSimulation
 from bayesiantesting.models.continuous import TwoCenterLJModel
+from bayesiantesting.models.discrete import TwoCenterLJModelCollection
 from bayesiantesting.surrogates import StollWerthSurrogate
 
 
@@ -102,26 +105,19 @@ def get_model(model_name, data_set, property_types, simulation_params):
     return model
 
 
-def generate_initial_parameters(model, attempts=5):
+def generate_initial_parameters(model):
 
-    initial_log_p = -math.inf
+    initial_log_p = math.nan
     initial_parameters = None
 
     counter = 0
 
-    while counter < attempts:
+    while math.isnan(initial_log_p) and counter < 1000:
 
-        parameters = model.sample_priors()
-        parameters = model.find_maximum_a_posteriori(parameters)
+        initial_parameters = model.sample_priors()
+        initial_log_p = model.evaluate_log_posterior(initial_parameters)
 
-        log_p = model.evaluate_log_posterior(parameters)
         counter += 1
-
-        if math.isnan(log_p) or log_p < initial_log_p:
-            continue
-
-        initial_parameters = parameters
-        initial_log_p = log_p
 
     if numpy.isnan(initial_log_p):
 
@@ -135,31 +131,48 @@ def generate_initial_parameters(model, attempts=5):
 
 def main():
 
-    print("Parsing simulation params")
+    # Load in the simulation parameters.
     simulation_params = parse_input_yaml("basic_run.yaml")
-
-    print(simulation_params["priors"])
 
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
+    # Define the pre-computed MAP parameters
+    maximum_a_posteriori = [
+        numpy.array([97.0, 0.37850, 0.15]),
+        numpy.array([98.0, 0.37800, 0.15, 0.01]),
+        numpy.array([99.5, 0.37685]),
+    ]
+
     # Build the model / models.
-    model = get_model("AUA+Q", data_set, property_types, simulation_params)
+    sub_models = [
+        get_model("AUA", data_set, property_types, simulation_params),
+        get_model("AUA+Q", data_set, property_types, simulation_params),
+        get_model("UA", data_set, property_types, simulation_params),
+    ]
 
-    # Draw the initial parameter values from the model priors.
-    # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([140.0, 0.35, 0.26, 0.05])
-
-    # Run the simulation.
-    simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.3),
-        steps=simulation_params["steps"],
-        discard_warm_up_data=True,
+    model_collection = TwoCenterLJModelCollection(
+        "2CLJ Models", sub_models, maximum_a_posteriori
     )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
-    model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
+    # Draw the initial parameter values from the model priors.
+    initial_model_index = torch.randint(len(sub_models), (1,)).item()
+
+    # initial_parameters = generate_initial_parameters(sub_models[initial_model_index])
+    initial_parameters = maximum_a_posteriori[initial_model_index]
+
+    bias_factors = simulation_params["biasing_factor"]
+
+    simulation = BiasedRJMCSimulation(
+        model_collection=model_collection,
+        warm_up_steps=int(simulation_params["steps"] * 0.1),
+        steps=simulation_params["steps"],
+        discard_warm_up_data=True,
+        swap_frequency=simulation_params["swap_freq"],
+        log_biases=bias_factors,
+    )
+
+    simulation.run(initial_parameters, initial_model_index)
 
     print("Finished!")
 

@@ -1,8 +1,8 @@
 USE_BAR: false
 biasing_factor:
-- 268.7700054021504
-- 269.6981013674754
-- 265.8677748543761
+- 0
+- 0
+- 0
 compound: C2H6
 label: production
 number_data_points: 10
@@ -30,7 +30,7 @@ priors:
 properties: All
 save_traj: true
 simulation_type: Basic
-steps: 50000
+steps: 3000000
 swap_freq: 0.1
 trange:
 - 0.55
