@@ -27,10 +27,10 @@ priors:
   - exponential
   - - 0
     - 1
-properties: rhol+Psat
+properties: All
 save_traj: true
 simulation_type: Basic
-steps: 2000000
+steps: 3000000
 swap_freq: 0.1
 trange:
 - 0.55

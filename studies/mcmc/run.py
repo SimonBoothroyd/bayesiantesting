@@ -144,11 +144,11 @@ def main():
     data_set, property_types = prepare_data(simulation_params)
 
     # Build the model / models.
-    model = get_model("AUA", data_set, property_types, simulation_params)
+    model = get_model("AUA+Q", data_set, property_types, simulation_params)
 
     # Draw the initial parameter values from the model priors.
     # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([90.0, 0.3, 0.12])
+    initial_parameters = numpy.array([140.0, 0.35, 0.26, 0.05])
 
     # Run the simulation.
     simulation = MCMCSimulation(

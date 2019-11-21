@@ -25,6 +25,7 @@ class MCMCSimulation:
         tune_frequency=5000,
         discard_warm_up_data=True,
         output_directory_path="",
+        save_trace_plots=True,
     ):
         """Initializes the basic state of the simulator object.
 
@@ -44,6 +45,9 @@ class MCMCSimulation:
             be discarded.
         output_directory_path: str
             The path to save the simulation results in.
+        save_trace_plots: bool
+            If true, plots of the traces will be saved in the output
+            directory.
         """
 
         self.warm_up_steps = warm_up_steps
@@ -53,6 +57,7 @@ class MCMCSimulation:
         self._discard_warm_up_data = discard_warm_up_data
 
         self._output_directory_path = output_directory_path
+        self._save_trace_plots = save_trace_plots
 
         if isinstance(model_collection, Model):
             # Convert any standalone models to model collections
@@ -86,14 +91,14 @@ class MCMCSimulation:
                 maximum_n_parameters, model.n_trainable_parameters
             )
 
-        if len(initial_parameters) != maximum_n_parameters:
-
-            raise ValueError(
-                f"The initial parameters vector is too small "
-                f"({len(initial_parameters)}) to store the maximum "
-                f"number of the trainable parameters from across "
-                f"all models ({maximum_n_parameters})."
-            )
+        # if len(initial_parameters) != maximum_n_parameters:
+        #
+        #     raise ValueError(
+        #         f"The initial parameters vector is too small "
+        #         f"({len(initial_parameters)}) to store the maximum "
+        #         f"number of the trainable parameters from across "
+        #         f"all models ({maximum_n_parameters})."
+        #     )
 
     def run(self, initial_parameters, initial_model_index=0, progress_bar=True):
 
@@ -114,9 +119,16 @@ class MCMCSimulation:
         # Initialize the trace vectors
         total_steps = self.steps + self.warm_up_steps
 
-        trace = np.zeros((total_steps + 1, len(self._initial_values) + 1))
+        maximum_n_parameters = 0
+
+        for model in self._model_collection.models:
+            maximum_n_parameters = max(
+                maximum_n_parameters, model.n_trainable_parameters
+            )
+
+        trace = np.zeros((total_steps + 1, maximum_n_parameters + 1))
         trace[0, 0] = self._initial_model_index
-        trace[0, 1:] = self._initial_values
+        trace[0, 1 : 1 + len(self._initial_values)] = self._initial_values
 
         log_p_trace = np.zeros(total_steps + 1)
         log_p_trace[0] = initial_log_p
@@ -147,7 +159,12 @@ class MCMCSimulation:
         for i in range(self.warm_up_steps + self.steps):
 
             current_model_index = int(trace[i][0])
-            current_parameters = trace[i][1:]
+            current_parameters = trace[i][
+                1 : 1
+                + self._model_collection.models[
+                    current_model_index
+                ].n_trainable_parameters
+            ]
 
             current_log_p = log_p_trace[i]
             current_percent_deviation = percent_deviation_trace[i]
@@ -171,7 +188,7 @@ class MCMCSimulation:
 
             # Update the bookkeeping.
             trace[i + 1][0] = new_model_index
-            trace[i + 1][1:] = new_parameters
+            trace[i + 1][1 : 1 + len(new_parameters)] = new_parameters
 
             log_p_trace[i + 1] = new_log_p
             percent_deviation_trace.append(new_percent_deviation)
@@ -451,6 +468,9 @@ class MCMCSimulation:
 
             model_trace_indices = trace[:, 0] == index
 
+            if not any(model_trace_indices):
+                continue
+
             model_trace = trace[model_trace_indices]
             model_log_p = log_p_trace[model_trace_indices]
             model_counts[index] = len(model_trace)
@@ -459,25 +479,33 @@ class MCMCSimulation:
             for key in percentage_deviations:
                 model_deviations[key] = percentage_deviations[key][model_trace_indices]
 
-            figures = model.plot(model_trace, model_log_p, model_deviations)
+            if self._save_trace_plots:
 
-            for figure_index, file_name in enumerate(
-                ["trace.pdf", "corner.pdf", "log_p.pdf", "percentages.pdf"]
-            ):
-                figures[figure_index].savefig(os.path.join(model_directory, file_name))
-                pyplot.close(figures[figure_index])
+                figures = model.plot(model_trace, model_log_p, model_deviations)
+
+                for figure_index, file_name in enumerate(
+                    ["trace.pdf", "corner.pdf", "log_p.pdf", "percentages.pdf"]
+                ):
+                    figures[figure_index].savefig(
+                        os.path.join(model_directory, file_name)
+                    )
+                    pyplot.close(figures[figure_index])
 
             np.save(os.path.join(model_directory, "trace.npy"), model_trace)
             np.save(os.path.join(model_directory, "log_p.npy"), model_log_p)
             np.save(os.path.join(model_directory, "percentages.npy"), model_deviations)
 
-        figure, axes = pyplot.subplots(1, 2, figsize=(10, 5))
+        if self._save_trace_plots:
 
-        axes[0].plot(trace[:, 0])
-        axes[1].hist(trace[:, 0])
+            figure, axes = pyplot.subplots(1, 2, figsize=(10, 5))
 
-        axes[0].set_xlabel("Model Index")
-        axes[1].set_xlabel("Model Index")
+            axes[0].plot(trace[:, 0])
+            axes[1].hist(trace[:, 0])
 
-        figure.savefig(os.path.join(self._output_directory_path, "model_histogram.pdf"))
-        pyplot.close(figure)
+            axes[0].set_xlabel("Model Index")
+            axes[1].set_xlabel("Model Index")
+
+            figure.savefig(
+                os.path.join(self._output_directory_path, "model_histogram.pdf")
+            )
+            pyplot.close(figure)

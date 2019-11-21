@@ -13,7 +13,7 @@ import torch
 import yaml
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
-from bayesiantesting.kernels.rjmc import RJMCSimulation
+from bayesiantesting.kernels.rjmc import BiasedRJMCSimulation
 from bayesiantesting.models.continuous import TwoCenterLJModel
 from bayesiantesting.models.discrete import TwoCenterLJModelCollection
 from bayesiantesting.surrogates import StollWerthSurrogate
@@ -137,6 +137,13 @@ def main():
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
+    # Define the pre-computed MAP parameters
+    maximum_a_posteriori = [
+        numpy.array([97.0, 0.37850, 0.15]),
+        numpy.array([98.0, 0.37800, 0.15, 0.01]),
+        numpy.array([99.5, 0.37685]),
+    ]
+
     # Build the model / models.
     sub_models = [
         get_model("AUA", data_set, property_types, simulation_params),
@@ -144,18 +151,25 @@ def main():
         get_model("UA", data_set, property_types, simulation_params),
     ]
 
-    model_collection = TwoCenterLJModelCollection("2CLJ Models", sub_models)
+    model_collection = TwoCenterLJModelCollection(
+        "2CLJ Models", sub_models, maximum_a_posteriori
+    )
 
     # Draw the initial parameter values from the model priors.
     initial_model_index = torch.randint(len(sub_models), (1,)).item()
-    initial_parameters = generate_initial_parameters(sub_models[initial_model_index])
 
-    simulation = RJMCSimulation(
+    # initial_parameters = generate_initial_parameters(sub_models[initial_model_index])
+    initial_parameters = maximum_a_posteriori[initial_model_index]
+
+    bias_factors = simulation_params["biasing_factor"]
+
+    simulation = BiasedRJMCSimulation(
         model_collection=model_collection,
         warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
         swap_frequency=simulation_params["swap_freq"],
+        log_biases=bias_factors,
     )
 
     simulation.run(initial_parameters, initial_model_index)

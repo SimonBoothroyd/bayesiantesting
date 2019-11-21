@@ -109,28 +109,33 @@ def main():
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
+    # Set some reasonable initial parameters:
+    initial_parameters = {
+        "UA": numpy.array([100.0, 0.35]),
+        "AUA": numpy.array([120.0, 0.35, 0.12]),
+        "AUA+Q": numpy.array([140.0, 0.35, 0.26, 0.05]),
+    }
+
     # Build the model / models.
-    model = get_model("AUA+Q", data_set, property_types, simulation_params)
+    for model_name in initial_parameters:
 
-    # Draw the initial parameter values from the model priors.
-    # initial_parameters = generate_initial_parameters(model)
-    # initial_parameters = numpy.array([90.0, 0.35])
-    # initial_parameters = numpy.array([100.0, 0.35])
-    initial_parameters = numpy.array([120.0, 0.35, 0.26, 0.1])
+        model = get_model(model_name, data_set, property_types, simulation_params)
 
-    simulation = ThermodynamicIntegration(
-        legendre_gauss_degree=20,
-        model=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.2),
-        steps=simulation_params["steps"],
-        discard_warm_up_data=True,
-        output_directory_path="lennardjones",
-    )
+        simulation = ThermodynamicIntegration(
+            legendre_gauss_degree=20,
+            model=model,
+            warm_up_steps=int(simulation_params["steps"] * 0.2),
+            steps=simulation_params["steps"],
+            discard_warm_up_data=True,
+            output_directory_path=f"ti_{model_name}",
+        )
 
-    _, integral, error = simulation.run(initial_parameters, number_of_threads=20)
+        _, integral, error = simulation.run(
+            initial_parameters[model_name], number_of_threads=20
+        )
 
-    print(f"Final Integral:", integral, " +/- ", error)
-    print("==============================")
+        print(f"{model_name} Final Integral:", integral, " +/- ", error)
+        print("==============================")
 
 
 if __name__ == "__main__":

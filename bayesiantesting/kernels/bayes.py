@@ -12,7 +12,6 @@ from multiprocessing.pool import Pool
 import numpy
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.models import Model
-from bayesiantesting.utils.utils import temporarily_change_directory
 from matplotlib import pyplot
 from pymbar import timeseries
 
@@ -42,6 +41,7 @@ class LambdaSimulation(MCMCSimulation):
         tune_frequency=5000,
         discard_warm_up_data=True,
         output_directory_path="",
+        save_trace_plots=True,
         lambda_value=1.0,
     ):
         """
@@ -58,6 +58,7 @@ class LambdaSimulation(MCMCSimulation):
             tune_frequency,
             discard_warm_up_data,
             output_directory_path,
+            save_trace_plots,
         )
 
         self._lambda = lambda_value
@@ -207,6 +208,7 @@ class ThermodynamicIntegration:
             tune_frequency=tune_frequency,
             discard_warm_up_data=discard_warm_up_data,
             output_directory_path=lambda_directory,
+            save_trace_plots=False,
             lambda_value=lambda_value,
         )
 
@@ -249,27 +251,34 @@ class ThermodynamicIntegration:
         d_log_p_d_lambdas = numpy.zeros(len(results))
         d_log_p_d_lambdas_std = numpy.zeros(len(results))
 
+        axis_label = r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$"
+
         for index, result in enumerate(results):
 
-            _, _, d_lop_p_d_lambda = result
+            trace, log_p_trace, lambda_trace = result
 
-            d_log_p_d_lambdas[index] = numpy.mean(d_lop_p_d_lambda)
-            d_log_p_d_lambdas_std[index] = numpy.std(d_lop_p_d_lambda) / numpy.sqrt(
+            d_log_p_d_lambdas[index] = numpy.mean(lambda_trace)
+            d_log_p_d_lambdas_std[index] = numpy.std(lambda_trace) / numpy.sqrt(
                 self._steps
             )
 
             lambda_directory = os.path.join(self._output_directory_path, str(index))
 
-            with temporarily_change_directory(lambda_directory):
+            trace_figure = self._model.plot_trace(trace)
+            trace_figure.savefig(os.path.join(lambda_directory, f"trace.pdf"))
+            pyplot.close(trace_figure)
 
-                d_lambda_figure = self._model.plot_log_p(
-                    d_lop_p_d_lambda,
-                    label=r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$",
-                )
-                d_lambda_figure.savefig(f"d_log_p_d_lambda.pdf")
-                pyplot.close(d_lambda_figure)
+            log_p_figure = self._model.plot_log_p(lambda_trace)
+            log_p_figure.savefig(os.path.join(lambda_directory, f"log_p.pdf"))
+            pyplot.close(log_p_figure)
 
-        figure, axes = pyplot.subplots(1, 1)
+            lambda_figure = self._model.plot_log_p(lambda_trace, label=axis_label)
+            lambda_figure.savefig(
+                os.path.join(lambda_directory, f"d_log_p_d_lambda.pdf")
+            )
+            pyplot.close(lambda_figure)
+
+        figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
 
         axes.plot(d_log_p_d_lambdas, color="#17becf")
         axes.set_xlabel(r"$\lambda$")
