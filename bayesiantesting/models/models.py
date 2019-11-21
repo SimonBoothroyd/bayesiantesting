@@ -231,7 +231,7 @@ class Model:
         float
             The log value of the likelihood evaluated at `parameters`.
         """
-        return 0.0
+        raise NotImplementedError()
 
     def evaluate_log_posterior(self, parameters):
         """Evaluates the *unnormalized* log posterior for

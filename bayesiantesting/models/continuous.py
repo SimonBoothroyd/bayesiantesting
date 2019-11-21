@@ -18,10 +18,6 @@ class TwoCenterLJModel(Model):
     can be evaluated using a surrogate model against a `NISTDataSet`.
     """
 
-    @property
-    def total_parameters(self):
-        return 4
-
     def __init__(
         self,
         name,
@@ -81,13 +77,6 @@ class TwoCenterLJModel(Model):
             )
 
         self._surrogate_model = surrogate_model
-
-    def evaluate_log_prior(self, parameters):
-
-        if any(parameters < 0.0):
-            return -numpy.inf
-
-        return super(TwoCenterLJModel, self).evaluate_log_prior(parameters)
 
     def evaluate_log_likelihood(self, parameters):
         """Evaluates the log value of the this models likelihood for
