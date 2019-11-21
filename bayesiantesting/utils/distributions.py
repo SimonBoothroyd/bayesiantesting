@@ -53,12 +53,6 @@ class Exponential(Distribution):
 class Normal(Distribution):
     def __init__(self, loc, scale):
 
-        if isinstance(loc, autograd.numpy.float64):
-            loc = autograd.numpy.array([loc])
-
-        if isinstance(scale, autograd.numpy.float64):
-            scale = autograd.numpy.array([scale])
-
         self.loc = loc
         self.scale = scale
 
@@ -91,13 +85,7 @@ class Normal(Distribution):
         ) * autograd.numpy.sqrt(2)
 
     def sample(self):
-        return (
-            torch.distributions.Normal(
-                torch.from_numpy(self.loc), torch.from_numpy(self.scale)
-            )
-            .rsample()
-            .numpy()
-        )
+        return torch.distributions.Normal(self.loc, self.scale).rsample().item()
 
 
 class Uniform(Distribution):
@@ -112,7 +100,7 @@ class Uniform(Distribution):
             # noinspection PyUnresolvedReferences
             return -autograd.numpy.log(self.high - self.low)
 
-        return -numpy.inf
+        return -autograd.numpy.inf
 
     def cdf(self, x):
         result = (x - self.low) / (self.high - self.low)
