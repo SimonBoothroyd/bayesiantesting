@@ -496,7 +496,11 @@ class StollWerthSurrogate(SurrogateModel):
             temperature_star, quadrupole_star_sqr, bond_length_star
         )
         saturation_pressure = (
-            saturation_pressure_star * epsilon / sigma ** 3 * self._reduced_boltzmann * 1.0e1
+            saturation_pressure_star
+            * epsilon
+            / sigma ** 3
+            * self._reduced_boltzmann
+            * 1.0e1
         )
         return saturation_pressure  # [kPa]
 
@@ -568,7 +572,13 @@ class StollWerthSurrogate(SurrogateModel):
         surface_tension_star = self.surface_tension_star(
             temperature_star, quadrupole_star_sqr, bond_length_star
         )
-        surface_tension = surface_tension_star * epsilon / sigma ** 2 * self._reduced_boltzmann * 1.0e-5
+        surface_tension = (
+            surface_tension_star
+            * epsilon
+            / sigma ** 2
+            * self._reduced_boltzmann
+            * 1.0e-5
+        )
         return surface_tension  # [J/m2]
 
     def evaluate(self, property_type, parameters, temperatures):

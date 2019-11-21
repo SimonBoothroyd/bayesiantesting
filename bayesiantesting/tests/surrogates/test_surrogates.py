@@ -10,21 +10,14 @@ from bayesiantesting.surrogates import StollWerthSurrogate
 
 
 def generate_parameters():
+    """Returns a set of parameters (and their reduced values) for
+    which regression values for each model property are known.
+    """
 
-    # epsilon_distribution = torch.distributions.Exponential(rate=1.0/400.0)
-    # sigma_distribution = torch.distributions.Exponential(rate=1.0/5.0)
-    # bond_length_distribution = torch.distributions.Exponential(rate=1.0/3.0)
-    # quadrupole_distribution = torch.distributions.Exponential(rate=1.0/1.0)
-    #
-    # epsilon = epsilon_distribution.rsample().item()
-    # sigma = sigma_distribution.rsample().item()
-    # bond_length = bond_length_distribution.rsample().item()
-    # quadrupole = quadrupole_distribution.rsample().item()
-
-    epsilon = 79.89
-    sigma = 0.35819
-    bond_length = 0.12976000000000001
-    quadrupole = 0.508
+    epsilon = 98.0
+    sigma = 0.37800
+    bond_length = 0.15
+    quadrupole = 0.01
 
     quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (epsilon * 1.38065 * sigma ** 5)
     bond_length_star = bond_length / sigma
@@ -68,9 +61,9 @@ def critical_temperature_gradient_analytical(
     return numpy.array([t_c_star_q, t_c_star_l])
 
 
-def test_critical_temperature_gradient():
+def test_critical_temperature():
 
-    model = StollWerthSurrogate(26.038 * unit.gram / unit.mole)  # C2H2
+    model = StollWerthSurrogate(30.069 * unit.gram / unit.mole)  # C2H6
 
     (
         epsilon,
@@ -95,9 +88,9 @@ def test_critical_temperature_gradient():
     assert numpy.isclose(t_c_gradient[2], t_c_star_grad_analytical[1] * epsilon / sigma)
 
 
-def test_critical_density_gradient():
+def test_critical_density():
 
-    model = StollWerthSurrogate(26.038 * unit.gram / unit.mole)  # C2H2
+    model = StollWerthSurrogate(30.069 * unit.gram / unit.mole)  # C2H6
 
     (
         epsilon,
@@ -120,7 +113,7 @@ def test_critical_density_gradient():
 
 def test_liquid_density():
 
-    model = StollWerthSurrogate(26.038 * unit.gram / unit.mole)  # C2H2
+    model = StollWerthSurrogate(30.069 * unit.gram / unit.mole)  # C2H6
 
     (
         epsilon,
@@ -148,7 +141,7 @@ def test_liquid_density():
 
 def test_saturation_pressure():
 
-    model = StollWerthSurrogate(26.038 * unit.gram / unit.mole)  # C2H2
+    model = StollWerthSurrogate(30.069 * unit.gram / unit.mole)  # C2H6
 
     (
         epsilon,
@@ -176,7 +169,7 @@ def test_saturation_pressure():
 
 def test_surface_tension():
 
-    model = StollWerthSurrogate(26.038 * unit.gram / unit.mole)  # C2H2
+    model = StollWerthSurrogate(30.069 * unit.gram / unit.mole)  # C2H6
 
     (
         epsilon,
@@ -204,7 +197,7 @@ def test_surface_tension():
 
 def test_evaluate():
 
-    model = StollWerthSurrogate(26.038 * unit.gram / unit.mole)  # C2H2
+    model = StollWerthSurrogate(30.069 * unit.gram / unit.mole)  # C2H6
     epsilon, sigma, bond_length, _, quadrupole, _ = generate_parameters()
 
     parameters = numpy.array([epsilon, sigma, bond_length, quadrupole])
