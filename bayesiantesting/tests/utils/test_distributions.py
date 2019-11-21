@@ -17,6 +17,7 @@ import torch.distributions as references
     [
         (distributions.Exponential, references.Exponential, [random()]),
         (distributions.Normal, references.Normal, [random(), random()]),
+        (distributions.Cauchy, references.Cauchy, [random(), random()]),
         (distributions.Uniform, references.Uniform, [random(), 1.0 + random()]),
     ],
 )
@@ -50,6 +51,7 @@ def test_values(distribution_type, reference_type, args):
     [
         (distributions.Exponential, references.Exponential, [random()]),
         (distributions.Normal, references.Normal, [random(), random()]),
+        (distributions.Cauchy, references.Cauchy, [random(), random()]),
         (distributions.Uniform, references.Uniform, [random(), 1.0 + random()]),
     ],
 )

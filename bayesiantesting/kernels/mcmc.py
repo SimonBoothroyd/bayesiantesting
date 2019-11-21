@@ -116,6 +116,9 @@ class MCMCSimulation:
             self._initial_values
         )
 
+        if np.isnan(initial_log_p) or np.isinf(initial_log_p):
+            raise ValueError(f'The initial log p is NaN / inf - {initial_log_p}')
+
         # Initialize the trace vectors
         total_steps = self.steps + self.warm_up_steps
 
