@@ -124,6 +124,9 @@ class TwoCenterLJModel(Model):
             precisions = precisions ** -2.0
             reference_values = reference_values
 
+            if any(autograd.numpy.isnan(surrogate_values)):
+                return -numpy.inf
+
             # Compute likelihood based on gaussian penalty function
             log_p += autograd.numpy.sum(
                 distributions.Normal(surrogate_values, precisions).log_pdf(

@@ -1,7 +1,7 @@
 """
 This code is based upon the implementations by Owen Madin
 """
-
+import contextlib
 import os
 
 import matplotlib.pyplot as plt
@@ -39,6 +39,24 @@ def get_data_filename(relative_path):
         )
 
     return fn
+
+
+@contextlib.contextmanager
+def temporarily_change_directory(file_path):
+    """A context to temporarily change the working directory.
+
+    Parameters
+    ----------
+    file_path: str
+        The file path to temporarily change into.
+    """
+    prev_dir = os.getcwd()
+    os.chdir(os.path.abspath(file_path))
+
+    try:
+        yield
+    finally:
+        os.chdir(prev_dir)
 
 
 def parse_ffs(compound):

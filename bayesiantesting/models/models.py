@@ -1,9 +1,12 @@
+import arviz
 import autograd
+import corner
 import numpy
 import numpy as np
 import torch
 import bayesiantesting.utils.distributions as distributions
 import scipy.optimize
+from matplotlib import pyplot
 
 
 class Model:
@@ -122,6 +125,10 @@ class Model:
         elif prior_type == "normal":
 
             prior = distributions.Normal(prior_values[0], prior_values[1])
+
+        elif prior_type == "uniform":
+
+            prior = distributions.Uniform(prior_values[0], prior_values[1])
 
         else:
             raise NotImplementedError()
@@ -263,6 +270,163 @@ class Model:
         """
         raise NotImplementedError()
 
+    def plot_trace(self, trace, show=False):
+        """Use `Arviz` to plot a trace of the trainable parameters,
+        alongside a histogram of their distribution.
+
+        Parameters
+        ----------
+        trace: numpy.ndarray
+            The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        show: bool
+            If true, the plot will be shown.
+
+        Returns
+        -------
+        matplotlib.pyplot.Figure
+            The plotted figure.
+        """
+
+        trace_dict = {}
+
+        for index, label in enumerate(self._prior_labels):
+            trace_dict[label] = trace[:, index + 1]
+
+        data = arviz.convert_to_inference_data(trace_dict)
+
+        axes = arviz.plot_trace(data)
+        figure = axes[0][0].figure
+
+        if show:
+            figure.show()
+
+        return figure
+
+    def plot_corner(self, trace, show=False):
+        """Use `corner` to plot a corner plot of the parameter
+        distributions.
+
+        Parameters
+        ----------
+        trace: numpy.ndarray
+            The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        show: bool
+            If true, the plot will be shown.
+
+        Returns
+        -------
+        matplotlib.pyplot.Figure
+            The plotted figure.
+        """
+
+        figure = corner.corner(
+            trace[:, 1 : 1 + len(self._prior_labels)],
+            labels=self._prior_labels,
+            color="#17becf",
+        )
+
+        if show:
+            figure.show()
+
+        return figure
+
+    def plot_log_p(self, log_p, show=False, label="$log p$"):
+        """Plot the log p trace.
+
+        Parameters
+        ----------
+        log_p: numpy.ndarray
+            The log p trace with shape=(n_steps, 1)
+        show: bool
+            If true, the plot will be shown.
+        label: str
+            The y-axis label to use.
+
+        Returns
+        -------
+        matplotlib.pyplot.Figure
+            The plotted figure.
+        """
+        figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
+
+        axes.plot(log_p, color="#17becf")
+        axes.set_title(f"{self._name}")
+        axes.set_xlabel("steps")
+        axes.set_ylabel(f"{label}")
+
+        if show:
+            figure.show()
+
+        return figure
+
+    def plot_percentage_deviations(self, percentage_deviations, show=False):
+        """Plot the trace of the deviations of the trained model
+        from the reference data.
+
+        Parameters
+        ----------
+        percentage_deviations: dict of str and numpy.ndarray
+            The deviations, whose values are arrays with shape=(n_steps, 1)
+        show: bool
+            If true, the plot will be shown.
+
+        Returns
+        -------
+        matplotlib.pyplot.Figure
+            The plotted figure.
+        """
+
+        figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
+
+        for property_label in percentage_deviations:
+            axes.plot(percentage_deviations[property_label], label=property_label.value)
+
+        axes.set_xlabel("steps")
+        axes.set_ylabel("%")
+
+        axes.set_title(f"{self._name} Percentage Deviations")
+
+        if len(percentage_deviations) > 0:
+
+            axes.legend(
+                loc="center",
+                bbox_to_anchor=(0.5, -0.2),
+                ncol=min(len(percentage_deviations), 3),
+            )
+
+        if show:
+            figure.show()
+
+        return figure
+
+    def plot(self, trace, log_p, percentage_deviations, show=False):
+        """Produce plots of this models traces. This is equivalent to
+        calling `plot_trace`, `plot_corner`, `plot_log_p`,
+        `plot_percentage_deviations`.
+
+        Parameters
+        ----------
+        trace: numpy.ndarray
+            The parameter trace with shape=(n_steps, n_trainable_parameters+1)
+        log_p: numpy.ndarray
+            The log p trace with shape=(n_steps, 1)
+        percentage_deviations: dict of str and numpy.ndarray
+            The deviations, whose values are arrays with shape=(n_steps, 1)
+        show: bool
+            If true, the plots will be shown.
+
+        Returns
+        -------
+        tuple of matplotlib.pyplot.Figure
+            The plotted figures.
+        """
+        return (
+            self.plot_trace(trace, show),
+            self.plot_corner(trace, show),
+            self.plot_log_p(log_p, show),
+            self.plot_percentage_deviations(percentage_deviations, show),
+        )
+
 
 class ModelCollection:
     """Represents a collection of models to simultaneously optimize.
@@ -302,7 +466,7 @@ class ModelCollection:
 
         for model in self._models:
 
-            if all(
+            if model.n_trainable_parameters <= 1 or all(
                 isinstance(prior, (distributions.Exponential, distributions.Normal))
                 for prior in model.priors
             ):
@@ -313,6 +477,24 @@ class ModelCollection:
     def _mapping_function(
         self, parameter, model_index_a, model_index_b, parameter_index
     ):
+        """Attempts to map a given parameter from model a into a
+        parameter in model b which yields a non-zero posterior
+        probability.
+
+        Parameters
+        ----------
+        parameter: float
+            The value of the model a parameter.
+        model_index_a: int
+            The index of model a in this model collection.
+        model_index_b: int
+            The index of model b in this model collection.
+
+        Returns
+        -------
+        float
+            The mapped parameter.
+        """
 
         model_a = self._models[model_index_a]
         model_b = self._models[model_index_b]
@@ -367,32 +549,50 @@ class ModelCollection:
         raise NotImplementedError()
 
     def map_parameters(self, parameters, model_index_a, model_index_b):
+        """Attempts to map a set of trainable parameters from model
+        a into a set of parameters with a non-zero posterior in model
+        b.
 
-        current_parameters = parameters.copy()
+        Parameters
+        ----------
+        parameters: numpy.ndarray
+            The current parameters of model a, with shape=(model_a.n_trainable_parameters).
+        model_index_a: int
+            The index of model a in this model collection.
+        model_index_b: int
+            The index of model b in this model collection.
 
-        new_parameters = numpy.empty(parameters.shape)
-        jacobians = numpy.empty(parameters.shape)
+        Returns
+        -------
+        numpy.ndarray
+            The current parameters of model a with any 'ghost' parameters
+            added (shape=(model_b.n_total_parameters)).
+        numpy.ndarray
+            The mapped parameters with shape=(model_b.n_trainable_parameters).
+        numpy.ndarray
+            The jacobian associated with the mapping with
+            shape=(model_b.n_trainable_parameters).
+        """
 
-        n_parameters = max(
-            self._models[model_index_a].n_total_parameters,
-            self._models[model_index_b].n_total_parameters,
-        )
+        model_a = self._models[model_index_a]
+        model_b = self._models[model_index_b]
+
+        n_parameters = max(model_a.n_total_parameters, model_b.n_total_parameters)
+
+        current_parameters = numpy.array([*parameters, *model_a.fixed_parameters])
+        new_parameters = numpy.empty(n_parameters)
 
         jacobian_function = autograd.grad(self._mapping_function)
+        jacobians = numpy.empty(n_parameters)
 
-        if (
-            self._models[model_index_a].n_trainable_parameters
-            < self._models[model_index_b].n_trainable_parameters
-        ):
+        if model_a.n_trainable_parameters < model_b.n_trainable_parameters:
 
             # If we are moving to a higher dimensional model, we
             # set the 'ghost' parameters to a random number drawn
             # from a uniform distribution.
             for j in range(
-                self._models[model_index_a].n_trainable_parameters,
-                self._models[model_index_b].n_trainable_parameters,
+                model_a.n_trainable_parameters, model_b.n_trainable_parameters
             ):
-
                 current_parameters[j] = torch.rand((1,)).item()
 
         for i in range(n_parameters):
@@ -404,7 +604,11 @@ class ModelCollection:
                 current_parameters[i], model_index_a, model_index_b, i
             )
 
-        return current_parameters, new_parameters, jacobians
+        return (
+            current_parameters,
+            new_parameters[: model_b.n_trainable_parameters],
+            jacobians,
+        )
 
     def transition_probabilities(self, model_index_a, model_index_b):
         return 1.0

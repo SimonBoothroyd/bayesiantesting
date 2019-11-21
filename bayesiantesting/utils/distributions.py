@@ -31,6 +31,10 @@ class Exponential(Distribution):
         self.rate = rate
 
     def log_pdf(self, x):
+
+        if x < 0.0:
+            return -autograd.numpy.inf
+
         # noinspection PyUnresolvedReferences
         return autograd.numpy.log(self.rate) - self.rate * x
 
@@ -108,7 +112,7 @@ class Uniform(Distribution):
             # noinspection PyUnresolvedReferences
             return -autograd.numpy.log(self.high - self.low)
 
-        return 0.0
+        return -numpy.inf
 
     def cdf(self, x):
         result = (x - self.low) / (self.high - self.low)
