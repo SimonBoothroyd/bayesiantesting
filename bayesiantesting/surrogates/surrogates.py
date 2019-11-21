@@ -41,6 +41,9 @@ class StollWerthSurrogate(SurrogateModel):
     liquid and vapor density, saturation pressure and surface tension.
     """
 
+    _reduced_boltzmann = 1.38065
+    _reduced_D_to_sqrt_J_m3 = 3.1623
+
     def __init__(self, molecular_weight, file_path=None):
         """Constructs a new `StollWerthSurrogate` object.
 
@@ -227,8 +230,8 @@ class StollWerthSurrogate(SurrogateModel):
         float
             The critical temperature in units of K.
         """
-        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (
-            epsilon * 1.38065 * sigma ** 5
+        quadrupole_star_sqr = (quadrupole * self._reduced_D_to_sqrt_J_m3) ** 2 / (
+            epsilon * self._reduced_boltzmann * sigma ** 5
         )
         bond_length_star = bond_length / sigma
 
@@ -298,8 +301,8 @@ class StollWerthSurrogate(SurrogateModel):
 
         molecular_weight = self.molecular_weight.magnitude
 
-        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (
-            epsilon * 1.38065 * sigma ** 5
+        quadrupole_star_sqr = (quadrupole * self._reduced_D_to_sqrt_J_m3) ** 2 / (
+            epsilon * self._reduced_boltzmann * sigma ** 5
         )
         bond_length_star = bond_length / sigma
 
@@ -358,7 +361,7 @@ class StollWerthSurrogate(SurrogateModel):
             rho_star = x_0 + x_1 + x_2 + x_3
 
         else:
-            rho_star = np.zeros(len(tau))
+            rho_star = np.empty(temperature_star.shape) * np.nan
 
         return rho_star
 
@@ -391,8 +394,8 @@ class StollWerthSurrogate(SurrogateModel):
         # Note that epsilon is defined as epsilon/kB
         temperature_star = temperature / epsilon
 
-        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (
-            epsilon * 1.38065 * sigma ** 5
+        quadrupole_star_sqr = (quadrupole * self._reduced_D_to_sqrt_J_m3) ** 2 / (
+            epsilon * self._reduced_boltzmann * sigma ** 5
         )
         bond_length_star = bond_length / sigma
 
@@ -484,8 +487,8 @@ class StollWerthSurrogate(SurrogateModel):
 
         temperature_star = temperature / epsilon
 
-        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (
-            epsilon * 1.38065 * sigma ** 5
+        quadrupole_star_sqr = (quadrupole * self._reduced_D_to_sqrt_J_m3) ** 2 / (
+            epsilon * self._reduced_boltzmann * sigma ** 5
         )
         bond_length_star = bond_length / sigma
 
@@ -493,7 +496,7 @@ class StollWerthSurrogate(SurrogateModel):
             temperature_star, quadrupole_star_sqr, bond_length_star
         )
         saturation_pressure = (
-            saturation_pressure_star * epsilon / sigma ** 3 * 1.38065e1
+            saturation_pressure_star * epsilon / sigma ** 3 * self._reduced_boltzmann * 1.0e1
         )
         return saturation_pressure  # [kPa]
 
@@ -520,6 +523,9 @@ class StollWerthSurrogate(SurrogateModel):
 
         t_c_star = self.critical_temperature_star(quadrupole_star, bond_length_star)
         _a_correlation = self._a_correlation_function(quadrupole_star, bond_length_star)
+
+        if temperature_star / t_c_star > 1.0:
+            return np.empty(temperature_star.shape) * np.nan
 
         surface_tension_star = (
             _a_correlation * (1.0 - (temperature_star / t_c_star)) ** _B
@@ -553,8 +559,8 @@ class StollWerthSurrogate(SurrogateModel):
         # Note that epsilon is defined as epsilon/kB
         temperature_star = temperature / epsilon
 
-        quadrupole_star_sqr = (quadrupole * 3.1623) ** 2 / (
-            epsilon * 1.38065 * sigma ** 5
+        quadrupole_star_sqr = (quadrupole * self._reduced_D_to_sqrt_J_m3) ** 2 / (
+            epsilon * self._reduced_boltzmann * sigma ** 5
         )
 
         bond_length_star = bond_length / sigma
@@ -562,7 +568,7 @@ class StollWerthSurrogate(SurrogateModel):
         surface_tension_star = self.surface_tension_star(
             temperature_star, quadrupole_star_sqr, bond_length_star
         )
-        surface_tension = surface_tension_star * epsilon / sigma ** 2 * 1.38065e-5
+        surface_tension = surface_tension_star * epsilon / sigma ** 2 * self._reduced_boltzmann * 1.0e-5
         return surface_tension  # [J/m2]
 
     def evaluate(self, property_type, parameters, temperatures):
