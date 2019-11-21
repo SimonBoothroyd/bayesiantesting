@@ -59,7 +59,7 @@ class Hamiltonian:
         energy = Hamiltonian.energy(log_p, x, r_0)
         criteria = np.min(np.array([0, energy_new - energy]))
 
-        return np.log(np.random.rand()) < criteria and not np.isnan(criteria)
+        return np.log(np.random.rand()) < criteria
 
     @staticmethod
     def energy(log_p, x, r):
@@ -162,12 +162,7 @@ class NUTS(Hamiltonian):
         log_p_gradient = log_p_gradient_0
 
         # Get into a regime where things are finite / not NaN using the
-        while (
-            np.isinf(log_p)
-            or np.isnan(log_p)
-            or any(np.isinf(log_p_gradient))
-            or any(np.isnan(log_p_gradient))
-        ):
+        while np.isinf(log_p) or any(np.isinf(log_p_gradient)):
 
             e0 *= 0.5
 
@@ -261,16 +256,11 @@ class NUTS(Hamiltonian):
             m = self._sampled + 1
             w = 1.0 / (m + self._t0)
 
-            h_bar_new = (1 - w) * self._h_bar + w * (self._target_accept - a / na)
-            log_e = self._mu - (m ** 0.5 / self._gamma) * h_bar_new
-            step_size_new = np.exp(log_e)
-
-            if not np.isnan(step_size_new):
-                self._h_bar = h_bar_new
-                self._step_size = step_size_new
-
-                z = m ** (-self._k)
-                self._e_bar = np.exp(z * log_e + (1 - z) * np.log(self._e_bar))
+            self._h_bar = (1 - w) * self._h_bar + w * (self._target_accept - a / na)
+            log_e = self._mu - (m ** 0.5 / self._gamma) * self._h_bar
+            self._step_size = np.exp(log_e)
+            z = m ** (-self._k)
+            self._e_bar = np.exp(z * log_e + (1 - z) * np.log(self._e_bar))
 
         print(y)
         return y, True
@@ -290,11 +280,8 @@ class NUTS(Hamiltonian):
             delta_energy = energy - energy_0
 
             n1 = np.log(u) - delta_energy <= 0
-            s1 = (
-                np.log(u) - delta_energy < energy_max
-                and not np.isnan(energy)
-                and not np.isinf(energy)
-            )
+            s1 = np.log(u) - delta_energy < energy_max
+
             return (
                 x1,
                 r1,

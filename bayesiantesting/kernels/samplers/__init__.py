@@ -1,3 +1,3 @@
-from .nuts import Hamiltonian, NUTS
+from .hmc import Hamiltonian, NUTS
 
 __all__ = [Hamiltonian, NUTS]
