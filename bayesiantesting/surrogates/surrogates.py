@@ -528,7 +528,7 @@ class StollWerthSurrogate(SurrogateModel):
         t_c_star = self.critical_temperature_star(quadrupole_star, bond_length_star)
         _a_correlation = self._a_correlation_function(quadrupole_star, bond_length_star)
 
-        if temperature_star / t_c_star > 1.0:
+        if any(temperature_star / t_c_star > 1.0):
             return np.empty(temperature_star.shape) * np.nan
 
         surface_tension_star = (

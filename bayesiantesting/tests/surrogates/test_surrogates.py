@@ -32,35 +32,6 @@ def generate_parameters():
     )
 
 
-def critical_temperature_gradient_analytical(
-    model, quadrupole_star_sqr, bond_length_star
-):
-
-    q = quadrupole_star_sqr
-    l = bond_length_star
-
-    b = model.critical_temperature_star_parameters
-
-    t_c_star_q = (
-        2.0 * q ** 1 * b[1]
-        + 3.0 * q ** 2 * b[2]
-        + 2.0 * q ** 1 / (0.1 + l ** 2) * b[5]
-        + 2.0 * q ** 1 / (0.1 + l ** 5) * b[6]
-        + 3.0 * q ** 2 / (0.1 + l ** 2) * b[7]
-        + 3.0 * q ** 2 / (0.1 + l ** 5) * b[8]
-    )
-    t_c_star_l = (
-        -2.0 * l / (0.1 + l ** 2) ** 2 * b[3]
-        + -5.0 * l ** 4 / (0.1 + l ** 5) ** 2 * b[4]
-        + q ** 2 * -2.0 * l / (0.1 + l ** 2) ** 2 * b[5]
-        + q ** 2 * -5.0 * l ** 4 / (0.1 + l ** 5) ** 2 * b[6]
-        + q ** 3 * -2.0 * l / (0.1 + l ** 2) ** 2 * b[7]
-        + q ** 3 * -5.0 * l ** 4 / (0.1 + l ** 5) ** 2 * b[8]
-    )
-
-    return numpy.array([t_c_star_q, t_c_star_l])
-
-
 def test_critical_temperature():
 
     model = StollWerthSurrogate(30.069 * unit.gram / unit.mole)  # C2H6
@@ -74,18 +45,17 @@ def test_critical_temperature():
         quadrupole_star_sqr,
     ) = generate_parameters()
 
-    t_c_star_function = autograd.grad(model.critical_temperature_star, (0, 1))
-    t_c_star_gradient = t_c_star_function(quadrupole_star_sqr, bond_length_star)
+    value = model.critical_temperature(epsilon, sigma, bond_length, quadrupole)
+    assert numpy.isclose(value, 310.99575)
 
-    t_c_function = autograd.grad(model.critical_temperature, (0, 1, 2, 3))
-    t_c_gradient = t_c_function(epsilon, sigma, bond_length, quadrupole)
+    reduced_gradient_function = autograd.grad(model.critical_temperature_star, (0, 1))
+    gradient_function = autograd.grad(model.critical_temperature, (0, 1, 2, 3))
 
-    t_c_star_grad_analytical = critical_temperature_gradient_analytical(
-        model, quadrupole_star_sqr, bond_length_star
-    )
+    reduced_gradient = reduced_gradient_function(quadrupole_star_sqr, bond_length_star)
+    gradient = gradient_function(epsilon, sigma, bond_length, quadrupole)
 
-    assert numpy.allclose(t_c_star_gradient, t_c_star_grad_analytical)
-    assert numpy.isclose(t_c_gradient[2], t_c_star_grad_analytical[1] * epsilon / sigma)
+    assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
+    assert numpy.allclose(gradient, numpy.array([3.17342591, 452.59372786, -1140.53645031, 0.00153665]))
 
 
 def test_critical_density():
@@ -102,7 +72,7 @@ def test_critical_density():
     ) = generate_parameters()
 
     reduced_gradient_function = autograd.grad(model.critical_density_star, (0, 1))
-    gradient_function = autograd.grad(model.critical_temperature, (0, 1, 2, 3))
+    gradient_function = autograd.grad(model.critical_density, (0, 1, 2, 3))
 
     reduced_gradient = reduced_gradient_function(quadrupole_star_sqr, bond_length_star)
     gradient = gradient_function(epsilon, sigma, bond_length, quadrupole)
@@ -127,6 +97,9 @@ def test_liquid_density():
     temperatures = numpy.array([308.0])
     temperatures_star = temperatures / epsilon
 
+    value = model.liquid_density(temperatures, epsilon, sigma, bond_length, quadrupole)
+    assert numpy.isclose(value, 285.1592692)
+
     reduced_gradient_function = autograd.grad(model.liquid_density_star, (1, 2))
     gradient_function = autograd.grad(model.liquid_density, (1, 2, 3, 4))
 
@@ -136,7 +109,7 @@ def test_liquid_density():
     gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
     assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
-    assert len(gradient) == 4 and not numpy.allclose(gradient, 0.0)
+    assert numpy.allclose(gradient, numpy.array([28.12601669, 2044.99241265, -10856.5686318, 0.01421091]))
 
 
 def test_saturation_pressure():
@@ -155,6 +128,9 @@ def test_saturation_pressure():
     temperatures = numpy.array([308.0])
     temperatures_star = temperatures / epsilon
 
+    value = model.saturation_pressure(temperatures, epsilon, sigma, bond_length, quadrupole)
+    assert numpy.isclose(value, 5089.09761408)
+
     reduced_gradient_function = autograd.grad(model.saturation_pressure_star, (1, 2))
     gradient_function = autograd.grad(model.saturation_pressure, (1, 2, 3, 4))
 
@@ -164,7 +140,7 @@ def test_saturation_pressure():
     gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
     assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
-    assert len(gradient) == 4 and not numpy.allclose(gradient, 0.0)
+    assert numpy.allclose(gradient, numpy.array([-235.19495191, -69856.91940789, 74257.50320125, -0.11145016]))
 
 
 def test_surface_tension():
@@ -183,6 +159,9 @@ def test_surface_tension():
     temperatures = numpy.array([308.0])
     temperatures_star = temperatures / epsilon
 
+    value = model.surface_tension(temperatures, epsilon, sigma, bond_length, quadrupole)
+    assert numpy.isclose(value, 0.00017652)
+
     reduced_gradient_function = autograd.grad(model.surface_tension_star, (1, 2))
     gradient_function = autograd.grad(model.surface_tension, (1, 2, 3, 4))
 
@@ -192,7 +171,7 @@ def test_surface_tension():
     gradient = gradient_function(temperatures, epsilon, sigma, bond_length, quadrupole)
 
     assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
-    assert len(gradient) == 4 and not numpy.allclose(gradient, 0.0)
+    assert numpy.allclose(gradient, numpy.array([0.00023103, 0.03215253, -0.08337817, 9.44823625e-07]))
 
 
 def test_evaluate():
