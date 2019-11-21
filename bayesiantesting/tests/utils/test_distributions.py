@@ -28,12 +28,17 @@ def test_values(distribution_type, reference_type, args):
     sample = distribution.sample()
     cdf_sample = distribution.cdf(sample)
 
-    assert numpy.isclose(distribution.cdf(sample), reference.cdf(torch.tensor(sample, dtype=torch.float64)))
     assert numpy.isclose(
-        distribution.inverse_cdf(cdf_sample), reference.icdf(torch.tensor(cdf_sample, dtype=torch.float64))
+        distribution.cdf(sample),
+        reference.cdf(torch.tensor(sample, dtype=torch.float64)),
     )
     assert numpy.isclose(
-        distribution.log_pdf(sample), reference.log_prob(torch.tensor(sample, dtype=torch.float64))
+        distribution.inverse_cdf(cdf_sample),
+        reference.icdf(torch.tensor(cdf_sample, dtype=torch.float64)),
+    )
+    assert numpy.isclose(
+        distribution.log_pdf(sample),
+        reference.log_prob(torch.tensor(sample, dtype=torch.float64)),
     )
 
 
