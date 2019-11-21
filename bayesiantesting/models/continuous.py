@@ -18,10 +18,6 @@ class TwoCenterLJModel(Model):
     can be evaluated using a surrogate model against a `NISTDataSet`.
     """
 
-    @property
-    def total_parameters(self):
-        return 4
-
     def __init__(
         self,
         name,

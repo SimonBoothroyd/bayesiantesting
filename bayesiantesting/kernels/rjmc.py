@@ -24,6 +24,7 @@ class RJMCSimulation(MCMCSimulation):
         discard_warm_up_data=True,
         output_directory_path="",
         save_trace_plots=True,
+        sampler=None,
         swap_frequency=0.3,
     ):
         """
@@ -41,6 +42,9 @@ class RJMCSimulation(MCMCSimulation):
                 "sub-models to jump between."
             )
 
+        if sampler is not None:
+            raise ValueError("Samplers cannot currently be used with RJMC")
+
         super().__init__(
             model_collection,
             warm_up_steps,
@@ -49,6 +53,7 @@ class RJMCSimulation(MCMCSimulation):
             discard_warm_up_data,
             output_directory_path,
             save_trace_plots,
+            sampler,
         )
 
         self._swap_frequency = swap_frequency
@@ -61,6 +66,7 @@ class RJMCSimulation(MCMCSimulation):
         current_log_p,
         move_proposals,
         move_acceptances,
+        adapt=False,
     ):
 
         proposed_parameters = current_parameters.copy()
@@ -351,6 +357,7 @@ class BiasedRJMCSimulation(RJMCSimulation):
         output_directory_path="",
         save_trace_plots=True,
         swap_frequency=0.3,
+        sampler=None,
         log_biases=None,
     ):
         """
@@ -368,6 +375,7 @@ class BiasedRJMCSimulation(RJMCSimulation):
             discard_warm_up_data,
             output_directory_path,
             save_trace_plots,
+            sampler,
             swap_frequency,
         )
 

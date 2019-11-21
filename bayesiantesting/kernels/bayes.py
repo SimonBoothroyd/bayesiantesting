@@ -42,6 +42,7 @@ class LambdaSimulation(MCMCSimulation):
         discard_warm_up_data=True,
         output_directory_path="",
         save_trace_plots=True,
+        sampler=None,
         lambda_value=1.0,
     ):
         """
@@ -59,6 +60,7 @@ class LambdaSimulation(MCMCSimulation):
             discard_warm_up_data,
             output_directory_path,
             save_trace_plots,
+            sampler,
         )
 
         self._lambda = lambda_value
