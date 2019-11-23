@@ -8,7 +8,6 @@ import autograd
 import autograd.numpy
 import autograd.scipy.special
 import autograd.scipy.stats.gamma
-import numpy
 
 import torch.distributions
 
@@ -67,7 +66,7 @@ class Normal(Distribution):
         return (
             -((x - self.loc) ** 2) / (2 * var)
             - log_scale
-            - autograd.numpy.log(autograd.numpy.sqrt(2 * numpy.pi))
+            - autograd.numpy.log(autograd.numpy.sqrt(2 * autograd.numpy.pi))
         )
 
     def cdf(self, x):
@@ -101,7 +100,7 @@ class Uniform(Distribution):
             # noinspection PyUnresolvedReferences
             return -autograd.numpy.log(self.high - self.low)
 
-        return -numpy.inf
+        return -autograd.numpy.inf
 
     def cdf(self, x):
         result = (x - self.low) / (self.high - self.low)
