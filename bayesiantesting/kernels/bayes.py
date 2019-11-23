@@ -73,7 +73,7 @@ class LambdaSimulation(MCMCSimulation):
         ) + self._lambda * model.evaluate_log_likelihood(parameters)
 
 
-class ThermodynamicIntegration:
+class BaseModelEvidenceKernel:
     @property
     def lambdas(self):
         """numpy.ndarray: The location of each lambda window."""
@@ -81,7 +81,7 @@ class ThermodynamicIntegration:
 
     def __init__(
         self,
-        legendre_gauss_degree,
+        lambda_values,
         model,
         warm_up_steps=100000,
         steps=100000,
@@ -92,9 +92,8 @@ class ThermodynamicIntegration:
         """
         Parameters
         ----------
-        legendre_gauss_degree: int
-            The number of lambdas to use for the
-            Gauss-Legendre quadrature integration.
+        lambda_values: numpy.ndarray
+            The lambda values to run simulations at, with shape=(n_lambdas).
         model: Model
             The model whose bayes factors should be computed.
         warm_up_steps: int
@@ -120,13 +119,7 @@ class ThermodynamicIntegration:
         self._tune_frequency = tune_frequency
         self._discard_warm_up_data = discard_warm_up_data
 
-        # Choose the lambda values
-        lambda_values, lambda_weights = numpy.polynomial.legendre.leggauss(
-            legendre_gauss_degree
-        )
-
-        self._lambda_values = lambda_values * 0.5 + 0.5
-        self._lambda_weights = lambda_weights * 0.5
+        self._lambda_values = lambda_values
 
         if len(output_directory_path) > 0:
             os.makedirs(output_directory_path, exist_ok=True)
@@ -152,7 +145,7 @@ class ThermodynamicIntegration:
         with Pool(number_of_threads) as pool:
 
             run_with_args = functools.partial(
-                ThermodynamicIntegration._run_window,
+                BaseModelEvidenceKernel._run_window,
                 self._model,
                 self._warm_up_steps,
                 self._steps,
@@ -165,27 +158,11 @@ class ThermodynamicIntegration:
             lambda_ids = list(range(len(self._lambda_values)))
             results = pool.map(run_with_args, zip(self._lambda_values, lambda_ids))
 
-            integral = 0.0
-            variance = 0.0
-
-            for index, result in enumerate(results):
-
-                _, _, d_log_p_d_lambda = result
-
-                average_d_lambda = numpy.mean(d_log_p_d_lambda)
-
-                window_std_error = numpy.std(d_log_p_d_lambda) / numpy.sqrt(
-                    len(d_log_p_d_lambda)
-                )
-                window_variance = window_std_error ** 2
-
-                integral += average_d_lambda * self._lambda_weights[index]
-                variance += self._lambda_weights[index] ** 2 * window_variance
+        integral, error = self._compute_integral(results)
 
         # Save the output
-        self._save_results(results, integral, numpy.sqrt(variance))
-
-        return results, integral, numpy.sqrt(variance)
+        self._save_results(results, integral, error)
+        return results, integral, error
 
     @staticmethod
     def _run_window(
@@ -228,15 +205,49 @@ class ThermodynamicIntegration:
         print(f"Lamda Window {lambda_index}: g={g} N_samples={len(log_p_trace)}")
 
         # Compute d log p / d lambda
-        d_lop_p_d_lambda = numpy.empty(log_p_trace.shape)
+        d_lop_p_d_lambda = numpy.empty(len(trace))
 
-        for index in range(trace.shape[0]):
-            # TODO: Vectorize this.
+        # TODO: Vectorize this.
+        for index in range(len(trace)):
             d_lop_p_d_lambda[index] = model.evaluate_log_likelihood(trace[index][1:])
 
         return trace, log_p_trace, d_lop_p_d_lambda
 
-    def _save_results(self, results, integral, integral_std):
+    def _compute_integral(self, window_results):
+        """Compute the integral over all lambda windows.
+
+        Parameters
+        ----------
+        window_results :
+
+        Returns
+        -------
+        float
+            The value of the integral.
+        float
+            The standard error in the integral.
+        """
+        raise NotImplementedError()
+
+    def _get_results_dictionary(
+        self, integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+    ):
+        """Returns a dictionary containing key information about
+        the results.
+
+        Returns
+        -------
+        dict of str, Any
+        """
+        return {
+            "model_evidence": integral,
+            "model_evidence_std": standard_error,
+            "lambdas": self._lambda_values.tolist(),
+            "d_log_p_d_lambdas": d_log_p_d_lambdas.tolist(),
+            "d_log_p_d_lambdas_std": d_log_p_d_lambdas_std.tolist(),
+        }
+
+    def _save_results(self, results, integral, standard_error):
         """Saves the results of the simulation to the output
         directory.
 
@@ -246,8 +257,8 @@ class ThermodynamicIntegration:
             The results of each simulation in the different lambda windows
         integral: float
             The value of the integrated model evidence.
-        integral_std: float
-            The uncertainty in the integrated model evidence.
+        standard_error: float
+            The standard error in the integrated model evidence.
         """
 
         d_log_p_d_lambdas = numpy.zeros(len(results))
@@ -257,10 +268,10 @@ class ThermodynamicIntegration:
 
         for index, result in enumerate(results):
 
-            trace, log_p_trace, lambda_trace = result
+            trace, log_p_trace, d_log_p_d_lambda = result
 
-            d_log_p_d_lambdas[index] = numpy.mean(lambda_trace)
-            d_log_p_d_lambdas_std[index] = numpy.std(lambda_trace) / numpy.sqrt(
+            d_log_p_d_lambdas[index] = numpy.mean(d_log_p_d_lambda)
+            d_log_p_d_lambdas_std[index] = numpy.std(d_log_p_d_lambda) / numpy.sqrt(
                 self._steps
             )
 
@@ -270,11 +281,11 @@ class ThermodynamicIntegration:
             trace_figure.savefig(os.path.join(lambda_directory, f"trace.pdf"))
             pyplot.close(trace_figure)
 
-            log_p_figure = self._model.plot_log_p(lambda_trace)
+            log_p_figure = self._model.plot_log_p(log_p_trace)
             log_p_figure.savefig(os.path.join(lambda_directory, f"log_p.pdf"))
             pyplot.close(log_p_figure)
 
-            lambda_figure = self._model.plot_log_p(lambda_trace, label=axis_label)
+            lambda_figure = self._model.plot_log_p(d_log_p_d_lambda, label=axis_label)
             lambda_figure.savefig(
                 os.path.join(lambda_directory, f"d_log_p_d_lambda.pdf")
             )
@@ -289,14 +300,9 @@ class ThermodynamicIntegration:
         figure.savefig(os.path.join(self._output_directory_path, f"lambdas.pdf"))
 
         # Save the output as a json file and numpy files.
-        results = {
-            "model_evidence": integral,
-            "model_evidence_std": integral_std,
-            "lambdas": self._lambda_values.tolist(),
-            "weights": self._lambda_weights.tolist(),
-            "d_log_p_d_lambdas": d_log_p_d_lambdas.tolist(),
-            "d_log_p_d_lambdas_std": d_log_p_d_lambdas_std.tolist(),
-        }
+        results = self._get_results_dictionary(
+            integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+        )
 
         with open(
             os.path.join(self._output_directory_path, "results.json"), "w"
@@ -311,3 +317,98 @@ class ThermodynamicIntegration:
             os.path.join(self._output_directory_path, "d_log_p_d_lambdas_std.npy"),
             d_log_p_d_lambdas_std,
         )
+
+
+class ThermodynamicIntegration(BaseModelEvidenceKernel):
+    """A kernel which employs thermodynamic integration and
+    gaussian quadrature to estimate the model evidence.
+    """
+
+    def __init__(
+        self,
+        legendre_gauss_degree,
+        model,
+        warm_up_steps=100000,
+        steps=100000,
+        tune_frequency=5000,
+        discard_warm_up_data=True,
+        output_directory_path="",
+    ):
+        """
+        Parameters
+        ----------
+        legendre_gauss_degree: int
+            The number of lambdas to use for the
+            Gauss-Legendre quadrature integration.
+        model: Model
+            The model whose bayes factors should be computed.
+        warm_up_steps: int
+            The number of warm-up steps to take when simulating at
+            each lambda. During this time all move proposals will
+            be tuned.
+        steps: int
+            The number of steps to simulate at each value of lambda for.
+        tune_frequency: int
+            The frequency with which to tune the move proposals.
+        discard_warm_up_data: bool
+            If true, all data generated during the warm-up period will
+            be discarded.
+        output_directory_path: str
+            The path to save the simulation results in.
+        """
+
+        # Choose the lambda values
+        lambda_values, lambda_weights = numpy.polynomial.legendre.leggauss(
+            legendre_gauss_degree
+        )
+
+        lambda_values = lambda_values * 0.5 + 0.5
+        self._lambda_weights = lambda_weights * 0.5
+
+        super().__init__(
+            lambda_values,
+            model,
+            warm_up_steps,
+            steps,
+            tune_frequency,
+            discard_warm_up_data,
+            output_directory_path,
+        )
+
+    def _compute_integral(self, window_results):
+
+        integral = 0.0
+        variance = 0.0
+
+        for index, result in enumerate(window_results):
+
+            _, _, d_log_p_d_lambda = result
+
+            average_d_lambda = numpy.mean(d_log_p_d_lambda)
+
+            window_std_error = numpy.std(d_log_p_d_lambda) / numpy.sqrt(
+                len(d_log_p_d_lambda)
+            )
+            window_variance = window_std_error ** 2
+
+            integral += average_d_lambda * self._lambda_weights[index]
+            variance += self._lambda_weights[index] ** 2 * window_variance
+
+        return integral, numpy.sqrt(variance)
+
+    def _get_results_dictionary(
+        self, integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+    ):
+        """Returns a dictionary containing key information about
+        the results.
+
+        Returns
+        -------
+        dict of str, Any
+        """
+        results = super(ThermodynamicIntegration, self)._get_results_dictionary(
+            integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+        )
+        results["weights"] = self._lambda_weights.tolist()
+
+        return results
