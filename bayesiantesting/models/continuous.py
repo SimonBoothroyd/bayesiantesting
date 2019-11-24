@@ -5,8 +5,8 @@ all continuous.
 Models in this module should inherit from the `Model`
 subclass.
 """
-import numpy
 import autograd.numpy
+import numpy
 
 from bayesiantesting import unit
 from bayesiantesting.models import Model

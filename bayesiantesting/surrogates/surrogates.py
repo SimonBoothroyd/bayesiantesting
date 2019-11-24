@@ -1,8 +1,8 @@
 import abc
 import os
 
-from autograd import numpy as np
 import yaml
+from autograd import numpy as np
 from pkg_resources import resource_filename
 
 from bayesiantesting.datasets.nist import NISTDataType

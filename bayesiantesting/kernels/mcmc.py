@@ -7,10 +7,11 @@ import os
 
 import numpy as np
 import torch
-from bayesiantesting.models import Model, ModelCollection
-from bayesiantesting.utils import distributions as distributions
 from matplotlib import pyplot
 from tqdm import tqdm
+
+from bayesiantesting.models import Model, ModelCollection
+from bayesiantesting.utils import distributions as distributions
 
 
 class MCMCSimulation:
