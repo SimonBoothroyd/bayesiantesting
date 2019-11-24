@@ -3,6 +3,7 @@ import math
 
 import numpy
 import yaml
+
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.kernels import MCMCSimulation

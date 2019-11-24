@@ -57,7 +57,7 @@ jobs:
           python-version: '3.7'
       - name: Install flake8 / black
         run: |
-          pip install flake8 black
+          pip install flake8 black isort
       - name: Run flake8
         run: |
           flake8 bayesiantesting
@@ -66,3 +66,7 @@ jobs:
         run: |
           black bayesiantesting --check
           black studies --check
+      - name: Run isort
+        run: |
+          isort -rc --check-only bayesiantesting
+          isort -rc --check-only studies
