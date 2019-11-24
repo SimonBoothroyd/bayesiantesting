@@ -125,8 +125,6 @@ class MetropolisSampler(Sampler):
     def get_statistics_dictionary(self):
 
         return_value = super(MetropolisSampler, self).get_statistics_dictionary()
-        return_value.update(
-            {"proposal_sizes": self.proposal_sizes.tolist(),}
-        )
+        return_value.update({"proposal_sizes": self.proposal_sizes.tolist()})
 
         return return_value
