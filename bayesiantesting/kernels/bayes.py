@@ -7,9 +7,12 @@ posterior distributions.
 import functools
 import json
 import os
+import pprint
 from multiprocessing.pool import Pool
 
 import numpy
+import pymbar
+
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.models import Model
 from matplotlib import pyplot
@@ -66,11 +69,15 @@ class LambdaSimulation(MCMCSimulation):
         self._lambda = lambda_value
 
     def _evaluate_log_p(self, parameters, model_index):
-
         model = self._model_collection.models[model_index]
+        return self.evaluate_log_p(model, parameters, self._lambda)
+
+    @staticmethod
+    def evaluate_log_p(model, parameters, lambda_value):
+
         return model.evaluate_log_prior(
             parameters
-        ) + self._lambda * model.evaluate_log_likelihood(parameters)
+        ) + lambda_value * model.evaluate_log_likelihood(parameters)
 
 
 class BaseModelEvidenceKernel:
@@ -340,21 +347,6 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
         legendre_gauss_degree: int
             The number of lambdas to use for the
             Gauss-Legendre quadrature integration.
-        model: Model
-            The model whose bayes factors should be computed.
-        warm_up_steps: int
-            The number of warm-up steps to take when simulating at
-            each lambda. During this time all move proposals will
-            be tuned.
-        steps: int
-            The number of steps to simulate at each value of lambda for.
-        tune_frequency: int
-            The frequency with which to tune the move proposals.
-        discard_warm_up_data: bool
-            If true, all data generated during the warm-up period will
-            be discarded.
-        output_directory_path: str
-            The path to save the simulation results in.
         """
 
         # Choose the lambda values
@@ -410,5 +402,95 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
             integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
         )
         results["weights"] = self._lambda_weights.tolist()
+
+        return results
+
+
+class MBARIntegration(BaseModelEvidenceKernel):
+    """A kernel which employs MBAR to estimate the model evidence.
+    We define the reduced potential here as -ln p(x) - λ ln p(D|x)
+    """
+
+    def __init__(
+        self,
+        lambda_values,
+        model,
+        warm_up_steps=100000,
+        steps=100000,
+        tune_frequency=5000,
+        discard_warm_up_data=True,
+        output_directory_path="",
+    ):
+
+        # TODO: Add trailblazing to choose these values.
+        assert len(lambda_values) >= 2
+
+        assert numpy.isclose(lambda_values[0], 0.0)
+        assert numpy.isclose(lambda_values[-1], 1.0)
+
+        super().__init__(
+            lambda_values,
+            model,
+            warm_up_steps,
+            steps,
+            tune_frequency,
+            discard_warm_up_data,
+            output_directory_path,
+        )
+
+        self._overlap_matrix = None
+
+    def _compute_integral(self, window_results):
+
+        full_trace = []
+        frame_counts = numpy.empty(len(window_results))
+
+        for index, result in enumerate(window_results):
+
+            trace, _, _ = result
+            full_trace.append(trace)
+
+            frame_counts[index] = len(trace)
+
+        full_trace = numpy.vstack(full_trace)
+
+        reduced_potentials = numpy.empty((len(self._lambda_values), len(full_trace)))
+
+        for lambda_index, lambda_value in enumerate(self._lambda_values):
+
+            # TODO: Vectorize this.
+            for trace_index in range(len(full_trace)):
+
+                reduced_potentials[
+                    lambda_index, trace_index
+                ] = -LambdaSimulation.evaluate_log_p(
+                    self._model, full_trace[trace_index][1:], lambda_value
+                )
+
+        mbar = pymbar.MBAR(reduced_potentials, frame_counts)
+        result = mbar.getFreeEnergyDifferences()
+
+        self._overlap_matrix = mbar.computeOverlap()["matrix"]
+        print("==============================")
+        print(f"Overlap matrix:\n")
+        pprint.pprint(self._overlap_matrix)
+        print("==============================")
+
+        return result["Delta_f"][-1, 0], result["dDelta_f"][-1, 0]
+
+    def _get_results_dictionary(
+        self, integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+    ):
+        """Returns a dictionary containing key information about
+        the results.
+
+        Returns
+        -------
+        dict of str, Any
+        """
+        results = super(MBARIntegration, self)._get_results_dictionary(
+            integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+        )
+        results["overlap"] = self._overlap_matrix.tolist()
 
         return results
