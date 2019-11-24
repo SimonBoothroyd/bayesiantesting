@@ -6,6 +6,7 @@ import math
 
 import numpy as np
 import torch
+
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.models.models import ModelCollection
 

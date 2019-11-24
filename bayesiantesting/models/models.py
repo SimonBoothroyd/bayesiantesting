@@ -1,12 +1,12 @@
 import arviz
 import autograd
 import corner
-import numpy
 import numpy as np
-import torch
-import bayesiantesting.utils.distributions as distributions
 import scipy.optimize
+import torch
 from matplotlib import pyplot
+
+import bayesiantesting.utils.distributions as distributions
 
 
 class Model:

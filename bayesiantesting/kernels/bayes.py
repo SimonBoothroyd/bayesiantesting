@@ -12,11 +12,11 @@ from multiprocessing.pool import Pool
 
 import numpy
 import pymbar
+from matplotlib import pyplot
+from pymbar import timeseries
 
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.models import Model
-from matplotlib import pyplot
-from pymbar import timeseries
 
 
 class LambdaSimulation(MCMCSimulation):
