@@ -23,10 +23,7 @@ class MetropolisSampler(Sampler):
     @proposal_sizes.setter
     def proposal_sizes(self, value):
 
-        assert value.shape == (
-            self._model_collection.n_models,
-            self._max_n_parameters,
-        )
+        assert value.shape == (self._model_collection.n_models, self._max_n_parameters,)
         self._proposal_sizes = value
 
     def __init__(

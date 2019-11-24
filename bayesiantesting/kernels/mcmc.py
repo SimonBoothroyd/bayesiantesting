@@ -127,9 +127,9 @@ class MCMCSimulation:
         # Make sure we have a sampler set
         if self._sampler is None:
 
-            self._sampler = MetropolisSampler(self._evaluate_log_p,
-                                              self._model_collection,
-                                              self._initial_values / 100)
+            self._sampler = MetropolisSampler(
+                self._evaluate_log_p, self._model_collection, self._initial_values / 100
+            )
 
         # Initialize the trace vectors
         total_steps = self.steps + self.warm_up_steps
