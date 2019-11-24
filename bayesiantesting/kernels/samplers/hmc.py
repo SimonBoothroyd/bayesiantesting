@@ -17,7 +17,7 @@ import autograd
 import numpy
 import torch
 
-from bayesiantesting.kernels.samplers import Sampler
+from bayesiantesting.kernels.samplers.samplers import Sampler
 
 
 class Hamiltonian(Sampler):
@@ -59,10 +59,10 @@ class Hamiltonian(Sampler):
         return x1, r2
 
     def _initial_momentum(self, model_index):
-        model = self._model_collection[model_index]
+        model = self._model_collection.models[model_index]
         return torch.randn(model.n_trainable_parameters).item()
 
-    def step(self, parameters, model_index, log_p, adapt=False):
+    def step(self, parameters, model_index, log_p, adapt):
 
         initial_momentum = self._initial_momentum(model_index)
         proposed_parameters, proposed_momentum = parameters, initial_momentum
@@ -114,7 +114,7 @@ class NUTS(Hamiltonian):
         self,
         log_p_function,
         model_collection,
-        step_size=0.01,
+        step_size,
         energy_max=1000.0,
         target_accept=0.65,
         gamma=0.05,
@@ -125,8 +125,7 @@ class NUTS(Hamiltonian):
         Parameters
         ----------
         step_size: float
-            Initial step size for the deterministic proposals. If None,
-            a value will be chosen automatically.
+            Initial step size for the deterministic proposals.
         energy_max: float
             Maximum energy.
         target_accept: float
@@ -170,7 +169,7 @@ class NUTS(Hamiltonian):
 
         x1, r1 = Hamiltonian._leapfrog(x0, 0, r0, gradient_function, e0)
 
-        log_p_0 = log_p_function(x1)
+        log_p_0 = log_p_function(x1, 0)
         log_p_gradient_0 = gradient_function(x1, 0)
 
         log_p = log_p_0
@@ -183,7 +182,7 @@ class NUTS(Hamiltonian):
 
             x1, r1 = Hamiltonian._leapfrog(x0, 0, r0, gradient_function, e0)
 
-            log_p = log_p_function(x1)
+            log_p = log_p_function(x1, 0)
             log_p_gradient = gradient_function(x1, 0)
 
         log_alpha = log_p - log_p_0 - 0.5 * (numpy.dot(r1, r1) - numpy.dot(r0, r0))
@@ -196,7 +195,7 @@ class NUTS(Hamiltonian):
 
             x1, r1 = Hamiltonian._leapfrog(x0, 0, r0, gradient_function, e0)
 
-            log_p = log_p_function(x1)
+            log_p = log_p_function(x1, 0)
             log_alpha = log_p - log_p_0 - 0.5 * (numpy.dot(r1, r1) - numpy.dot(r0, r0))
 
         return e0
@@ -205,7 +204,7 @@ class NUTS(Hamiltonian):
     def bern(p):
         return torch.rand((1,)).item() < p
 
-    def step(self, parameters, model_index, log_p, adapt=False):
+    def step(self, parameters, model_index, log_p, adapt):
 
         x = parameters
         r0 = self._initial_momentum(model_index)
@@ -239,11 +238,7 @@ class NUTS(Hamiltonian):
             n = n + n1
             j = j + 1
 
-        if not adapt:
-
-            self._step_size[model_index] = self._e_bar
-
-        else:
+        if adapt:
 
             # Adapt step size
             m = self._sampled + 1
@@ -268,8 +263,8 @@ class NUTS(Hamiltonian):
         if j == 0:
             # Base case — take one leapfrog step in the direction v
             x1, r1 = self._leapfrog(x, model_index, r, self._gradient_function, v * e)
-            energy = self._energy(x1, r1)
-            energy_0 = self._energy(x0, r0)
+            energy = self._energy(self._log_p_function(x1, model_index), r1)
+            energy_0 = self._energy(self._log_p_function(x0, model_index), r0)
             delta_energy = energy - energy_0
 
             n1 = numpy.log(u) - delta_energy <= 0

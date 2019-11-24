@@ -128,7 +128,9 @@ class MCMCSimulation:
         if self._sampler is None:
 
             self._sampler = MetropolisSampler(
-                self._evaluate_log_p, self._model_collection, self._initial_values / 100
+                self._evaluate_log_p,
+                self._model_collection,
+                np.array([self._initial_values / 100]),
             )
 
         # Initialize the trace vectors
@@ -268,10 +270,8 @@ class MCMCSimulation:
         adapt_moves=False,
     ):
 
-        proposed_parameters = current_parameters.copy()
-
         proposed_parameters, proposed_log_p, acceptance = self._sampler.step(
-            proposed_parameters, current_log_p, adapt_moves
+            current_parameters, current_model_index, current_log_p, adapt_moves
         )
 
         move_proposals[current_model_index, current_model_index] += 1

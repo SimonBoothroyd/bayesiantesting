@@ -56,20 +56,22 @@ class MetropolisSampler(Sampler):
 
         self._tune_frequency = tune_frequency
 
-    def step(self, parameters, model_index, log_p, adapt=False):
+    def step(self, parameters, model_index, log_p, adapt):
 
-        model = self._model_collection[model_index]
+        model = self._model_collection.models[model_index]
 
         # Choose a random parameter to change
         parameter_index = torch.randint(model.n_trainable_parameters, (1,))
 
         # Sample the new parameters from a normal distribution.
-        parameters[parameter_index] = distributions.Normal(
+        proposed_parameters = parameters.copy()
+
+        proposed_parameters[parameter_index] = distributions.Normal(
             parameters[parameter_index],
             self._proposal_sizes[model_index][parameter_index],
         ).sample()
 
-        proposed_log_p = self._log_p_function(parameters, model_index)
+        proposed_log_p = self._log_p_function(proposed_parameters, model_index)
 
         alpha = proposed_log_p - log_p
 
@@ -82,6 +84,8 @@ class MetropolisSampler(Sampler):
         if accept:
 
             self._accepted_moves[parameter_index] += 1
+
+            parameters = proposed_parameters
             log_p = proposed_log_p
 
         # Tune the proposals if needed
@@ -115,3 +119,5 @@ class MetropolisSampler(Sampler):
                 )
 
                 self._proposal_sizes[index][parameter_index] *= scale
+
+        self.reset_counters()

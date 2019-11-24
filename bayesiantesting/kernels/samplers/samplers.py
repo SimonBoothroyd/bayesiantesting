@@ -60,10 +60,10 @@ class Sampler(abc.ABC):
         )
 
         self._proposed_moves = numpy.zeros(
-            self._model_collection.n_models, self._max_n_parameters
+            (self._model_collection.n_models, self._max_n_parameters)
         )
         self._accepted_moves = numpy.zeros(
-            self._model_collection.n_models, self._max_n_parameters
+            (self._model_collection.n_models, self._max_n_parameters)
         )
 
     def reset_counters(self):
@@ -71,14 +71,14 @@ class Sampler(abc.ABC):
         proposed and accepted moves.
         """
         self._proposed_moves = numpy.zeros(
-            self._model_collection.n_models, self._max_n_parameters
+            (self._model_collection.n_models, self._max_n_parameters)
         )
         self._accepted_moves = numpy.zeros(
-            self._model_collection.n_models, self._max_n_parameters
+            (self._model_collection.n_models, self._max_n_parameters)
         )
 
     @abc.abstractmethod
-    def step(self, parameters, model_index, log_p, adapt=False):
+    def step(self, parameters, model_index, log_p, adapt):
         """Propagates a set of parameters forward one step.
 
         Parameters
