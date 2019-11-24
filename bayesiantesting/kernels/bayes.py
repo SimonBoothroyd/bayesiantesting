@@ -192,12 +192,12 @@ class BaseModelEvidenceKernel:
 
         Returns
         -------
-        tuple of tuple:
+        tuple of tuple
             The results of each window in the form of a tuple
             of numpy arrays (trace, log_p_trace, d_log_p_d_lamda).
-        float:
+        float
             The integrated model evidence.
-        float:
+        float
             The standard error in the model evidence.
         """
 
