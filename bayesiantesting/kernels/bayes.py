@@ -74,6 +74,24 @@ class LambdaSimulation(MCMCSimulation):
 
     @staticmethod
     def evaluate_log_p(model, parameters, lambda_value):
+        """Evaluate the log p for a given model, set of parameters,
+        and lambda value.
+
+        Parameters
+        ----------
+        model: Model
+            The model of interest.
+        parameters: numpy.ndarray
+            The parameters to evaluate the log p at with
+            shape=(n_trainable_parameters).
+        lambda_value: float
+            The value of lambda to evaluate the log p at.
+
+        Returns
+        -------
+        float
+            The evaluated log p.
+        """
 
         return model.evaluate_log_prior(
             parameters
@@ -81,6 +99,11 @@ class LambdaSimulation(MCMCSimulation):
 
 
 class BaseModelEvidenceKernel:
+    """A base class for kernels which aim to estimate the
+    model evidence from free energy like calculations, such
+    as TI or MBAR.
+    """
+
     @property
     def lambdas(self):
         """numpy.ndarray: The location of each lambda window."""
@@ -95,6 +118,7 @@ class BaseModelEvidenceKernel:
         tune_frequency=5000,
         discard_warm_up_data=True,
         output_directory_path="",
+        sampler=None,
     ):
         """
         Parameters
@@ -116,6 +140,8 @@ class BaseModelEvidenceKernel:
             be discarded.
         output_directory_path: str
             The path to save the simulation results in.
+        sampler: optional
+            The sampler to use for in-model proposals.
         """
 
         assert isinstance(model, Model)
@@ -125,6 +151,7 @@ class BaseModelEvidenceKernel:
         self._steps = steps
         self._tune_frequency = tune_frequency
         self._discard_warm_up_data = discard_warm_up_data
+        self._sampler = sampler
 
         self._lambda_values = lambda_values
 
@@ -134,6 +161,15 @@ class BaseModelEvidenceKernel:
         self._output_directory_path = output_directory_path
 
     def _validate_parameter_shapes(self, initial_parameters):
+        """Validates that the initial parameters are the correct
+        shape.
+
+        Parameters
+        ----------
+        initial_parameters: numpy.ndarray
+            The initial parameters to use in the lambda
+            simulations, with shape=(n_trainable_parameters).
+        """
 
         if len(initial_parameters) != self._model.n_trainable_parameters:
 
@@ -143,6 +179,27 @@ class BaseModelEvidenceKernel:
             )
 
     def run(self, initial_parameters, number_of_threads=1):
+        """Run the simulation loop.
+
+        Parameters
+        ----------
+        initial_parameters: numpy.ndarray
+            The initial parameters to use in the lambda
+            simulations, with shape=(n_trainable_parameters).
+        number_of_threads: int
+            The number of processes to distribute the calculation
+            across.
+
+        Returns
+        -------
+        tuple of tuple:
+            The results of each window in the form of a tuple
+            of numpy arrays (trace, log_p_trace, d_log_p_d_lamda).
+        float:
+            The integrated model evidence.
+        float:
+            The standard error in the model evidence.
+        """
 
         # Make sure the parameters are the correct shape for the
         # specified model.
@@ -159,6 +216,7 @@ class BaseModelEvidenceKernel:
                 self._tune_frequency,
                 self._discard_warm_up_data,
                 self._output_directory_path,
+                self._sampler,
                 initial_parameters,
             )
 
@@ -179,10 +237,46 @@ class BaseModelEvidenceKernel:
         tune_frequency,
         discard_warm_up_data,
         output_directory_path,
+        sampler,
         initial_parameters,
         lambda_tuple,
     ):
+        """Run a given lambda window.
 
+        Parameters
+        ----------
+        model: Model
+            The model to sample.
+        warm_up_steps: int
+            The number of warm-up steps to take. During this time all
+            move proposals will be tuned.
+        steps: int
+            The number of steps which the simulation should run for.
+        tune_frequency: int
+            The frequency with which to tune the move proposals.
+        discard_warm_up_data: bool
+            If true, all data generated during the warm-up period will
+            be discarded.
+        output_directory_path: str
+            The path to save the simulation results in.
+        sampler: optional
+            The sampler to use for in-model proposals.
+        initial_parameters: numpy.ndarray
+            The initial parameters to start the simulation
+            from with shape=(n_trainable_parameters).
+        lambda_tuple: tuple of float and int
+            A tuple containing the value of lamda to simulate at,
+            and the index associated with this lamda state.
+
+        Returns
+        -------
+        numpy.ndarray
+            The parameter trace with shape=(nsteps, n_trainable_parameters).
+        numpy.ndarray
+            The lop p trace with shape=(nsteps).
+        numpy.ndarray
+            The d lop p / d lamda trace with shape=(nsteps).
+        """
         lambda_value, lambda_index = lambda_tuple
 
         lambda_directory = os.path.join(output_directory_path, str(lambda_index))
@@ -195,6 +289,7 @@ class BaseModelEvidenceKernel:
             discard_warm_up_data=discard_warm_up_data,
             output_directory_path=lambda_directory,
             save_trace_plots=False,
+            sampler=sampler,
             lambda_value=lambda_value,
         )
 
@@ -225,7 +320,9 @@ class BaseModelEvidenceKernel:
 
         Parameters
         ----------
-        window_results :
+        window_results of tuple:
+            The results of each window in the form of a tuple
+            of numpy arrays (trace, log_p_trace, d_log_p_d_lamda).
 
         Returns
         -------
@@ -245,6 +342,8 @@ class BaseModelEvidenceKernel:
         Returns
         -------
         dict of str, Any
+            The dictionary containing the output of this
+            kernel.
         """
         return {
             "model_evidence": integral,
@@ -340,6 +439,7 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
         tune_frequency=5000,
         discard_warm_up_data=True,
         output_directory_path="",
+        sampler=None,
     ):
         """
         Parameters
@@ -365,6 +465,7 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
             tune_frequency,
             discard_warm_up_data,
             output_directory_path,
+            sampler,
         )
 
     def _compute_integral(self, window_results):
@@ -420,6 +521,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
         tune_frequency=5000,
         discard_warm_up_data=True,
         output_directory_path="",
+        sampler=None,
     ):
 
         # TODO: Add trailblazing to choose these values.
@@ -436,6 +538,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
             tune_frequency,
             discard_warm_up_data,
             output_directory_path,
+            sampler,
         )
 
         self._overlap_matrix = None
