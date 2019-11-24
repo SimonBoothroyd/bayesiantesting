@@ -148,7 +148,7 @@ def main():
     # Run the simulation.
     simulation = MCMCSimulation(
         model_collection=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.3),
+        warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
         discard_warm_up_data=True,
     )

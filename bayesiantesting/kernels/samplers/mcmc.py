@@ -79,11 +79,11 @@ class MetropolisSampler(Sampler):
         accept = random_number < alpha
 
         # Update the bookkeeping
-        self._proposed_moves[parameter_index] += 1
+        self._proposed_moves[model_index][parameter_index] += 1
 
         if accept:
 
-            self._accepted_moves[parameter_index] += 1
+            self._accepted_moves[model_index][parameter_index] += 1
 
             parameters = proposed_parameters
             log_p = proposed_log_p
@@ -121,3 +121,12 @@ class MetropolisSampler(Sampler):
                 self._proposal_sizes[index][parameter_index] *= scale
 
         self.reset_counters()
+
+    def get_statistics_dictionary(self):
+
+        return_value = super(MetropolisSampler, self).get_statistics_dictionary()
+        return_value.update(
+            {"proposal_sizes": self.proposal_sizes.tolist(),}
+        )
+
+        return return_value

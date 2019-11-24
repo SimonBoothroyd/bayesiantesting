@@ -387,6 +387,7 @@ class MCMCSimulation:
         results = {
             "Proposed Moves": move_proposals.tolist(),
             "Accepted Moves": move_acceptances.tolist(),
+            "Sampler: ": self._sampler.get_statistics_dictionary(),
         }
 
         filename = os.path.join(self._output_directory_path, "statistics.json")

@@ -103,3 +103,16 @@ class Sampler(abc.ABC):
             Whether this move was accepted or not.
         """
         raise NotImplementedError()
+
+    def get_statistics_dictionary(self):
+        """Returns a dictionary containing statistics
+        about this sampler.
+
+        Returns
+        -------
+        dict of str and Any
+        """
+        return {
+            "proposed_moves": self.proposed_moves.tolist(),
+            "accepted_moves": self.accepted_moves.tolist(),
+        }

@@ -305,3 +305,12 @@ class NUTS(Hamiltonian):
                 s1 = s2 * (numpy.dot(dx, rn) >= 0) * (numpy.dot(dx, rp) >= 0)
                 n1 = n1 + n2
             return xn, rn, xp, rp, x1, n1, s1, a1, na1
+
+    def get_statistics_dictionary(self):
+
+        return_value = super(NUTS, self).get_statistics_dictionary()
+        return_value.update(
+            {"step_size": self._step_size,}
+        )
+
+        return return_value
