@@ -1,7 +1,7 @@
 name: propertyestimator
 channels:
     - conda-forge
-    - omnia
+    - pytorch
 dependencies:
     # Base depends
   - python ==3.6
