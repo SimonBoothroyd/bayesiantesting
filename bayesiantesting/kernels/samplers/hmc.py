@@ -309,6 +309,6 @@ class NUTS(Hamiltonian):
     def get_statistics_dictionary(self):
 
         return_value = super(NUTS, self).get_statistics_dictionary()
-        return_value.update({"step_size": self._step_size})
+        return_value.update({"step_size": float(self._step_size)})
 
         return return_value
