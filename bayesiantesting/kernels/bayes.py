@@ -97,6 +97,37 @@ class LambdaSimulation(MCMCSimulation):
             parameters
         ) + lambda_value * model.evaluate_log_likelihood(parameters)
 
+    def _run_step(
+        self,
+        current_parameters,
+        current_model_index,
+        current_log_p,
+        move_proposals,
+        move_acceptances,
+        adapt_moves=False,
+    ):
+
+        if not numpy.isclose(self._lambda, 0.0):
+
+            return super(LambdaSimulation, self)._run_step(
+                current_parameters,
+                current_model_index,
+                current_log_p,
+                move_proposals,
+                move_acceptances,
+                adapt_moves,
+            )
+
+        model = self._model_collection.models[current_model_index]
+
+        proposed_parameters = model.sample_priors()
+        proposed_log_p = model.evaluate_log_prior(proposed_parameters)
+
+        move_proposals[current_model_index, current_model_index] += 1
+        move_acceptances[current_model_index, current_model_index] += 1
+
+        return proposed_parameters, current_model_index, proposed_log_p, True
+
 
 class BaseModelEvidenceKernel:
     """A base class for kernels which aim to estimate the
