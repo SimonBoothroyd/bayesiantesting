@@ -597,3 +597,118 @@ class MBARIntegration(BaseModelEvidenceKernel):
         results["overlap"] = self._overlap_matrix.tolist()
 
         return results
+
+    @staticmethod
+    def plot_overlap_matrix(overlap_matrix):
+        """Plots the probability of observing a sample from state i (row)
+        in state j (column). For convenience, the neigboring state cells
+        are fringed in bold.
+
+        Notes
+        -----
+        Modified from the https://github.com/MobleyLab/alchemical-analysis/ repository.
+        """
+
+        if not isinstance(overlap_matrix, numpy.ndarray):
+            overlap_matrix = numpy.asarray(overlap_matrix)
+
+        max_probability = numpy.max(overlap_matrix)
+        n_states = len(overlap_matrix)
+
+        figure = pyplot.figure(figsize=(n_states / 2.0, n_states / 2.0))
+        figure.add_subplot(111, frameon=False, xticks=[], yticks=[])
+
+        for i in range(n_states):
+
+            if i != 0:
+
+                pyplot.axvline(x=i, ls="-", lw=0.5, color="k", alpha=0.25)
+                pyplot.axhline(y=i, ls="-", lw=0.5, color="k", alpha=0.25)
+
+            for j in range(n_states):
+
+                if overlap_matrix[j, i] < 0.005:
+                    ii = ""
+                else:
+                    ii = ("%.2f" % overlap_matrix[j, i])[1:]
+
+                alpha = overlap_matrix[j, i] / max_probability
+
+                pyplot.fill_between(
+                    [i, i + 1],
+                    [n_states - j, n_states - j],
+                    [n_states - (j + 1), n_states - (j + 1)],
+                    color="k",
+                    alpha=alpha,
+                )
+                pyplot.annotate(
+                    ii,
+                    xy=(i, j),
+                    xytext=(i + 0.5, n_states - (j + 0.5)),
+                    size=8,
+                    textcoords="data",
+                    va="center",
+                    ha="center",
+                    color=("k" if alpha < 0.5 else "w"),
+                )
+
+        for i in range(n_states):
+
+            pyplot.annotate(
+                i,
+                xy=(i + 0.5, 1),
+                xytext=(i + 0.5, n_states + 0.5),
+                size=10,
+                textcoords=("data", "data"),
+                va="center",
+                ha="center",
+                color="k",
+            )
+            pyplot.annotate(
+                i,
+                xy=(-0.5, n_states - (j + 0.5)),
+                xytext=(-0.5, n_states - (i + 0.5)),
+                size=10,
+                textcoords=("data", "data"),
+                va="center",
+                ha="center",
+                color="k",
+            )
+
+        pyplot.annotate(
+            r"$\lambda$",
+            xy=(-0.5, n_states - (j + 0.5)),
+            xytext=(-0.5, n_states + 0.5),
+            size=10,
+            textcoords=("data", "data"),
+            va="center",
+            ha="center",
+            color="k",
+        )
+
+        pyplot.plot([0, n_states], [0, 0], "k-", lw=4.0, solid_capstyle="butt")
+        pyplot.plot(
+            [n_states, n_states], [0, n_states], "k-", lw=4.0, solid_capstyle="butt"
+        )
+        pyplot.plot([0, 0], [0, n_states], "k-", lw=2.0, solid_capstyle="butt")
+        pyplot.plot(
+            [0, n_states], [n_states, n_states], "k-", lw=2.0, solid_capstyle="butt"
+        )
+
+        cx = sorted(2 * list(range(n_states + 1)))
+        cy = sorted(2 * list(range(n_states + 1)), reverse=True)
+
+        pyplot.plot(cx[2:-1], cy[1:-2], "k-", lw=2.0)
+        pyplot.plot(numpy.array(cx[2:-3]) + 1, cy[1:-4], "k-", lw=2.0)
+        pyplot.plot(cx[1:-2], numpy.array(cy[:-3]) - 1, "k-", lw=2.0)
+        pyplot.plot(cx[1:-4], numpy.array(cy[:-5]) - 2, "k-", lw=2.0)
+
+        pyplot.xlim(-1, n_states)
+        pyplot.ylim(0, n_states + 1)
+
+        return figure
+
+    def _save_results(self, results, integral, standard_error):
+
+        figure = self.plot_overlap_matrix(self._overlap_matrix)
+        figure.savefig(os.path.join(self._output_directory_path, f"overlap_matrix.pdf"))
