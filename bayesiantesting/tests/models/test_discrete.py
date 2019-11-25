@@ -2,6 +2,7 @@
 Unit and regression test for the datasets module.
 """
 import numpy
+
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet
 from bayesiantesting.models.continuous import TwoCenterLJModel

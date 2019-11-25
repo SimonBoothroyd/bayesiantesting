@@ -1,12 +1,12 @@
 """
 Unit and regression test for the datasets module.
 """
-import autograd
-import numpy
-
 from random import random
 
+import autograd
+import numpy
 import pytest
+
 from bayesiantesting.datasets.nist import NISTDataSet
 from bayesiantesting.models import Model
 from bayesiantesting.models.continuous import TwoCenterLJModel

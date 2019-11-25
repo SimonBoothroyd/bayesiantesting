@@ -1,12 +1,12 @@
 import arviz
 import autograd
 import corner
-import numpy
 import numpy as np
-import torch
-import bayesiantesting.utils.distributions as distributions
 import scipy.optimize
+import torch
 from matplotlib import pyplot
+
+import bayesiantesting.utils.distributions as distributions
 
 
 class Model:
@@ -192,7 +192,7 @@ class Model:
             method=optimisation_method,
         )
 
-        return numpy.array(results.x)
+        return np.array(results.x)
 
     def evaluate_log_prior(self, parameters):
         """Evaluates the log value of the prior for a
@@ -507,7 +507,7 @@ class ModelCollection:
             # These parameters aren't being trained so we don't need to
             # do any mapping so long as both models take the same fixed
             # value.
-            if not numpy.isclose(
+            if not np.isclose(
                 model_a.fixed_parameters[
                     parameter_index - model_a.n_trainable_parameters
                 ],
@@ -579,11 +579,11 @@ class ModelCollection:
 
         n_parameters = max(model_a.n_total_parameters, model_b.n_total_parameters)
 
-        current_parameters = numpy.array([*parameters, *model_a.fixed_parameters])
-        new_parameters = numpy.empty(n_parameters)
+        current_parameters = np.array([*parameters, *model_a.fixed_parameters])
+        new_parameters = np.empty(n_parameters)
 
         jacobian_function = autograd.grad(self._mapping_function)
-        jacobians = numpy.empty(n_parameters)
+        jacobians = np.empty(n_parameters)
 
         if model_a.n_trainable_parameters < model_b.n_trainable_parameters:
 

@@ -5,11 +5,11 @@ from random import random
 
 import autograd
 import numpy
-
-import bayesiantesting.utils.distributions as distributions
 import pytest
 import torch
 import torch.distributions as references
+
+import bayesiantesting.utils.distributions as distributions
 
 
 @pytest.mark.parametrize(

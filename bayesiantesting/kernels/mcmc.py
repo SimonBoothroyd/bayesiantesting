@@ -6,11 +6,11 @@ import json
 import os
 
 import numpy as np
-import torch
-from bayesiantesting.models import Model, ModelCollection
-from bayesiantesting.utils import distributions as distributions
 from matplotlib import pyplot
 from tqdm import tqdm
+
+from bayesiantesting.kernels.samplers import MetropolisSampler
+from bayesiantesting.models import Model, ModelCollection
 
 
 class MCMCSimulation:
@@ -26,6 +26,7 @@ class MCMCSimulation:
         discard_warm_up_data=True,
         output_directory_path="",
         save_trace_plots=True,
+        sampler=None,
     ):
         """Initializes the basic state of the simulator object.
 
@@ -48,6 +49,8 @@ class MCMCSimulation:
         save_trace_plots: bool
             If true, plots of the traces will be saved in the output
             directory.
+        sampler: Sampler, optional
+            The sampler to use for in-model proposals.
         """
 
         self.warm_up_steps = warm_up_steps
@@ -71,6 +74,11 @@ class MCMCSimulation:
         self._initial_values = None
         self._initial_model_index = None
         self._initial_log_p = None
+
+        self._sampler = sampler
+
+        if self._sampler is not None:
+            self._sampler.log_p_function = self._evaluate_log_p
 
     def _validate_parameter_shapes(self, initial_parameters, initial_model_index):
 
@@ -119,6 +127,15 @@ class MCMCSimulation:
         if np.isnan(initial_log_p) or np.isinf(initial_log_p):
             raise ValueError(f'The initial log p is NaN / inf - {initial_log_p}')
 
+        # Make sure we have a sampler set
+        if self._sampler is None:
+
+            self._sampler = MetropolisSampler(
+                self._evaluate_log_p,
+                self._model_collection,
+                np.array([self._initial_values / 100]),
+            )
+
         # Initialize the trace vectors
         total_steps = self.steps + self.warm_up_steps
 
@@ -151,8 +168,6 @@ class MCMCSimulation:
             (self._model_collection.n_models, self._model_collection.n_models)
         )
 
-        proposal_scales = np.asarray(self._initial_values) / 100
-
         print("Running Simulation...")
         print("==============================")
 
@@ -176,10 +191,10 @@ class MCMCSimulation:
             new_parameters, new_model_index, new_log_p, acceptance = self._run_step(
                 current_parameters,
                 current_model_index,
-                proposal_scales,
                 current_log_p,
                 move_proposals,
                 move_acceptances,
+                i < self.warm_up_steps,
             )
             new_percent_deviation = current_percent_deviation
 
@@ -196,12 +211,6 @@ class MCMCSimulation:
             log_p_trace[i + 1] = new_log_p
             percent_deviation_trace.append(new_percent_deviation)
 
-            if (not (i + 1) % self._tune_frequency) and (i < self.warm_up_steps):
-
-                proposal_scales = self._tune_proposals(
-                    move_proposals, move_acceptances, proposal_scales
-                )
-
             if i == self.warm_up_steps:
 
                 move_proposals = np.zeros(
@@ -210,6 +219,8 @@ class MCMCSimulation:
                 move_acceptances = np.zeros(
                     (self._model_collection.n_models, self._model_collection.n_models)
                 )
+
+                self._sampler.reset_counters()
 
             if progress_bar is not None and progress_bar is not False:
                 progress_bar.update()
@@ -248,7 +259,6 @@ class MCMCSimulation:
             percent_deviation_trace_arrays,
             move_proposals,
             move_acceptances,
-            proposal_scales,
         )
 
         return trace, log_p_trace, percent_deviation_trace_arrays
@@ -257,36 +267,22 @@ class MCMCSimulation:
         self,
         current_parameters,
         current_model_index,
-        proposal_scales,
         current_log_p,
         move_proposals,
         move_acceptances,
+        adapt_moves=False,
     ):
 
-        proposed_parameters = current_parameters.copy()
-
-        proposed_parameters, proposed_log_p = self.parameter_proposal(
-            proposed_parameters, current_model_index, proposal_scales
+        proposed_parameters, proposed_log_p, acceptance = self._sampler.step(
+            current_parameters, current_model_index, current_log_p, adapt_moves
         )
-        alpha = proposed_log_p - current_log_p
-
-        acceptance = self._accept_reject(alpha)
 
         move_proposals[current_model_index, current_model_index] += 1
 
         if acceptance:
-
-            new_log_p = proposed_log_p
-            new_params = proposed_parameters
-
             move_acceptances[current_model_index, current_model_index] += 1
 
-        else:
-
-            new_log_p = current_log_p
-            new_params = current_parameters
-
-        return new_params, current_model_index, new_log_p, acceptance
+        return proposed_parameters, current_model_index, proposed_log_p, acceptance
 
     def _evaluate_log_p(self, parameters, model_index):
         """Evaluates the (possibly un-normalized) target distribution
@@ -306,43 +302,6 @@ class MCMCSimulation:
         """
         model = self._model_collection.models[model_index]
         return model.evaluate_log_posterior(parameters)
-
-    def parameter_proposal(
-        self, proposed_parameters, current_model_index, proposal_scales
-    ):
-
-        model = self._model_collection.models[current_model_index]
-
-        # Choose a random parameter to change
-        parameter_index = torch.randint(model.n_trainable_parameters, (1,))
-
-        # Sample the new parameters from a normal distribution.
-        proposed_parameters[parameter_index] = distributions.Normal(
-            proposed_parameters[parameter_index], proposal_scales[parameter_index]
-        ).sample()
-
-        proposed_log_p = self._evaluate_log_p(proposed_parameters, current_model_index)
-
-        return proposed_parameters, proposed_log_p
-
-    @staticmethod
-    def _accept_reject(alpha):
-
-        # Metropolis-Hastings accept/reject criteria
-        random_number = torch.rand((1,))
-        return torch.log(random_number).item() < alpha
-
-    @staticmethod
-    def _tune_proposals(move_proposals, move_acceptances, proposal_scales):
-
-        acceptance_rate = np.sum(move_acceptances) / np.sum(move_proposals)
-
-        if acceptance_rate < 0.2:
-            proposal_scales *= 0.9
-        elif acceptance_rate > 0.5:
-            proposal_scales *= 1.1
-
-        return proposal_scales
 
     def _print_statistics(self, move_proposals, move_acceptances):
 
@@ -390,7 +349,6 @@ class MCMCSimulation:
         percentage_deviations,
         move_proposals,
         move_acceptances,
-        proposal_scales,
     ):
         """Saves the results of the simulation to the output
         directory.
@@ -407,9 +365,6 @@ class MCMCSimulation:
             An array of the counts of the proposed moves.
         move_acceptances: numpy.ndarray
             An array of the counts of the accepted moves.
-        proposal_scales: numpy.ndarray
-            The scale of the gaussian distributions used
-            when proposing in model sampling moves.
         """
 
         # Make sure the output directory exists
@@ -420,9 +375,9 @@ class MCMCSimulation:
         self._save_traces(trace, log_p_trace, percentage_deviations)
 
         # Save the move statistics
-        self._save_statistics(move_proposals, move_acceptances, proposal_scales)
+        self._save_statistics(move_proposals, move_acceptances)
 
-    def _save_statistics(self, move_proposals, move_acceptances, proposal_scales):
+    def _save_statistics(self, move_proposals, move_acceptances):
         """Save statistics about the simulation.
 
         Parameters
@@ -431,14 +386,11 @@ class MCMCSimulation:
             An array of the counts of the proposed moves.
         move_acceptances: numpy.ndarray
             An array of the counts of the accepted moves.
-        proposal_scales: numpy.ndarray
-            The scale of the gaussian distributions used
-            when proposing in model sampling moves.
         """
         results = {
             "Proposed Moves": move_proposals.tolist(),
-            "Final Move SD": proposal_scales.tolist(),
             "Accepted Moves": move_acceptances.tolist(),
+            "Sampler: ": self._sampler.get_statistics_dictionary(),
         }
 
         filename = os.path.join(self._output_directory_path, "statistics.json")

@@ -5,8 +5,8 @@ all continuous.
 Models in this module should inherit from the `Model`
 subclass.
 """
-import numpy
 import autograd.numpy
+import numpy
 
 from bayesiantesting import unit
 from bayesiantesting.models import Model
@@ -17,10 +17,6 @@ class TwoCenterLJModel(Model):
     """A representation of the two-center Lennard-Jones model, which
     can be evaluated using a surrogate model against a `NISTDataSet`.
     """
-
-    @property
-    def total_parameters(self):
-        return 4
 
     def __init__(
         self,

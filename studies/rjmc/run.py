@@ -11,6 +11,7 @@ import math
 import numpy
 import torch
 import yaml
+
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.kernels.rjmc import BiasedRJMCSimulation

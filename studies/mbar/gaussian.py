@@ -9,7 +9,7 @@ Created on Thu Oct 31 14:42:37 2019
 import numpy
 
 # from bayesiantesting.kernels import MCMCSimulation
-from bayesiantesting.kernels.bayes import ThermodynamicIntegration
+from bayesiantesting.kernels.bayes import MBARIntegration
 from bayesiantesting.models import Model
 from bayesiantesting.utils import distributions
 
@@ -43,9 +43,12 @@ def main():
     # Draw the initial parameter values from the model priors.
     initial_parameters = model.sample_priors()
 
+    # Set up log spaced lambda windows
+    lambda_values = numpy.geomspace(1.0, 2.0, 16) - 1.0
+
     # Run the simulation
-    simulation = ThermodynamicIntegration(
-        legendre_gauss_degree=16,
+    simulation = MBARIntegration(
+        lambda_values=lambda_values,
         model=model,
         warm_up_steps=100000,
         steps=500000,
