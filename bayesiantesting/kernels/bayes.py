@@ -770,3 +770,5 @@ class MBARIntegration(BaseModelEvidenceKernel):
 
         figure = self.plot_overlap_matrix(self._overlap_matrix)
         figure.savefig(os.path.join(self._output_directory_path, f"overlap_matrix.pdf"))
+
+        super(MBARIntegration, self)._save_results(results, integral, standard_error)
