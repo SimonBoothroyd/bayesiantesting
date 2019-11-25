@@ -447,7 +447,7 @@ class ModelCollection:
         """int: The number models which belong to this collection."""
         return len(self._models)
 
-    def __init__(self, name, models):
+    def __init__(self, name, models, mapping_distributions=None):
         """Initializes self.
 
         Parameters
@@ -456,6 +456,9 @@ class ModelCollection:
             The name of this collection.
         models: List of Model
             The models which belong to this collection.
+        mapping_distributions: List of Distribution, optional
+            The distributions to use when mapping between the parameters.
+            If None, the model priors are used.
         """
 
         # Make sure there are no models with duplicate names.
@@ -464,15 +467,21 @@ class ModelCollection:
         self._name = name
         self._models = tuple(models)
 
-        for model in self._models:
+        self._mapping_distributions = mapping_distributions
 
-            if model.n_trainable_parameters <= 1 or all(
-                isinstance(prior, (distributions.Exponential, distributions.Normal))
-                for prior in model.priors
-            ):
-                continue
+        if self._mapping_distributions is not None:
 
-            raise ValueError("Currently only exponential priors are supported.")
+            assert len(self._mapping_distributions) == self.n_models
+
+            for values, model in zip(self._mapping_distributions, self.models):
+                assert len(values) == model.n_trainable_parameters
+
+        else:
+
+            self._mapping_distributions = []
+
+            for model in self.models:
+                self._mapping_distributions.append([*model.priors])
 
     def _mapping_function(
         self, parameter, model_index_a, model_index_b, parameter_index
@@ -525,8 +534,11 @@ class ModelCollection:
             and parameter_index < model_b.n_trainable_parameters
         ):
 
-            cdf_x = model_a.priors[parameter_index].cdf(parameter)
-            return model_b.priors[parameter_index].inverse_cdf(cdf_x)
+            mapping_a = self._mapping_distributions[model_index_a][parameter_index]
+            mapping_b = self._mapping_distributions[model_index_b][parameter_index]
+
+            cdf_x = mapping_a.cdf(parameter)
+            return mapping_b.inverse_cdf(cdf_x)
 
         elif (
             model_a.n_trainable_parameters
@@ -535,7 +547,8 @@ class ModelCollection:
         ):
 
             # Handle the case where we are mapping to a model with a lower dimension.
-            return model_a.priors[parameter_index].cdf(parameter)
+            mapping_a = self._mapping_distributions[model_index_a][parameter_index]
+            return mapping_a.cdf(parameter)
 
         elif (
             model_a.n_trainable_parameters
@@ -544,7 +557,8 @@ class ModelCollection:
         ):
 
             # Handle the case where we are mapping to a model with a higher dimension.
-            return model_b.priors[parameter_index].inverse_cdf(parameter)
+            mapping_b = self._mapping_distributions[model_index_b][parameter_index]
+            return mapping_b.inverse_cdf(parameter)
 
         raise NotImplementedError()
 
@@ -556,7 +570,8 @@ class ModelCollection:
         Parameters
         ----------
         parameters: numpy.ndarray
-            The current parameters of model a, with shape=(model_a.n_trainable_parameters).
+            The current parameters of model a, with shape=
+            (model_a.n_trainable_parameters).
         model_index_a: int
             The index of model a in this model collection.
         model_index_b: int

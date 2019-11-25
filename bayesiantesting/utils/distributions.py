@@ -87,6 +87,34 @@ class Normal(Distribution):
         return torch.distributions.Normal(self.loc, self.scale).rsample().item()
 
 
+class Cauchy(Distribution):
+    def __init__(self, loc, scale):
+
+        self.loc = loc
+        self.scale = scale
+
+    def log_pdf(self, x):
+        # noinspection PyUnresolvedReferences
+        return (
+            -autograd.numpy.log(autograd.numpy.pi)
+            - autograd.numpy.log(self.scale)
+            - autograd.numpy.log(1 + ((x - self.loc) / self.scale) ** 2)
+        )
+
+    def cdf(self, x):
+        # noinspection PyUnresolvedReferences
+        return (
+            autograd.numpy.arctan((x - self.loc) / self.scale) / autograd.numpy.pi + 0.5
+        )
+
+    def inverse_cdf(self, x):
+        # noinspection PyUnresolvedReferences
+        return autograd.numpy.tan(autograd.numpy.pi * (x - 0.5)) * self.scale + self.loc
+
+    def sample(self):
+        return torch.distributions.Cauchy(self.loc, self.scale).rsample().item()
+
+
 class Uniform(Distribution):
     def __init__(self, low=0.0, high=1.0):
 
