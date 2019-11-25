@@ -1,5 +1,6 @@
 import os
 from enum import Enum
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -21,12 +22,12 @@ class NISTDataSet:
     """
 
     @property
-    def compound(self):
+    def compound(self) -> str:
         """str: The compound for which this data was collected."""
         return self._compound
 
     @property
-    def data_types(self):
+    def data_types(self) -> List[NISTDataType]:
         """list of NISTDataType: The types of data stored in this set."""
         return [
             NISTDataType.LiquidDensity,
@@ -35,21 +36,21 @@ class NISTDataSet:
         ]
 
     @property
-    def critical_temperature(self):
+    def critical_temperature(self) -> unit.Measurement:
         """unit.Measurement: The critical temperature of the compound."""
         return self._critical_temperature
 
     @property
-    def molecular_weight(self):
+    def molecular_weight(self) -> unit.Quantity:
         """unit.Quantity: The molecule weight of the compound."""
         return self._molecular_weight
 
     @property
-    def bond_length(self):
+    def bond_length(self) -> unit.Quantity:
         """unit.Quantity: The bond length of the compound."""
         return self._bond_length
 
-    def __init__(self, compound):
+    def __init__(self, compound: str):
         """Constructs a new `NISTDataSet` object.
 
         Parameters
@@ -69,7 +70,15 @@ class NISTDataSet:
             self._precisions,
         ) = self._load_data()
 
-    def _load_data(self):
+    def _load_data(
+        self,
+    ) -> Tuple[
+        unit.Measurement,
+        unit.Quantity,
+        unit.Quantity,
+        Dict[NISTDataType, pd.DataFrame],
+        Dict[NISTDataType, np.ndarray],
+    ]:
         """Loads the data for a chosen compound from the data directory.
 
         Returns
@@ -80,9 +89,9 @@ class NISTDataSet:
             The molecular weight.
         unit.Quantity:
             The bond length.
-        dict of NISTDataType and numpy.ndarray:
+        dict of NISTDataType and pandas.DataFrame:
             A dictionary of the different data points.
-        dict of NISTDataType and float
+        dict of NISTDataType and numpy.ndarray
             The precision in each of the data types.
         """
 
@@ -138,7 +147,11 @@ class NISTDataSet:
         return critical_temperature, molecular_weight, bond_length, data, precisions
 
     @staticmethod
-    def _calculate_precision(data_frame, data_type, critical_temperature):
+    def _calculate_precision(
+        data_frame: pd.DataFrame,
+        data_type: NISTDataType,
+        critical_temperature: unit.Measurement,
+    ) -> np.ndarray:
 
         critical_temperature_kelvin = critical_temperature.value.to(
             unit.kelvin
@@ -169,7 +182,11 @@ class NISTDataSet:
         return precision
 
     @staticmethod
-    def _evaluate_uncertainty_model(temperatures, critical_temperature, property_type):
+    def _evaluate_uncertainty_model(
+        temperatures: np.ndarray,
+        critical_temperature: float,
+        property_type: NISTDataType,
+    ) -> np.ndarray:
         """Evaluates a linear models for uncertainties in the 2CLJQ correlation we are
         using, determined from Messerly analysis of figure from Stobener, Stoll, Werth.
 
@@ -238,7 +255,12 @@ class NISTDataSet:
         uncertainties /= 100
         return uncertainties
 
-    def filter(self, minimum_temperature, maximum_temperature, maximum_data_points):
+    def filter(
+        self,
+        minimum_temperature: unit.Quantity,
+        maximum_temperature: unit.Quantity,
+        maximum_data_points: int,
+    ):
         """Filters a data frame based on a number of specified criteria..
 
         Parameters
@@ -281,7 +303,7 @@ class NISTDataSet:
                 self._data[data_type], data_type, self._critical_temperature
             )
 
-    def get_data(self, data_type):
+    def get_data(self, data_type: NISTDataType) -> pd.DataFrame:
         """Returns the data of the specified data type.
 
         Parameters
@@ -296,7 +318,7 @@ class NISTDataSet:
         """
         return self._data[data_type]
 
-    def get_precision(self, data_type):
+    def get_precision(self, data_type: NISTDataType) -> np.ndarray:
         """Returns the precision in each of the data points of the specified type.
 
         Parameters

@@ -4,12 +4,14 @@ This code was originally authored by Owen Madin (github name ocmadin).
 """
 import json
 import os
+from typing import Dict, Tuple, Union
 
 import numpy as np
 from matplotlib import pyplot
 from tqdm import tqdm
 
-from bayesiantesting.kernels.samplers import MetropolisSampler
+from bayesiantesting.datasets.nist import NISTDataType
+from bayesiantesting.kernels.samplers import MetropolisSampler, Sampler
 from bayesiantesting.models import Model, ModelCollection
 
 
@@ -19,14 +21,14 @@ class MCMCSimulation:
 
     def __init__(
         self,
-        model_collection,
-        warm_up_steps=100000,
-        steps=100000,
-        tune_frequency=5000,
-        discard_warm_up_data=True,
-        output_directory_path="",
-        save_trace_plots=True,
-        sampler=None,
+        model_collection: Union[Model, ModelCollection],
+        warm_up_steps: int = 100000,
+        steps: int = 100000,
+        tune_frequency: int = 5000,
+        discard_warm_up_data: bool = True,
+        output_directory_path: str = "",
+        save_trace_plots: bool = True,
+        sampler: Sampler = None,
     ):
         """Initializes the basic state of the simulator object.
 
@@ -80,7 +82,9 @@ class MCMCSimulation:
         if self._sampler is not None:
             self._sampler.log_p_function = self._evaluate_log_p
 
-    def _validate_parameter_shapes(self, initial_parameters, initial_model_index):
+    def _validate_parameter_shapes(
+        self, initial_parameters: np.ndarray, initial_model_index: int
+    ):
 
         if (
             initial_model_index < 0
@@ -108,7 +112,12 @@ class MCMCSimulation:
         #         f"all models ({maximum_n_parameters})."
         #     )
 
-    def run(self, initial_parameters, initial_model_index=0, progress_bar=True):
+    def run(
+        self,
+        initial_parameters: np.ndarray,
+        initial_model_index: int = 0,
+        progress_bar: bool = True,
+    ) -> Tuple[np.ndarray, np.ndarray, Dict[NISTDataType, np.ndarray]]:
 
         # Make sure the parameters are the correct shape for the
         # specified model.
@@ -262,13 +271,13 @@ class MCMCSimulation:
 
     def _run_step(
         self,
-        current_parameters,
-        current_model_index,
-        current_log_p,
-        move_proposals,
-        move_acceptances,
-        adapt_moves=False,
-    ):
+        current_parameters: np.ndarray,
+        current_model_index: int,
+        current_log_p: float,
+        move_proposals: np.ndarray,
+        move_acceptances: np.ndarray,
+        adapt_moves: bool = False,
+    ) -> Tuple[np.ndarray, int, float, bool]:
 
         proposed_parameters, proposed_log_p, acceptance = self._sampler.step(
             current_parameters, current_model_index, current_log_p, adapt_moves
@@ -281,7 +290,7 @@ class MCMCSimulation:
 
         return proposed_parameters, current_model_index, proposed_log_p, acceptance
 
-    def _evaluate_log_p(self, parameters, model_index):
+    def _evaluate_log_p(self, parameters: np.ndarray, model_index: int) -> float:
         """Evaluates the (possibly un-normalized) target distribution
         for the given set of parameters.
 
@@ -289,7 +298,7 @@ class MCMCSimulation:
         ----------
         parameters: numpy.ndarray
             The parameters to evaluate at.
-        model_index:
+        model_index: int
             The index of the model to evaluate.
 
         Returns
@@ -300,7 +309,9 @@ class MCMCSimulation:
         model = self._model_collection.models[model_index]
         return model.evaluate_log_posterior(parameters)
 
-    def _print_statistics(self, move_proposals, move_acceptances):
+    def _print_statistics(
+        self, move_proposals: np.ndarray, move_acceptances: np.ndarray
+    ):
 
         print("Proposed Moves:")
 
@@ -341,11 +352,11 @@ class MCMCSimulation:
 
     def _save_results(
         self,
-        trace,
-        log_p_trace,
-        percentage_deviations,
-        move_proposals,
-        move_acceptances,
+        trace: np.ndarray,
+        log_p_trace: np.ndarray,
+        percentage_deviations: Dict[NISTDataType, np.ndarray],
+        move_proposals: np.ndarray,
+        move_acceptances: np.ndarray,
     ):
         """Saves the results of the simulation to the output
         directory.
@@ -374,7 +385,9 @@ class MCMCSimulation:
         # Save the move statistics
         self._save_statistics(move_proposals, move_acceptances)
 
-    def _save_statistics(self, move_proposals, move_acceptances):
+    def _save_statistics(
+        self, move_proposals: np.ndarray, move_acceptances: np.ndarray
+    ):
         """Save statistics about the simulation.
 
         Parameters
@@ -395,7 +408,12 @@ class MCMCSimulation:
         with open(filename, "w") as file:
             json.dump(results, file, sort_keys=True, indent=4, separators=(",", ": "))
 
-    def _save_traces(self, trace, log_p_trace, percentage_deviations):
+    def _save_traces(
+        self,
+        trace: np.ndarray,
+        log_p_trace: np.ndarray,
+        percentage_deviations: Dict[NISTDataType, np.ndarray],
+    ):
         """Saves the raw traces, as well as plots of the traces
         to the output directory.
 
