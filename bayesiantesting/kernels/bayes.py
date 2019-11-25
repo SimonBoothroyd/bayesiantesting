@@ -398,6 +398,9 @@ class BaseModelEvidenceKernel:
             The standard error in the integrated model evidence.
         """
 
+        lambdas = numpy.zeros(len(results))
+        lambdas_std = numpy.zeros(len(results))
+
         d_log_p_d_lambdas = numpy.zeros(len(results))
         d_log_p_d_lambdas_std = numpy.zeros(len(results))
 
@@ -411,6 +414,9 @@ class BaseModelEvidenceKernel:
             d_log_p_d_lambdas_std[index] = numpy.std(d_log_p_d_lambda) / numpy.sqrt(
                 self._steps
             )
+
+            lambdas[index] = numpy.mean(log_p_trace)
+            lambdas_std[index] = numpy.std(log_p_trace) / numpy.sqrt(self._steps)
 
             lambda_directory = os.path.join(self._output_directory_path, str(index))
 
@@ -428,13 +434,34 @@ class BaseModelEvidenceKernel:
             )
             pyplot.close(lambda_figure)
 
+        # Plot log p vs lambda
         figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
 
-        axes.plot(d_log_p_d_lambdas, color="#17becf")
+        axes.errorbar(self._lambda_values, lambdas, yerr=lambdas_std, color="#17becf")
+        axes.set_xlabel(r"$\lambda$")
+        axes.set_ylabel(r"$\ln{p}$")
+
+        figure.savefig(
+            os.path.join(self._output_directory_path, f"log_p_vs_lambda.pdf")
+        )
+        pyplot.close(figure)
+
+        # Plot d log p d lambda
+        figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
+
+        axes.errorbar(
+            self._lambda_values,
+            d_log_p_d_lambdas,
+            yerr=d_log_p_d_lambdas_std,
+            color="#17becf",
+        )
         axes.set_xlabel(r"$\lambda$")
         axes.set_ylabel(r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$")
 
-        figure.savefig(os.path.join(self._output_directory_path, f"lambdas.pdf"))
+        figure.savefig(
+            os.path.join(self._output_directory_path, f"d_log_p_d_lambdas.pdf")
+        )
+        pyplot.close(figure)
 
         # Save the output as a json file and numpy files.
         results = self._get_results_dictionary(
