@@ -125,7 +125,7 @@ class MCMCSimulation:
         )
 
         if np.isnan(initial_log_p) or np.isinf(initial_log_p):
-            raise ValueError(f'The initial log p is NaN / inf - {initial_log_p}')
+            raise ValueError(f"The initial log p is NaN / inf - {initial_log_p}")
 
         # Make sure we have a sampler set
         if self._sampler is None:

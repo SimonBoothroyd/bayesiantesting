@@ -19,28 +19,13 @@ class TwoCenterLJModelCollection(ModelCollection):
     """
 
     def __init__(self, name, models, mapping_distributions=None):
-        """
-        Parameters
-        ----------
-        mapping_distributions: List of Distribution, optional
-            The distributions to use when mapping between the parameters.
-        """
 
         supported_models = ["AUA", "AUA+Q", "UA"]
 
         assert all(isinstance(model, TwoCenterLJModel) for model in models)
         assert all(model.name in supported_models for model in models)
 
-        super().__init__(name, models)
-
-        self._mapping_distributions = mapping_distributions
-
-        if self._mapping_distributions is not None:
-
-            assert len(self._mapping_distributions) == self.n_models
-
-            for values, model in zip(self._mapping_distributions, self.models):
-                assert len(values) == model.n_trainable_parameters
+        super().__init__(name, models, mapping_distributions)
 
     def _mapping_function(
         self, parameter, model_index_a, model_index_b, parameter_index
