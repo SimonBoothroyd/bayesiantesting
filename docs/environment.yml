@@ -1,0 +1,37 @@
+name: propertyestimator
+channels:
+    - conda-forge
+    - omnia
+dependencies:
+    # Base depends
+  - python ==3.6
+  - pip
+
+    # Testing
+  - pytest
+  - pytest-cov
+  - codecov
+
+    # Main
+  - numpy
+  - scipy
+  - pyyaml
+  - pandas
+  - matplotlib
+  - pymbar
+  - tqdm
+  - statsmodels
+  - pint
+  - uncertainties
+  - arviz
+  - corner
+  - autograd
+
+    # PyMC3
+  - mkl-service
+  - pymc3
+
+    # PyTorch
+  - pytorch
+  - torchvision
+  - cpuonly
