@@ -113,7 +113,11 @@ class TwoCenterLJModel(Model):
             precisions = precisions ** -2.0
             reference_values = reference_values
 
-            if any(autograd.numpy.isnan(surrogate_values)):
+            if (
+                any(autograd.numpy.isnan(surrogate_values))
+                or any(autograd.numpy.isinf(surrogate_values))
+                or any(surrogate_values > 1e10)
+            ):
                 return -numpy.inf
 
             # Compute likelihood based on gaussian penalty function
