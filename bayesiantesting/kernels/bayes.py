@@ -93,9 +93,17 @@ class LambdaSimulation(MCMCSimulation):
             The evaluated log p.
         """
 
-        return model.evaluate_log_prior(
-            parameters
-        ) + lambda_value * model.evaluate_log_likelihood(parameters)
+        log_prior = model.evaluate_log_prior(parameters)
+        log_likelihood = 0.0
+
+        if not numpy.isclose(lambda_value, 0.0):
+
+            log_likelihood = model.evaluate_log_likelihood(parameters)
+
+            if not numpy.isinf(log_likelihood):
+                log_likelihood *= lambda_value
+
+        return log_prior + log_likelihood
 
     def _run_step(
         self,
