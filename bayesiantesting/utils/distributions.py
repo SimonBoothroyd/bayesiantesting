@@ -141,18 +141,24 @@ class Uniform(Distribution):
         return torch.distributions.Uniform(self.low, self.high).rsample().item()
 
 
-class HalfNormal(Distribution):
+class HalfNormal(Normal):
+
     def __init__(self, scale):
-        self.scale = scale
+
+        super().__init__(0.0, scale)
 
     def log_pdf(self, x):
-        raise NotImplementedError()
+
+        log_pdf = super(HalfNormal, self).log_pdf(x) + autograd.numpy.log(2)
+        log_pdf = autograd.numpy.where(x >= 0.0, log_pdf, -autograd.numpy.inf)
+
+        return log_pdf
 
     def cdf(self, x):
-        return 2 * Normal(0.0, self.scale).cdf(x) - 1
+        return 2 * super(HalfNormal, self).cdf(x) - 1
 
     def inverse_cdf(self, x):
-        return Normal(0.0, self.scale).inverse_cdf((x + 1) / 2)
+        return super(HalfNormal, self).inverse_cdf((x + 1) / 2)
 
     def sample(self):
         return torch.distributions.HalfNormal(self.scale).rsample().item()

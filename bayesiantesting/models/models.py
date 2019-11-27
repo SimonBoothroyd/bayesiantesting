@@ -126,6 +126,10 @@ class Model:
 
             prior = distributions.Normal(prior_values[0], prior_values[1])
 
+        elif prior_type == "half normal":
+
+            prior = distributions.HalfNormal(prior_values[0])
+
         elif prior_type == "uniform":
 
             prior = distributions.Uniform(prior_values[0], prior_values[1])
