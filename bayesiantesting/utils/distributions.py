@@ -142,7 +142,6 @@ class Uniform(Distribution):
 
 
 class HalfNormal(Normal):
-
     def __init__(self, scale):
 
         super().__init__(0.0, scale)

@@ -138,23 +138,31 @@ def main():
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
+    # Set some initial parameter close to the MAP taken from
+    # other runs of C2H6.
+    initial_parameters = {
+        "UA": numpy.array([100.0, 0.35]),
+        "AUA": numpy.array([120.0, 0.35, 0.12]),
+        "AUA+Q": numpy.array([140.0, 0.35, 0.26, 0.05]),
+    }
+
     # Build the model / models.
-    model = get_model("UA", data_set, property_types, simulation_params)
+    for model_name in ["AUA+Q"]:
 
-    # Draw the initial parameter values from the model priors.
-    # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = numpy.array([99.5, 0.37685])
+        model = get_model(model_name, data_set, property_types, simulation_params)
 
-    # Run the simulation.
-    simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=int(simulation_params["steps"] * 0.1),
-        steps=simulation_params["steps"],
-        discard_warm_up_data=True,
-    )
+        # Run the simulation.
+        simulation = MCMCSimulation(
+            model_collection=model,
+            warm_up_steps=int(simulation_params["steps"] * 0.2),
+            steps=simulation_params["steps"],
+            discard_warm_up_data=True,
+        )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
-    model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
+        trace, log_p_trace, percent_deviation_trace = simulation.run(
+            initial_parameters[model.name]
+        )
+        model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
 
     print("Finished!")
 

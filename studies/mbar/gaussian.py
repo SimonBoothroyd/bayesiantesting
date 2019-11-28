@@ -35,7 +35,7 @@ class GaussianModel(Model):
 
 def main():
 
-    priors = {"uniform": ("uniform", numpy.array([-5.0, 5.0]))}
+    priors = {"uniform": ("uniform", numpy.array([-50.0, 50.0]))}
 
     # Build the model / models.
     model = GaussianModel("gaussian", priors, 0.0, 1.0)
@@ -44,19 +44,20 @@ def main():
     initial_parameters = model.sample_priors()
 
     # Set up log spaced lambda windows
-    lambda_values = numpy.geomspace(1.0, 2.0, 16) - 1.0
+    lambda_values = numpy.geomspace(1.0, 2.0, 20) - 1.0
 
     # Run the simulation
+
     simulation = MBARIntegration(
         lambda_values=lambda_values,
         model=model,
         warm_up_steps=100000,
-        steps=500000,
+        steps=1000000,
         discard_warm_up_data=True,
         output_directory_path="gaussian",
     )
 
-    _, integral, error = simulation.run(initial_parameters, number_of_threads=4)
+    _, integral, error = simulation.run(initial_parameters, number_of_threads=20)
 
     print(f"Final Integral:", integral, " +/- ", error)
     print("==============================")
