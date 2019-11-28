@@ -1,15 +1,10 @@
 USE_BAR: false
 biasing_factor:
-- 268.7700054021504
-- 269.6981013674754
-- 265.8677748543761
+- 297.65351362396
+- 300.0588385158948
+- 277.9084506552015
 compound: C2H6
-label: production
 number_data_points: 10
-opt_bounds: Expanded
-optimum_matching:
-- 'True'
-- 'True'
 priors:
   epsilon:
   - exponential
@@ -30,8 +25,8 @@ priors:
 properties: All
 save_traj: true
 simulation_type: Basic
-steps: 50000
-swap_freq: 0.1
+steps: 100000
+swap_freq: 0.5
 trange:
 - 0.55
 - 0.95

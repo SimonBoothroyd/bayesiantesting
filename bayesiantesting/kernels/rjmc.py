@@ -103,7 +103,7 @@ class RJMCSimulation(MCMCSimulation):
 
             # Propose an in-model move.
             proposed_parameters, proposed_log_p, acceptance = self._sampler.step(
-                proposed_parameters, current_log_p, adapt
+                proposed_parameters, current_model_index, current_log_p, adapt
             )
 
         move_proposals[current_model_index, proposed_model_index] += 1

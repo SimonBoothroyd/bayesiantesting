@@ -133,7 +133,9 @@ class MCMCSimulation:
             self._sampler = MetropolisSampler(
                 self._evaluate_log_p,
                 self._model_collection,
-                np.array([self._initial_values / 100]),
+                np.array([self._initial_values / 100]).repeat(
+                    self._model_collection.n_models, axis=0
+                ),
             )
 
         # Initialize the trace vectors
