@@ -134,6 +134,10 @@ class Model:
 
             prior = distributions.Uniform(prior_values[0], prior_values[1])
 
+        elif prior_type == "none":
+
+            prior = None
+
         else:
             raise NotImplementedError()
 

@@ -6,10 +6,11 @@ from random import random
 import autograd
 import numpy
 import pytest
+import torch.distributions
 
 from bayesiantesting.datasets.nist import NISTDataSet
 from bayesiantesting.models import Model
-from bayesiantesting.models.continuous import TwoCenterLJModel
+from bayesiantesting.models.continuous import TwoCenterLJModel, MultivariateGaussian
 from bayesiantesting.surrogates import StollWerthSurrogate
 
 
@@ -120,3 +121,28 @@ def test_evaluate_log_posterior(model):
 
     assert len(prior_gradients) == len(parameters)
     assert not numpy.allclose(prior_gradients, 0.0)
+
+
+def test_multivariate_normal():
+
+    mean_dictionary = {"epsilon": 1.0, "sigma": 5.0}
+    mean = numpy.array([*mean_dictionary.values()])
+
+    covariance = numpy.array([[1.0, 3.0 / 5.0], [3.0 / 5.0, 1.0]])
+
+    model = MultivariateGaussian("gaussian", mean_dictionary, covariance)
+
+    sample = model.sample_priors()
+    sample_tensor = torch.tensor(sample, requires_grad=True, dtype=torch.float64)
+
+    torch_mean = torch.tensor(mean, requires_grad=False, dtype=torch.float64)
+    torch_covariance = torch.tensor(
+        covariance, requires_grad=False, dtype=torch.float64
+    )
+
+    distribution = torch.distributions.MultivariateNormal(torch_mean, torch_covariance)
+
+    calculated_log_p = model.evaluate_log_prior(sample)
+    reference_log_p = distribution.log_prob(sample_tensor).item()
+
+    assert numpy.isclose(calculated_log_p, reference_log_p)

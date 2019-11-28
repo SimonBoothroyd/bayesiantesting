@@ -7,6 +7,7 @@ subclass.
 """
 import autograd.numpy
 import numpy
+import torch.distributions
 
 from bayesiantesting import unit
 from bayesiantesting.models import Model
@@ -152,3 +153,56 @@ class TwoCenterLJModel(Model):
             deviations[property_type] = mean_percentage_deviation
 
         return deviations
+
+
+class MultivariateGaussian(Model):
+    """Represents an _unconditioned_ multivariate gaussian
+    distribution.
+    """
+
+    def __init__(self, name, means, covariance):
+
+        prior_settings = {name: ["none", []] for name in means}
+        super().__init__(name, prior_settings, {})
+
+        self._means = numpy.array([*means.values()])
+        self._dimension = len(self._means)
+
+        assert len(covariance.shape) == 2
+        assert covariance.shape[0] == covariance.shape[1] == self._dimension
+
+        self._covariance = covariance
+        self._inverse_covariance = autograd.numpy.linalg.inv(covariance)
+        self._log_determinant = autograd.numpy.log(
+            autograd.numpy.linalg.det(covariance)
+        )
+
+    def sample_priors(self):
+
+        means = torch.tensor(self._means, requires_grad=False, dtype=torch.float64)
+        covariance = torch.tensor(
+            self._covariance, requires_grad=False, dtype=torch.float64
+        )
+
+        distribution = torch.distributions.MultivariateNormal(means, covariance)
+        return distribution.rsample().numpy()
+
+    def evaluate_log_prior(self, parameters):
+
+        residuals = parameters - self._means
+
+        log_p = -0.5 * (
+            self._log_determinant
+            + autograd.numpy.einsum(
+                "...j,jk,...k", residuals, self._inverse_covariance, residuals
+            )
+            + self._dimension * autograd.numpy.log(2 * autograd.numpy.pi)
+        )
+
+        return log_p
+
+    def evaluate_log_likelihood(self, parameters):
+        return 0.0
+
+    def compute_percentage_deviations(self, parameters):
+        return {}

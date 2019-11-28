@@ -10,6 +10,7 @@ import os
 import pprint
 from multiprocessing.pool import Pool
 
+import autograd
 import numpy
 import pymbar
 from matplotlib import pyplot
@@ -24,16 +25,26 @@ class LambdaSimulation(MCMCSimulation):
     lambda - a hyperparameter which interpolates between the prior and posterior
     distributions.
 
-    The samples will be generated from the following simple distribution:
+    If no reference distribution is set, the samples will be generated from the
+    following simple distribution:
 
-        p(x|D, λ) = p(x) * p(D|x)^lambda
+        p(x|D, λ) = p(x) * p(D|x) ^ λ
 
-    or rather
+    or rather:
 
         ln p(x|D, λ) = ln p(x) + λ ln p(D|x)
 
     where p(x) is the prior on x, and p(D|x) is the likelihood distribution
     At λ=0.0 only the prior is sampled, at λ=1.0 the full prior is sampled.
+
+    If a reference model q is set, the samples will be generated according
+    to:
+
+        p(x|D, λ) = (p(x) * p(D|x)) ^ λ  * (q(x) * q(D|x)) ^ (1 - λ)
+
+    or rather:
+
+        ln p(x|D, λ) = λ ln p(x) + λ ln p(D|x) + (1 - λ) * q(x) + (1 - λ) * q(D|x)
     """
 
     def __init__(
@@ -47,12 +58,16 @@ class LambdaSimulation(MCMCSimulation):
         save_trace_plots=True,
         sampler=None,
         lambda_value=1.0,
+        reference_model=None,
     ):
         """
         Parameters
         ----------
         lambda_value: float
             The value of lambda to sample at.
+        reference_model: Model
+            The model to transform the model of interest
+            into.
         """
 
         super().__init__(
@@ -67,13 +82,17 @@ class LambdaSimulation(MCMCSimulation):
         )
 
         self._lambda = lambda_value
+        self._reference_model = reference_model
 
     def _evaluate_log_p(self, parameters, model_index):
+
         model = self._model_collection.models[model_index]
-        return self.evaluate_log_p(model, parameters, self._lambda)
+        return self.evaluate_log_p(
+            model, parameters, self._lambda, self._reference_model
+        )
 
     @staticmethod
-    def evaluate_log_p(model, parameters, lambda_value):
+    def evaluate_log_p(model, parameters, lambda_value, reference_model):
         """Evaluate the log p for a given model, set of parameters,
         and lambda value.
 
@@ -86,6 +105,9 @@ class LambdaSimulation(MCMCSimulation):
             shape=(n_trainable_parameters).
         lambda_value: float
             The value of lambda to evaluate the log p at.
+        reference_model: Model
+            The model which the model of interest is being
+            transformed into.
 
         Returns
         -------
@@ -93,48 +115,31 @@ class LambdaSimulation(MCMCSimulation):
             The evaluated log p.
         """
 
-        log_prior = model.evaluate_log_prior(parameters)
-        log_likelihood = 0.0
+        if reference_model is None:
 
-        if not numpy.isclose(lambda_value, 0.0):
+            log_prior = model.evaluate_log_prior(parameters)
+            log_likelihood = 0.0
 
-            log_likelihood = model.evaluate_log_likelihood(parameters)
+            if not numpy.isclose(lambda_value, 0.0):
 
-            if not numpy.isinf(log_likelihood):
-                log_likelihood *= lambda_value
+                log_likelihood = model.evaluate_log_likelihood(parameters)
 
-        return log_prior + log_likelihood
+                if not numpy.isinf(log_likelihood):
+                    log_likelihood *= lambda_value
 
-    def _run_step(
-        self,
-        current_parameters,
-        current_model_index,
-        current_log_p,
-        move_proposals,
-        move_acceptances,
-        adapt_moves=False,
-    ):
+        else:
 
-        if not numpy.isclose(self._lambda, 0.0):
+            log_prior = lambda_value * model.evaluate_log_prior(parameters) + (
+                1.0 - lambda_value
+            ) * reference_model.evaluate_log_prior(parameters)
 
-            return super(LambdaSimulation, self)._run_step(
-                current_parameters,
-                current_model_index,
-                current_log_p,
-                move_proposals,
-                move_acceptances,
-                adapt_moves,
+            log_likelihood = lambda_value * model.evaluate_log_likelihood(
+                parameters
+            ) + (1.0 - lambda_value) * reference_model.evaluate_log_likelihood(
+                parameters
             )
 
-        model = self._model_collection.models[current_model_index]
-
-        proposed_parameters = model.sample_priors()
-        proposed_log_p = model.evaluate_log_prior(proposed_parameters)
-
-        move_proposals[current_model_index, current_model_index] += 1
-        move_acceptances[current_model_index, current_model_index] += 1
-
-        return proposed_parameters, current_model_index, proposed_log_p, True
+        return log_prior + log_likelihood
 
 
 class BaseModelEvidenceKernel:
@@ -158,6 +163,7 @@ class BaseModelEvidenceKernel:
         discard_warm_up_data=True,
         output_directory_path="",
         sampler=None,
+        reference_model=None,
     ):
         """
         Parameters
@@ -181,6 +187,9 @@ class BaseModelEvidenceKernel:
             The path to save the simulation results in.
         sampler: optional
             The sampler to use for in-model proposals.
+        reference_model: Model
+            The model to transform the model of interest
+            into.
         """
 
         assert isinstance(model, Model)
@@ -191,8 +200,10 @@ class BaseModelEvidenceKernel:
         self._tune_frequency = tune_frequency
         self._discard_warm_up_data = discard_warm_up_data
         self._sampler = sampler
+        self._reference_model = reference_model
 
         self._lambda_values = lambda_values
+        self._requires_gradients = False
 
         if len(output_directory_path) > 0:
             os.makedirs(output_directory_path, exist_ok=True)
@@ -256,7 +267,9 @@ class BaseModelEvidenceKernel:
                 self._discard_warm_up_data,
                 self._output_directory_path,
                 self._sampler,
+                self._reference_model,
                 initial_parameters,
+                self._requires_gradients,
             )
 
             lambda_ids = list(range(len(self._lambda_values)))
@@ -277,7 +290,9 @@ class BaseModelEvidenceKernel:
         discard_warm_up_data,
         output_directory_path,
         sampler,
+        reference_model,
         initial_parameters,
+        requires_gradients,
         lambda_tuple,
     ):
         """Run a given lambda window.
@@ -300,6 +315,9 @@ class BaseModelEvidenceKernel:
             The path to save the simulation results in.
         sampler: optional
             The sampler to use for in-model proposals.
+        reference_model: Model
+            The model to transform the model of interest
+            into.
         initial_parameters: numpy.ndarray
             The initial parameters to start the simulation
             from with shape=(n_trainable_parameters).
@@ -329,6 +347,7 @@ class BaseModelEvidenceKernel:
             output_directory_path=lambda_directory,
             save_trace_plots=False,
             sampler=sampler,
+            reference_model=reference_model,
             lambda_value=lambda_value,
         )
 
@@ -345,12 +364,18 @@ class BaseModelEvidenceKernel:
 
         print(f"Lamda Window {lambda_index}: g={g} N_samples={len(log_p_trace)}")
 
-        # Compute d log p / d lambda
         d_lop_p_d_lambda = numpy.empty(len(trace))
 
-        # TODO: Vectorize this.
-        for index in range(len(trace)):
-            d_lop_p_d_lambda[index] = model.evaluate_log_likelihood(trace[index][1:])
+        if requires_gradients:
+
+            # Compute d log p / d lambda
+            gradient_function = autograd.grad(LambdaSimulation.evaluate_log_p, 2)
+
+            # TODO: Vectorize this.
+            for index in range(len(trace)):
+                d_lop_p_d_lambda[index] = gradient_function(
+                    model, trace[index][1:], lambda_value, reference_model
+                )
 
         return trace, log_p_trace, d_lop_p_d_lambda
 
@@ -506,6 +531,7 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
         discard_warm_up_data=True,
         output_directory_path="",
         sampler=None,
+        reference_model=None,
     ):
         """
         Parameters
@@ -532,7 +558,10 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
             discard_warm_up_data,
             output_directory_path,
             sampler,
+            reference_model,
         )
+
+        self._requires_gradients = True
 
     def _compute_integral(self, window_results):
 
@@ -588,6 +617,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
         discard_warm_up_data=True,
         output_directory_path="",
         sampler=None,
+        reference_model=None,
     ):
 
         # TODO: Add trailblazing to choose these values.
@@ -605,6 +635,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
             discard_warm_up_data,
             output_directory_path,
             sampler,
+            reference_model,
         )
 
         self._overlap_matrix = None
@@ -633,7 +664,10 @@ class MBARIntegration(BaseModelEvidenceKernel):
                 reduced_potentials[
                     lambda_index, trace_index
                 ] = -LambdaSimulation.evaluate_log_p(
-                    self._model, full_trace[trace_index][1:], lambda_value
+                    self._model,
+                    full_trace[trace_index][1:],
+                    lambda_value,
+                    self._reference_model,
                 )
 
         mbar = pymbar.MBAR(reduced_potentials, frame_counts)
@@ -683,6 +717,8 @@ class MBARIntegration(BaseModelEvidenceKernel):
 
         figure = pyplot.figure(figsize=(n_states / 2.0, n_states / 2.0))
         figure.add_subplot(111, frameon=False, xticks=[], yticks=[])
+
+        j = 0
 
         for i in range(n_states):
 
