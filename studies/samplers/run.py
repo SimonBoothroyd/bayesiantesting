@@ -4,27 +4,8 @@ import numpy
 
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.kernels.samplers import NUTS, MetropolisSampler
-from bayesiantesting.models import Model, ModelCollection
-from bayesiantesting.utils import distributions
-
-
-class GaussianModel(Model):
-    """A representation of the two-center Lennard-Jones model, which
-    can be evaluated using a surrogate model against a `NISTDataSet`.
-    """
-
-    def __init__(self, name, prior_settings, loc, scale):
-
-        super().__init__(name, prior_settings, {})
-
-        self._loc = loc
-        self._scale = scale
-
-    def evaluate_log_likelihood(self, parameters):
-        return distributions.Normal(self._loc, self._scale).log_pdf(parameters)
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
+from bayesiantesting.models import ModelCollection
+from bayesiantesting.models.continuous import GaussianModel
 
 
 def main():

@@ -1,17 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct 31 14:42:37 2019
-
-@author: owenmadin
-"""
-
 import numpy
 import yaml
 
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
-from bayesiantesting.kernels.bayes import ThermodynamicIntegration
 from bayesiantesting.models.continuous import TwoCenterLJModel
 from bayesiantesting.surrogates import StollWerthSurrogate
 
@@ -26,13 +17,16 @@ def parse_input_yaml(filepath):
     return simulation_params
 
 
-def prepare_data(simulation_params):
+def prepare_data(simulation_params, compound=None):
     """From input parameters, pull appropriate experimental data and
     uncertainty information.
     """
 
+    if compound is None:
+        compound = simulation_params["compound"]
+
     # Retrieve the constants and thermophysical data
-    data_set = NISTDataSet(simulation_params["compound"])
+    data_set = NISTDataSet(compound)
 
     # Filter the data to selected conditions.
     minimum_temperature = (
@@ -63,7 +57,7 @@ def prepare_data(simulation_params):
     return data_set, property_types
 
 
-def get_model(model_name, data_set, property_types, simulation_params):
+def get_2clj_model(model_name, data_set, property_types, simulation_params):
 
     priors = {
         "epsilon": simulation_params["priors"]["epsilon"],
@@ -102,41 +96,28 @@ def get_model(model_name, data_set, property_types, simulation_params):
     return model
 
 
-def main():
+def generate_initial_parameters(model):
 
-    simulation_params = parse_input_yaml("basic_run.yaml")
+    initial_log_p = -numpy.inf
+    initial_parameters = None
 
-    # Load the data.
-    data_set, property_types = prepare_data(simulation_params)
+    counter = 0
 
-    # Set some reasonable initial parameters:
-    initial_parameters = {
-        "UA": numpy.array([100.0, 0.35]),
-        "AUA": numpy.array([120.0, 0.35, 0.12]),
-        "AUA+Q": numpy.array([140.0, 0.35, 0.26, 0.05]),
-    }
+    while numpy.isinf(initial_log_p) and counter < 10000:
 
-    # Build the model / models.
-    for model_name in initial_parameters:
+        initial_parameters = model.sample_priors()
+        initial_log_p = model.evaluate_log_posterior(initial_parameters)
 
-        model = get_model(model_name, data_set, property_types, simulation_params)
+        counter += 1
 
-        simulation = ThermodynamicIntegration(
-            legendre_gauss_degree=20,
-            model=model,
-            warm_up_steps=int(simulation_params["steps"] * 0.2),
-            steps=simulation_params["steps"],
-            discard_warm_up_data=True,
-            output_directory_path=f"ti_{model_name}",
+    initial_parameters = model.find_maximum_a_posteriori(initial_parameters)
+    initial_log_p = model.evaluate_log_posterior(initial_parameters)
+
+    if numpy.isnan(initial_log_p) or numpy.isinf(initial_log_p):
+
+        raise ValueError(
+            "The initial values could not be set without yielding "
+            "a NaN / inf log posterior"
         )
 
-        _, integral, error = simulation.run(
-            initial_parameters[model_name], number_of_processes=20
-        )
-
-        print(f"{model_name} Final Integral:", integral, " +/- ", error)
-        print("==============================")
-
-
-if __name__ == "__main__":
-    main()
+    return initial_parameters
