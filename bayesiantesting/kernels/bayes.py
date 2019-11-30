@@ -130,15 +130,22 @@ class LambdaSimulation(MCMCSimulation):
 
         else:
 
-            log_prior = lambda_value * model.evaluate_log_prior(parameters) + (
-                1.0 - lambda_value
-            ) * reference_model.evaluate_log_prior(parameters)
+            if numpy.isclose(lambda_value, 0.0):
 
-            log_likelihood = lambda_value * model.evaluate_log_likelihood(
-                parameters
-            ) + (1.0 - lambda_value) * reference_model.evaluate_log_likelihood(
-                parameters
-            )
+                log_prior = reference_model.evaluate_log_prior(parameters)
+                log_likelihood = reference_model.evaluate_log_likelihood(parameters)
+
+            else:
+
+                log_prior = lambda_value * model.evaluate_log_prior(parameters) + (
+                        1.0 - lambda_value
+                ) * reference_model.evaluate_log_prior(parameters)
+
+                log_likelihood = lambda_value * model.evaluate_log_likelihood(
+                    parameters
+                ) + (1.0 - lambda_value) * reference_model.evaluate_log_likelihood(
+                    parameters
+                )
 
         return log_prior + log_likelihood
 
