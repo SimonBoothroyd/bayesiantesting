@@ -32,7 +32,7 @@ def main():
         output_directory_path="gaussian",
     )
 
-    _, integral, error = simulation.run(initial_parameters, number_of_threads=4)
+    _, integral, error = simulation.run(initial_parameters, number_of_processes=4)
 
     print(f"Final Integral:", integral, " +/- ", error)
     print("==============================")

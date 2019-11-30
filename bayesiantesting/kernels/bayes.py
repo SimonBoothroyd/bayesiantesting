@@ -228,7 +228,7 @@ class BaseModelEvidenceKernel:
                 f"one value for each of the trainable model parameters."
             )
 
-    def run(self, initial_parameters, number_of_threads=1):
+    def run(self, initial_parameters, number_of_processes=1):
         """Run the simulation loop.
 
         Parameters
@@ -236,7 +236,7 @@ class BaseModelEvidenceKernel:
         initial_parameters: numpy.ndarray
             The initial parameters to use in the lambda
             simulations, with shape=(n_trainable_parameters).
-        number_of_threads: int
+        number_of_processes: int
             The number of processes to distribute the calculation
             across.
 
@@ -256,7 +256,7 @@ class BaseModelEvidenceKernel:
         self._validate_parameter_shapes(initial_parameters)
 
         # Simulate in each lambda window.
-        with Pool(number_of_threads) as pool:
+        with Pool(number_of_processes) as pool:
 
             run_with_args = functools.partial(
                 BaseModelEvidenceKernel._run_window,

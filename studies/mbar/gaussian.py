@@ -37,7 +37,7 @@ def main():
         reference_model=model_b,
     )
 
-    _, integral, error = simulation.run(initial_parameters, number_of_threads=20)
+    _, integral, error = simulation.run(initial_parameters, number_of_processes=20)
 
     print(
         f"Final Integral:",

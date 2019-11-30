@@ -435,6 +435,13 @@ class Model:
             self.plot_percentage_deviations(percentage_deviations, show),
         )
 
+    def to_json(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_json(cls, json_string):
+        raise NotImplementedError()
+
 
 class ModelCollection:
     """Represents a collection of models to simultaneously optimize.

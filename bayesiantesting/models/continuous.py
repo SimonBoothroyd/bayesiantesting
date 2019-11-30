@@ -5,6 +5,8 @@ all continuous.
 Models in this module should inherit from the `Model`
 subclass.
 """
+import json
+
 import autograd.numpy
 import numpy
 import torch.distributions
@@ -154,6 +156,13 @@ class TwoCenterLJModel(Model):
 
         return deviations
 
+    def to_json(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_json(cls, json_string):
+        raise NotImplementedError()
+
 
 class GaussianModel(Model):
     """A toy model with a gaussian likelihood function with is
@@ -177,6 +186,13 @@ class GaussianModel(Model):
 
     def compute_percentage_deviations(self, parameters):
         return {}
+
+    def to_json(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_json(cls, json_string):
+        raise NotImplementedError()
 
 
 class CauchyModel(Model):
@@ -202,11 +218,32 @@ class CauchyModel(Model):
     def compute_percentage_deviations(self, parameters):
         return {}
 
+    def to_json(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_json(cls, json_string):
+        raise NotImplementedError()
+
 
 class MultivariateGaussian(Model):
     """Represents an _unconditioned_ multivariate gaussian
     distribution.
     """
+
+    @property
+    def mean(self):
+        """numpy.ndarray: The mean value of this distribution with
+        shape=(n_trainable_parameters).
+        """
+        return self._means
+
+    @property
+    def covariance(self):
+        """numpy.ndarray: The covariance of this distribution with
+        shape=(n_trainable_parameters, n_trainable_parameters).
+        """
+        return self._covariance
 
     def __init__(self, name, means, covariance):
 
@@ -254,3 +291,29 @@ class MultivariateGaussian(Model):
 
     def compute_percentage_deviations(self, parameters):
         return {}
+
+    def to_json(self):
+
+        mean_dictionary = {
+            label: mean.tolist() for label, mean in zip(self._prior_labels, self._means)
+        }
+
+        dictionary = {
+            "name": self.name,
+            "mean": mean_dictionary,
+            "covariance": self._covariance.tolist(),
+        }
+
+        return json.dumps(dictionary, sort_keys=True, indent=4, separators=(",", ": "))
+
+    @classmethod
+    def from_json(cls, json_string):
+
+        dictionary = json.loads(json_string)
+
+        mean = {
+            label: numpy.asarray(value) for label, value in dictionary["mean"].items()
+        }
+        covariance = numpy.asarray(dictionary["covariance"])
+
+        return cls(dictionary["name"], mean, covariance)
