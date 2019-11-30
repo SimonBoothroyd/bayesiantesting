@@ -503,23 +503,24 @@ class BaseModelEvidenceKernel:
         pyplot.close(figure)
 
         # Plot d log p d lambda
-        figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
+        if self._requires_gradients:
+            figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
 
-        axes.errorbar(
-            self._lambda_values,
-            d_log_p_d_lambdas,
-            yerr=d_log_p_d_lambdas_std,
-            color="#17becf",
-        )
-        axes.set_xlabel(r"$\lambda$")
-        axes.set_ylabel(r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$")
+            axes.errorbar(
+                self._lambda_values,
+                d_log_p_d_lambdas,
+                yerr=d_log_p_d_lambdas_std,
+                color="#17becf",
+            )
+            axes.set_xlabel(r"$\lambda$")
+            axes.set_ylabel(r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$")
 
-        figure.savefig(
-            os.path.join(self._output_directory_path, f"d_log_p_d_lambdas.pdf")
-        )
-        pyplot.close(figure)
+            figure.savefig(
+                os.path.join(self._output_directory_path, f"d_log_p_d_lambdas.pdf")
+            )
+            pyplot.close(figure)
 
-        # Save the output as a json file and numpy files.
+        # Save the output as json files.
         results = self._get_results_dictionary(
             integral,
             standard_error,
@@ -533,15 +534,6 @@ class BaseModelEvidenceKernel:
             os.path.join(self._output_directory_path, "results.json"), "w"
         ) as file:
             json.dump(results, file, sort_keys=True, indent=4, separators=(",", ": "))
-
-        numpy.save(
-            os.path.join(self._output_directory_path, "d_log_p_d_lambdas.npy"),
-            d_log_p_d_lambdas,
-        )
-        numpy.save(
-            os.path.join(self._output_directory_path, "d_log_p_d_lambdas_std.npy"),
-            d_log_p_d_lambdas_std,
-        )
 
 
 class ThermodynamicIntegration(BaseModelEvidenceKernel):
