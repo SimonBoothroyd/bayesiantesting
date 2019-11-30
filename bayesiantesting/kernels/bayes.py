@@ -138,7 +138,7 @@ class LambdaSimulation(MCMCSimulation):
             else:
 
                 log_prior = lambda_value * model.evaluate_log_prior(parameters) + (
-                        1.0 - lambda_value
+                    1.0 - lambda_value
                 ) * reference_model.evaluate_log_prior(parameters)
 
                 log_likelihood = lambda_value * model.evaluate_log_likelihood(
@@ -406,7 +406,13 @@ class BaseModelEvidenceKernel:
         raise NotImplementedError()
 
     def _get_results_dictionary(
-        self, integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+        self,
+        integral,
+        standard_error,
+        log_p_vs_lambda,
+        log_p_vs_lambda_std,
+        d_log_p_d_lambdas,
+        d_log_p_d_lambdas_std,
     ):
         """Returns a dictionary containing key information about
         the results.
@@ -417,13 +423,22 @@ class BaseModelEvidenceKernel:
             The dictionary containing the output of this
             kernel.
         """
-        return {
+        results_dictionary = {
             "model_evidence": integral,
             "model_evidence_std": standard_error,
             "lambdas": self._lambda_values.tolist(),
-            "d_log_p_d_lambdas": d_log_p_d_lambdas.tolist(),
-            "d_log_p_d_lambdas_std": d_log_p_d_lambdas_std.tolist(),
+            "log_p_vs_lambda": log_p_vs_lambda.tolist(),
+            "log_p_vs_lambda_std": log_p_vs_lambda_std.tolist(),
         }
+
+        if self._requires_gradients:
+
+            results_dictionary["d_log_p_d_lambdas"] = (d_log_p_d_lambdas.tolist(),)
+            results_dictionary["d_log_p_d_lambdas_std"] = (
+                d_log_p_d_lambdas_std.tolist(),
+            )
+
+        return results_dictionary
 
     def _save_results(self, results, integral, standard_error):
         """Saves the results of the simulation to the output
@@ -506,7 +521,12 @@ class BaseModelEvidenceKernel:
 
         # Save the output as a json file and numpy files.
         results = self._get_results_dictionary(
-            integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+            integral,
+            standard_error,
+            lambdas,
+            lambdas_std,
+            d_log_p_d_lambdas,
+            d_log_p_d_lambdas_std,
         )
 
         with open(
@@ -593,7 +613,13 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
         return integral, numpy.sqrt(variance)
 
     def _get_results_dictionary(
-        self, integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+        self,
+        integral,
+        standard_error,
+        log_p_vs_lambda,
+        log_p_vs_lambda_std,
+        d_log_p_d_lambdas,
+        d_log_p_d_lambdas_std,
     ):
         """Returns a dictionary containing key information about
         the results.
@@ -603,7 +629,12 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
         dict of str, Any
         """
         results = super(ThermodynamicIntegration, self)._get_results_dictionary(
-            integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+            integral,
+            standard_error,
+            log_p_vs_lambda,
+            log_p_vs_lambda_std,
+            d_log_p_d_lambdas,
+            d_log_p_d_lambdas_std,
         )
         results["weights"] = self._lambda_weights.tolist()
 
@@ -690,7 +721,13 @@ class MBARIntegration(BaseModelEvidenceKernel):
         return result["Delta_f"][-1, 0], result["dDelta_f"][-1, 0]
 
     def _get_results_dictionary(
-        self, integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+        self,
+        integral,
+        standard_error,
+        log_p_vs_lambda,
+        log_p_vs_lambda_std,
+        d_log_p_d_lambdas,
+        d_log_p_d_lambdas_std,
     ):
         """Returns a dictionary containing key information about
         the results.
@@ -700,7 +737,12 @@ class MBARIntegration(BaseModelEvidenceKernel):
         dict of str, Any
         """
         results = super(MBARIntegration, self)._get_results_dictionary(
-            integral, standard_error, d_log_p_d_lambdas, d_log_p_d_lambdas_std
+            integral,
+            standard_error,
+            log_p_vs_lambda,
+            log_p_vs_lambda_std,
+            d_log_p_d_lambdas,
+            d_log_p_d_lambdas_std,
         )
         results["overlap"] = self._overlap_matrix.tolist()
 
