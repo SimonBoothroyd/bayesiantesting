@@ -53,7 +53,7 @@ def test_evaluate_log_prior():
 
     counter = 0
 
-    while numpy.isinf(log_p) and counter < 1000:
+    while numpy.isinf(log_p) and counter < 10000:
 
         parameters = model.sample_priors()
         # Make sure the method call doesn't fail.
@@ -79,7 +79,7 @@ def test_evaluate_log_likelihood(model):
 
     counter = 0
 
-    while numpy.isinf(log_p) and counter < 1000:
+    while numpy.isinf(log_p) and counter < 10000:
 
         parameters = model.sample_priors()
         # Make sure the method call doesn't fail.
@@ -105,7 +105,7 @@ def test_evaluate_log_posterior(model):
 
     counter = 0
 
-    while numpy.isinf(log_p) and counter < 1000:
+    while numpy.isinf(log_p) and counter < 10000:
 
         parameters = model.sample_priors()
         # Make sure the method call doesn't fail.

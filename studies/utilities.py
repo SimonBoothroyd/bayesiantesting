@@ -103,7 +103,7 @@ def generate_initial_parameters(model):
 
     counter = 0
 
-    while numpy.isinf(initial_log_p) and counter < 5000:
+    while numpy.isinf(initial_log_p) and counter < 10000:
 
         initial_parameters = model.sample_priors()
         initial_log_p = model.evaluate_log_posterior(initial_parameters)
