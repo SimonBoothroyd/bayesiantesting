@@ -8,58 +8,8 @@ Created on Thu Oct 31 14:42:37 2019
 
 import numpy
 
-# from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.kernels.bayes import MBARIntegration
-from bayesiantesting.models import Model
-from bayesiantesting.utils import distributions
-
-
-class GaussianModel(Model):
-    """A representation of the two-center Lennard-Jones model, which
-    can be evaluated using a surrogate model against a `NISTDataSet`.
-    """
-
-    def __init__(self, name, prior_settings, loc, scale, weight=1.0):
-
-        super().__init__(name, prior_settings, {})
-
-        self._loc = loc
-        self._scale = scale
-
-        self._log_weight = numpy.log(weight)
-
-    def evaluate_log_likelihood(self, parameters):
-        return (
-            distributions.Normal(self._loc, self._scale).log_pdf(parameters)
-            + self._log_weight
-        )
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
-
-
-class CauchyModel(Model):
-    """A representation of the two-center Lennard-Jones model, which
-    can be evaluated using a surrogate model against a `NISTDataSet`.
-    """
-
-    def __init__(self, name, prior_settings, loc, scale, weight=1.0):
-
-        super().__init__(name, prior_settings, {})
-
-        self._loc = loc
-        self._scale = scale
-
-        self._log_weight = numpy.log(weight)
-
-    def evaluate_log_likelihood(self, parameters):
-        return (
-            distributions.Cauchy(self._loc, self._scale).log_pdf(parameters)
-            + self._log_weight
-        )
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
+from bayesiantesting.models.continuous import CauchyModel, GaussianModel
 
 
 def main():

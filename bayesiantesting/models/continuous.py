@@ -155,6 +155,54 @@ class TwoCenterLJModel(Model):
         return deviations
 
 
+class GaussianModel(Model):
+    """A toy model with a gaussian likelihood function with is
+    not conditioned on any data.
+    """
+
+    def __init__(self, name, prior_settings, loc, scale, weight=1.0):
+
+        super().__init__(name, prior_settings, {})
+
+        self._loc = loc
+        self._scale = scale
+
+        self._log_weight = numpy.log(weight)
+
+    def evaluate_log_likelihood(self, parameters):
+        return (
+            distributions.Normal(self._loc, self._scale).log_pdf(parameters)
+            + self._log_weight
+        )
+
+    def compute_percentage_deviations(self, parameters):
+        return {}
+
+
+class CauchyModel(Model):
+    """A toy model with a cauchy likelihood function with is
+    not conditioned on any data.
+    """
+
+    def __init__(self, name, prior_settings, loc, scale, weight=1.0):
+
+        super().__init__(name, prior_settings, {})
+
+        self._loc = loc
+        self._scale = scale
+
+        self._log_weight = numpy.log(weight)
+
+    def evaluate_log_likelihood(self, parameters):
+        return (
+            distributions.Cauchy(self._loc, self._scale).log_pdf(parameters)
+            + self._log_weight
+        )
+
+    def compute_percentage_deviations(self, parameters):
+        return {}
+
+
 class MultivariateGaussian(Model):
     """Represents an _unconditioned_ multivariate gaussian
     distribution.

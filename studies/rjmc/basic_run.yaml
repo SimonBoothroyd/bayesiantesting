@@ -1,8 +1,8 @@
 USE_BAR: false
 biasing_factor:
-- 297.65351362396
-- 300.0588385158948
-- 277.9084506552015
+- 4.8648
+- 8.0046
+- 0.0
 compound: C2H6
 number_data_points: 10
 priors:
@@ -25,7 +25,7 @@ priors:
 properties: All
 save_traj: true
 simulation_type: Basic
-steps: 100000
+steps: 4000000
 swap_freq: 0.5
 trange:
 - 0.55

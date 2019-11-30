@@ -35,7 +35,7 @@ class LambdaSimulation(MCMCSimulation):
         ln p(x|D, λ) = ln p(x) + λ ln p(D|x)
 
     where p(x) is the prior on x, and p(D|x) is the likelihood distribution
-    At λ=0.0 only the prior is sampled, at λ=1.0 the full prior is sampled.
+    At λ=0.0 only the prior is sampled, at λ=1.0 the full posterior is sampled.
 
     If a reference model q is set, the samples will be generated according
     to:

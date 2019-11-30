@@ -10,7 +10,7 @@ import torch.distributions
 
 from bayesiantesting.datasets.nist import NISTDataSet
 from bayesiantesting.models import Model
-from bayesiantesting.models.continuous import TwoCenterLJModel, MultivariateGaussian
+from bayesiantesting.models.continuous import MultivariateGaussian, TwoCenterLJModel
 from bayesiantesting.surrogates import StollWerthSurrogate
 
 
