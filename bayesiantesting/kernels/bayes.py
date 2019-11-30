@@ -22,8 +22,9 @@ from bayesiantesting.models import Model
 
 class LambdaSimulation(MCMCSimulation):
     """Builds an object that runs an MCMC simulation at a specific value of
-    lambda - a hyperparameter which interpolates between the prior and posterior
-    distributions.
+    lambda - a hyperparameter which interpolates between a target distribution
+    whose model evidence is intractable, and a reference distributions whose
+    evidence is.
 
     If no reference distribution is set, the samples will be generated from the
     following simple distribution:
