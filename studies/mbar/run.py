@@ -50,8 +50,8 @@ def fit_multivariate_to_trace(model, output_directory, use_existing=True):
     # Run a short MCMC simulation to get better initial parameters
     simulation = MCMCSimulation(
         model_collection=model,
-        warm_up_steps=1000,
-        steps=1000,
+        warm_up_steps=100000,
+        steps=1000000,
         discard_warm_up_data=True,
         output_directory_path=output_directory,
     )

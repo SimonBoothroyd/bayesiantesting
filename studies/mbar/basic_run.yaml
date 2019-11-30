@@ -20,5 +20,5 @@ priors:
   - - 0
     - 1
 properties: All
-warm_up_steps: 1000
-steps: 1000
+warm_up_steps: 500000
+steps: 4000000
