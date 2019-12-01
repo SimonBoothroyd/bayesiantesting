@@ -19,13 +19,10 @@ class RJMCSimulation(MCMCSimulation):
     def __init__(
         self,
         model_collection,
-        warm_up_steps=100000,
-        steps=100000,
-        tune_frequency=5000,
-        discard_warm_up_data=True,
-        output_directory_path="",
-        save_trace_plots=True,
+        initial_parameters,
+        initial_model_index=0,
         sampler=None,
+        random_seed=None,
         swap_frequency=0.3,
     ):
         """
@@ -46,24 +43,19 @@ class RJMCSimulation(MCMCSimulation):
 
         super().__init__(
             model_collection,
-            warm_up_steps,
-            steps,
-            tune_frequency,
-            discard_warm_up_data,
-            output_directory_path,
-            save_trace_plots,
+            initial_parameters,
+            initial_model_index,
             sampler,
+            random_seed,
         )
 
         self._swap_frequency = swap_frequency
 
-    def _run_step(
+    def _step(
         self,
         current_parameters,
         current_model_index,
         current_log_p,
-        move_proposals,
-        move_acceptances,
         adapt=False,
     ):
 
@@ -106,7 +98,7 @@ class RJMCSimulation(MCMCSimulation):
                 proposed_parameters, current_model_index, current_log_p, adapt
             )
 
-        move_proposals[current_model_index, proposed_model_index] += 1
+        self._move_proposals[current_model_index, proposed_model_index] += 1
 
         if acceptance:
 
@@ -114,7 +106,7 @@ class RJMCSimulation(MCMCSimulation):
             new_params = proposed_parameters
             new_model_index = proposed_model_index
 
-            move_acceptances[current_model_index, new_model_index] += 1
+            self._move_acceptances[current_model_index, new_model_index] += 1
 
         else:
 
@@ -163,14 +155,11 @@ class BiasedRJMCSimulation(RJMCSimulation):
     def __init__(
         self,
         model_collection,
-        warm_up_steps=100000,
-        steps=100000,
-        tune_frequency=5000,
-        discard_warm_up_data=True,
-        output_directory_path="",
-        save_trace_plots=True,
-        swap_frequency=0.3,
+        initial_parameters,
+        initial_model_index=0,
         sampler=None,
+        random_seed=None,
+        swap_frequency=0.3,
         log_biases=None,
     ):
         """
@@ -182,13 +171,10 @@ class BiasedRJMCSimulation(RJMCSimulation):
         """
         super().__init__(
             model_collection,
-            warm_up_steps,
-            steps,
-            tune_frequency,
-            discard_warm_up_data,
-            output_directory_path,
-            save_trace_plots,
+            initial_parameters,
+            initial_model_index,
             sampler,
+            random_seed,
             swap_frequency,
         )
 

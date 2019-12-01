@@ -6,7 +6,7 @@ do not require nor make use of gradient information.
 import numpy
 import torch
 
-from bayesiantesting.kernels.samplers.samplers import Sampler
+from bayesiantesting.samplers import Sampler
 from bayesiantesting.utils import distributions
 
 

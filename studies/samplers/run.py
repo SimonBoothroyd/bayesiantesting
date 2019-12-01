@@ -3,7 +3,7 @@
 import numpy
 
 from bayesiantesting.kernels import MCMCSimulation
-from bayesiantesting.kernels.samplers import NUTS, MetropolisSampler
+from bayesiantesting.samplers import NUTS, MetropolisSampler
 from bayesiantesting.models import Model, ModelCollection
 from bayesiantesting.utils import distributions
 

@@ -17,7 +17,7 @@ import autograd
 import numpy
 import torch
 
-from bayesiantesting.kernels.samplers.samplers import Sampler
+from bayesiantesting.samplers import Sampler
 
 
 class Hamiltonian(Sampler):

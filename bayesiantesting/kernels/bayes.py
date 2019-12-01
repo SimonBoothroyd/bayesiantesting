@@ -39,13 +39,10 @@ class LambdaSimulation(MCMCSimulation):
     def __init__(
         self,
         model_collection,
-        warm_up_steps=100000,
-        steps=100000,
-        tune_frequency=5000,
-        discard_warm_up_data=True,
-        output_directory_path="",
-        save_trace_plots=True,
+        initial_parameters,
+        initial_model_index=0,
         sampler=None,
+        random_seed=None,
         lambda_value=1.0,
     ):
         """
@@ -57,13 +54,10 @@ class LambdaSimulation(MCMCSimulation):
 
         super().__init__(
             model_collection,
-            warm_up_steps,
-            steps,
-            tune_frequency,
-            discard_warm_up_data,
-            output_directory_path,
-            save_trace_plots,
+            initial_parameters,
+            initial_model_index,
             sampler,
+            random_seed,
         )
 
         self._lambda = lambda_value
@@ -104,37 +98,6 @@ class LambdaSimulation(MCMCSimulation):
                 log_likelihood *= lambda_value
 
         return log_prior + log_likelihood
-
-    def _run_step(
-        self,
-        current_parameters,
-        current_model_index,
-        current_log_p,
-        move_proposals,
-        move_acceptances,
-        adapt_moves=False,
-    ):
-
-        if not numpy.isclose(self._lambda, 0.0):
-
-            return super(LambdaSimulation, self)._run_step(
-                current_parameters,
-                current_model_index,
-                current_log_p,
-                move_proposals,
-                move_acceptances,
-                adapt_moves,
-            )
-
-        model = self._model_collection.models[current_model_index]
-
-        proposed_parameters = model.sample_priors()
-        proposed_log_p = model.evaluate_log_prior(proposed_parameters)
-
-        move_proposals[current_model_index, current_model_index] += 1
-        move_acceptances[current_model_index, current_model_index] += 1
-
-        return proposed_parameters, current_model_index, proposed_log_p, True
 
 
 class BaseModelEvidenceKernel:
