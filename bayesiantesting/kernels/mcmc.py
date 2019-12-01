@@ -37,7 +37,7 @@ class MCMCSimulation:
         """dict of str and numpy.ndarray: A trajectory of deviations of
         the models properties from their targets with shape=(n_steps)."""
         return {
-            label: np.asarray(trace) for label, trace in self._percent_deviation_trace
+            label: np.asarray(trace) for label, trace in self._percent_deviation_trace.items()
         }
 
     def __init__(
@@ -90,7 +90,7 @@ class MCMCSimulation:
                 self._model_collection.n_models, axis=0
             )
 
-            proposal_sizes = np.max(0.01, proposal_sizes)
+            proposal_sizes = np.where(proposal_sizes <= 0.0, 0.01, proposal_sizes)
 
             sampler = MetropolisSampler(
                 self._evaluate_log_p, self._model_collection, proposal_sizes,
@@ -376,7 +376,7 @@ class MCMCSimulation:
             "random_seed": self._random_seed,
             "move_proposals": self._move_proposals.tolist(),
             "move_acceptances": self._move_acceptances.tolist(),
-            "sampler: ": self._sampler.get_statistics_dictionary(),
+            "sampler_statistics": self._sampler.get_statistics_dictionary(),
         }
 
         filename = os.path.join(directory_path, "statistics.json")

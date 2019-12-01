@@ -22,7 +22,7 @@ def main():
     }
 
     # Build the model / models.
-    for model_name in ["AUA+Q"]:
+    for model_name in ["UA", "AUA", "AUA+Q"]:
 
         model = get_2clj_model(model_name, data_set, property_types, simulation_params)
 
