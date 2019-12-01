@@ -3,6 +3,7 @@
 import numpy
 
 from bayesiantesting.kernels import MCMCSimulation
+<<<<<<< HEAD
 from bayesiantesting.samplers import NUTS, MetropolisSampler
 from bayesiantesting.models import Model, ModelCollection
 from bayesiantesting.utils import distributions
@@ -25,6 +26,11 @@ class GaussianModel(Model):
 
     def compute_percentage_deviations(self, parameters):
         return {}
+=======
+from bayesiantesting.kernels.samplers import NUTS, MetropolisSampler
+from bayesiantesting.models import ModelCollection
+from bayesiantesting.models.continuous import GaussianModel
+>>>>>>> origin/master
 
 
 def main():

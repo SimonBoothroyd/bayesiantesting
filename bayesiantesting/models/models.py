@@ -134,6 +134,10 @@ class Model:
 
             prior = distributions.Uniform(prior_values[0], prior_values[1])
 
+        elif prior_type == "none":
+
+            prior = None
+
         else:
             raise NotImplementedError()
 
@@ -430,6 +434,13 @@ class Model:
             self.plot_log_p(log_p, show),
             self.plot_percentage_deviations(percentage_deviations, show),
         )
+
+    def to_json(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_json(cls, json_string):
+        raise NotImplementedError()
 
 
 class ModelCollection:

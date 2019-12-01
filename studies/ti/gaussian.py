@@ -8,29 +8,8 @@ Created on Thu Oct 31 14:42:37 2019
 
 import numpy
 
-# from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.kernels.bayes import ThermodynamicIntegration
-from bayesiantesting.models import Model
-from bayesiantesting.utils import distributions
-
-
-class GaussianModel(Model):
-    """A representation of the two-center Lennard-Jones model, which
-    can be evaluated using a surrogate model against a `NISTDataSet`.
-    """
-
-    def __init__(self, name, prior_settings, loc, scale):
-
-        super().__init__(name, prior_settings, {})
-
-        self._loc = loc
-        self._scale = scale
-
-    def evaluate_log_likelihood(self, parameters):
-        return distributions.Normal(self._loc, self._scale).log_pdf(parameters)
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
+from bayesiantesting.models.continuous import GaussianModel
 
 
 def main():
@@ -53,7 +32,7 @@ def main():
         output_directory_path="gaussian",
     )
 
-    _, integral, error = simulation.run(initial_parameters, number_of_threads=4)
+    _, integral, error = simulation.run(initial_parameters, number_of_processes=4)
 
     print(f"Final Integral:", integral, " +/- ", error)
     print("==============================")

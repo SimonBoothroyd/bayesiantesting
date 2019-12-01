@@ -1,10 +1,7 @@
-USE_BAR: false
-biasing_factor:
-- 4.8648
-- 8.0046
-- 0.0
-compound: C2H6
 number_data_points: 10
+trange:
+- 0.55
+- 0.95
 priors:
   epsilon:
   - exponential
@@ -23,10 +20,5 @@ priors:
   - - 0
     - 1
 properties: All
-save_traj: true
-simulation_type: Basic
+warm_up_steps: 500000
 steps: 4000000
-swap_freq: 0.5
-trange:
-- 0.55
-- 0.95
