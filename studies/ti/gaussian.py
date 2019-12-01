@@ -28,7 +28,6 @@ def main():
         model=model,
         warm_up_steps=100000,
         steps=500000,
-        discard_warm_up_data=True,
         output_directory_path="gaussian",
     )
 

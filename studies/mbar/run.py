@@ -49,14 +49,12 @@ def fit_multivariate_to_trace(model, output_directory, use_existing=True):
 
     # Run a short MCMC simulation to get better initial parameters
     simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=100000,
-        steps=1000000,
-        discard_warm_up_data=True,
-        output_directory_path=output_directory,
+        model_collection=model, initial_parameters=initial_parameters
     )
 
-    trace, _, _ = simulation.run(initial_parameters)
+    trace, _, _ = simulation.run(
+        warm_up_steps=100000, steps=1000000, output_directory=output_directory
+    )
 
     mean = numpy.mean(trace[:, 1:], axis=0)
     covariance = numpy.cov(trace[:, 1:].T)
@@ -114,7 +112,6 @@ def main(compound, n_processes):
             model=model,
             warm_up_steps=simulation_params["warm_up_steps"],
             steps=simulation_params["steps"],
-            discard_warm_up_data=True,
             output_directory_path=output_directory,
             reference_model=reference_model,
         )

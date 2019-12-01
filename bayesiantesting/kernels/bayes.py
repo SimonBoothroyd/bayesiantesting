@@ -161,8 +161,6 @@ class BaseModelEvidenceKernel:
         model,
         warm_up_steps=100000,
         steps=100000,
-        tune_frequency=5000,
-        discard_warm_up_data=True,
         output_directory_path="",
         sampler=None,
         reference_model=None,
@@ -180,11 +178,6 @@ class BaseModelEvidenceKernel:
             be tuned.
         steps: int
             The number of steps to simulate at each value of lambda for.
-        tune_frequency: int
-            The frequency with which to tune the move proposals.
-        discard_warm_up_data: bool
-            If true, all data generated during the warm-up period will
-            be discarded.
         output_directory_path: str
             The path to save the simulation results in.
         sampler: optional
@@ -199,8 +192,6 @@ class BaseModelEvidenceKernel:
         self._model = model
         self._warm_up_steps = warm_up_steps
         self._steps = steps
-        self._tune_frequency = tune_frequency
-        self._discard_warm_up_data = discard_warm_up_data
         self._sampler = sampler
         self._reference_model = reference_model
 
@@ -265,8 +256,6 @@ class BaseModelEvidenceKernel:
                 self._model,
                 self._warm_up_steps,
                 self._steps,
-                self._tune_frequency,
-                self._discard_warm_up_data,
                 self._output_directory_path,
                 self._sampler,
                 self._reference_model,
@@ -288,8 +277,6 @@ class BaseModelEvidenceKernel:
         model,
         warm_up_steps,
         steps,
-        tune_frequency,
-        discard_warm_up_data,
         output_directory_path,
         sampler,
         reference_model,
@@ -308,11 +295,6 @@ class BaseModelEvidenceKernel:
             move proposals will be tuned.
         steps: int
             The number of steps which the simulation should run for.
-        tune_frequency: int
-            The frequency with which to tune the move proposals.
-        discard_warm_up_data: bool
-            If true, all data generated during the warm-up period will
-            be discarded.
         output_directory_path: str
             The path to save the simulation results in.
         sampler: optional
@@ -342,18 +324,19 @@ class BaseModelEvidenceKernel:
 
         simulation = LambdaSimulation(
             model_collection=model,
-            warm_up_steps=warm_up_steps,
-            steps=steps,
-            tune_frequency=tune_frequency,
-            discard_warm_up_data=discard_warm_up_data,
-            output_directory_path=lambda_directory,
-            save_trace_plots=False,
+            initial_parameters=initial_parameters,
             sampler=sampler,
             reference_model=reference_model,
             lambda_value=lambda_value,
         )
 
-        trace, log_p_trace, _ = simulation.run(initial_parameters, 0, None)
+        trace, log_p_trace, _ = simulation.run(
+            warm_up_steps=warm_up_steps,
+            steps=steps,
+            output_directory=lambda_directory,
+            save_trace_plots=False,
+            progress_bar=False,
+        )
 
         # TODO: Properly decorrelate the data.
         # g = timeseries.statisticalInefficiency(log_p_trace, fast=False, fft=True)
@@ -541,8 +524,6 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
         model,
         warm_up_steps=100000,
         steps=100000,
-        tune_frequency=5000,
-        discard_warm_up_data=True,
         output_directory_path="",
         sampler=None,
         reference_model=None,
@@ -568,8 +549,6 @@ class ThermodynamicIntegration(BaseModelEvidenceKernel):
             model,
             warm_up_steps,
             steps,
-            tune_frequency,
-            discard_warm_up_data,
             output_directory_path,
             sampler,
             reference_model,
@@ -638,8 +617,6 @@ class MBARIntegration(BaseModelEvidenceKernel):
         model,
         warm_up_steps=100000,
         steps=100000,
-        tune_frequency=5000,
-        discard_warm_up_data=True,
         output_directory_path="",
         sampler=None,
         reference_model=None,
@@ -656,8 +633,6 @@ class MBARIntegration(BaseModelEvidenceKernel):
             model,
             warm_up_steps,
             steps,
-            tune_frequency,
-            discard_warm_up_data,
             output_directory_path,
             sampler,
             reference_model,
