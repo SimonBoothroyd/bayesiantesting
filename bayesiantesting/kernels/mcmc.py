@@ -449,3 +449,60 @@ class MCMCSimulation:
 
             figure.savefig(os.path.join(directory_path, "model_histogram.pdf"))
             pyplot.close(figure)
+
+    def run(
+        self,
+        warm_up_steps,
+        steps,
+        progress_bar=True,
+        output_directory="",
+        save_trace_plots=True,
+    ):
+        """A convenience function to run a production simulation
+        after an initial warm-up simulation, and save the output to
+        a given directory.
+
+        Parameters
+        ----------
+        warm_up_steps: int
+            The number of warm-up steps to take. During this time all
+            move proposals will be tuned.
+        steps: int
+            The number of steps which the simulation should run for.
+        progress_bar: bool
+            If False, no progress bar is printed to the terminal. If True,
+            a default progress bar is printed to the terminal.
+        output_directory: str
+            The path to save the simulation results in.
+        save_trace_plots: bool
+            If true, plots of the traces will be saved in the output
+            directory.
+
+        Returns
+        -------
+        numpy.ndarray
+            A trajectory of the model parameters over the course
+            of the simulation with shape=(n_steps, n_trainable_parameters+1),
+            where the 'first parameter is the model index'.
+        numpy.ndarray:
+            A trajectory of the value of log p over the course
+            of the simulation with shape=(n_steps,).
+        dict of str and numpy.ndarray
+        A trajectory of deviations of the models properties from
+        their targets with shape=(n_steps).
+        """
+
+        print("==============================")
+        print("Warm-up simulation:")
+        self.propagate(warm_up_steps, True, progress_bar)
+        print("==============================")
+
+        print("==============================")
+        print("Production simulation:")
+        self.propagate(steps, False, progress_bar)
+        print("==============================")
+
+        self.print_statistics()
+        self.save_results(output_directory, save_trace_plots)
+
+        return self.trace, self.log_p_trace, self.percentage_deviation_trace

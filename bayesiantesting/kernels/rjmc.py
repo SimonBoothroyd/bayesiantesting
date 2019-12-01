@@ -52,11 +52,7 @@ class RJMCSimulation(MCMCSimulation):
         self._swap_frequency = swap_frequency
 
     def _step(
-        self,
-        current_parameters,
-        current_model_index,
-        current_log_p,
-        adapt=False,
+        self, current_parameters, current_model_index, current_log_p, adapt=False,
     ):
 
         proposed_parameters = current_parameters.copy()
