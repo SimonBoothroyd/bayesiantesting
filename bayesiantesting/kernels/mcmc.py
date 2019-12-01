@@ -37,7 +37,8 @@ class MCMCSimulation:
         """dict of str and numpy.ndarray: A trajectory of deviations of
         the models properties from their targets with shape=(n_steps)."""
         return {
-            label: np.asarray(trace) for label, trace in self._percent_deviation_trace.items()
+            label: np.asarray(trace)
+            for label, trace in self._percent_deviation_trace.items()
         }
 
     def __init__(
