@@ -10,8 +10,10 @@ import autograd.scipy.special
 import autograd.scipy.stats.gamma
 import torch.distributions
 
+from bayesiantesting.utils.serializeable import Serializable
 
-class Distribution(abc.ABC):
+
+class Distribution(Serializable):
     @abc.abstractmethod
     def log_pdf(self, x):
         raise NotImplementedError()
@@ -47,6 +49,18 @@ class Exponential(Distribution):
 
     def sample(self):
         return torch.distributions.Exponential(self.rate).rsample().item()
+
+    def to_dict(self):
+        return {"rate": self.rate}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Exponential, cls).from_dict(dictionary)
+        return cls(dictionary["rate"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert "rate" in dictionary and dictionary["rate"] >= 0.0
 
 
 class Normal(Distribution):
@@ -86,6 +100,20 @@ class Normal(Distribution):
     def sample(self):
         return torch.distributions.Normal(self.loc, self.scale).rsample().item()
 
+    def to_dict(self):
+        return {"loc": self.loc, "scale": self.scale}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Normal, cls).from_dict(dictionary)
+        return cls(dictionary["loc"], dictionary["scale"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert (
+            "loc" in dictionary and "scale" in dictionary and dictionary["scale"] >= 0.0
+        )
+
 
 class Cauchy(Distribution):
     def __init__(self, loc, scale):
@@ -114,6 +142,20 @@ class Cauchy(Distribution):
     def sample(self):
         return torch.distributions.Cauchy(self.loc, self.scale).rsample().item()
 
+    def to_dict(self):
+        return {"loc": self.loc, "scale": self.scale}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Cauchy, cls).from_dict(dictionary)
+        return cls(dictionary["loc"], dictionary["scale"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert (
+            "loc" in dictionary and "scale" in dictionary and dictionary["scale"] >= 0.0
+        )
+
 
 class Uniform(Distribution):
     def __init__(self, low=0.0, high=1.0):
@@ -140,6 +182,22 @@ class Uniform(Distribution):
     def sample(self):
         return torch.distributions.Uniform(self.low, self.high).rsample().item()
 
+    def to_dict(self):
+        return {"low": self.low, "high": self.high}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Uniform, cls).from_dict(dictionary)
+        return cls(dictionary["low"], dictionary["high"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert (
+            "low" in dictionary
+            and "high" in dictionary
+            and dictionary["low"] < dictionary["high"]
+        )
+
 
 class HalfNormal(Normal):
     def __init__(self, scale):
@@ -161,6 +219,18 @@ class HalfNormal(Normal):
 
     def sample(self):
         return torch.distributions.HalfNormal(self.scale).rsample().item()
+
+    def to_dict(self):
+        return {"scale": self.scale}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(HalfNormal, cls).from_dict(dictionary)
+        return cls(dictionary["scale"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert "scale" in dictionary and dictionary["scale"] >= 0.0
 
 
 class Gamma(Distribution):
@@ -185,3 +255,20 @@ class Gamma(Distribution):
 
     def sample(self):
         return torch.distributions.Gamma(self.alpha, self.rate).rsample().item()
+
+    def to_dict(self):
+        return {"alpha": self.alpha, "rate": self.rate}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Gamma, cls).from_dict(dictionary)
+        return cls(dictionary["alpha"], dictionary["rate"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert (
+            "alpha" in dictionary
+            and dictionary["alpha"] >= 0.0
+            and "rate" in dictionary
+            and dictionary["rate"] >= 0.0
+        )
