@@ -454,7 +454,7 @@ class StollWerthSurrogate(SurrogateModel):
             + l ** 2 * q ** 3 / (l + 0.75) ** 2 * _b_c2[7]
             + l ** 3 * q ** 3 / (l + 0.75) ** 3 * _b_c2[8]
         )
-        c3 = q ** 2 * _b_c3[0] + q ** 5 * _b_c3[1] + l ** 0.5
+        c3 = q ** 2 * _b_c3[0] + q ** 5 * _b_c3[1] + l ** 0.5 * _b_c3[2]
 
         saturation_pressure_star = np.exp(
             c1 + c2 / temperature_star + c3 / (temperature_star ** 4)
