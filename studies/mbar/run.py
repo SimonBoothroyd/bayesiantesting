@@ -10,15 +10,12 @@ import numpy
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.kernels.bayes import MBARIntegration
 from bayesiantesting.models.continuous import MultivariateGaussian
-from studies.utilities import (
-    generate_initial_parameters,
-    get_2clj_model,
-    parse_input_yaml,
-    prepare_data,
-)
+from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data
 
 
-def fit_multivariate_to_trace(model, output_directory, use_existing=True):
+def fit_multivariate_to_trace(
+    model, output_directory, initial_parameters, use_existing=True
+):
     """Fits a multivariate gaussian distribution to the posterior
     of the model as sampled by a short MCMC simulation.
 
@@ -28,6 +25,8 @@ def fit_multivariate_to_trace(model, output_directory, use_existing=True):
         The model to sample.
     output_directory: str
         The directory to store the working files in.
+    initial_parameters: numpy.ndarray
+        The parameters to start the simulation from.
     use_existing: bool
         If True, any existing fits will be used rather than regenerating
         new fits.
@@ -45,12 +44,13 @@ def fit_multivariate_to_trace(model, output_directory, use_existing=True):
         with open(fit_path) as file:
             return MultivariateGaussian.from_json(file.read())
 
-    initial_parameters = generate_initial_parameters(model)
+    # initial_parameters = generate_initial_parameters(model)
+    initial_parameters = initial_parameters[model.name]
 
     # Run a short MCMC simulation to get better initial parameters
     simulation = MCMCSimulation(
         model_collection=model,
-        warm_up_steps=100000,
+        warm_up_steps=1000000,
         steps=1000000,
         discard_warm_up_data=True,
         output_directory_path=output_directory,
@@ -91,10 +91,18 @@ def main(compound, n_processes):
     fitting_directory = os.path.join(compound, "fitting")
     os.makedirs(fitting_directory, exist_ok=True)
 
+    initial_parameters = {
+        "UA": numpy.array([100.0, 0.4]),
+        "AUA": numpy.array([100.0, 0.4, 0.15]),
+        "AUA+Q": numpy.array([136.0, 0.321, 0.21, 0.01]),
+    }
+
     with Pool(n_processes) as pool:
         reference_fits = pool.map(
             functools.partial(
-                fit_multivariate_to_trace, output_directory=fitting_directory
+                fit_multivariate_to_trace,
+                output_directory=fitting_directory,
+                initial_parameters=initial_parameters,
             ),
             models,
         )
@@ -105,7 +113,7 @@ def main(compound, n_processes):
     for model, reference_model in zip(models, reference_fits):
 
         # Run the MBAR simulation
-        lambda_values = numpy.geomspace(1.0, 2.0, 16) - 1.0
+        lambda_values = numpy.linspace(0.0, 1.0, 8)
 
         output_directory = os.path.join(compound, f"mbar_{model.name}")
 
