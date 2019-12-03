@@ -4,16 +4,6 @@ This code is based upon the implementations by Owen Madin
 import contextlib
 import os
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import pymbar
-import scipy as sp
-import yaml
-from scipy.optimize import curve_fit
-from scipy.stats import expon
-from statsmodels.stats.proportion import multinomial_proportions_confint
-
 
 def get_data_filename(relative_path):
     """Get the full path to one of the reference files in data.
