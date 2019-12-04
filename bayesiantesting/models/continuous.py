@@ -5,15 +5,49 @@ all continuous.
 Models in this module should inherit from the `Model`
 subclass.
 """
-import json
 
 import autograd.numpy
 import numpy
-import torch.distributions
 
 from bayesiantesting import unit
 from bayesiantesting.models import Model
 from bayesiantesting.utils import distributions as distributions
+
+
+class UnconditionedModel(Model):
+    """Represents a model which isn't conditioned upon
+    any data and with a uniform likelihood - i.e. a model
+    with only priors and log p (D|x) = 0.0.
+    """
+
+    def __init__(self, name, prior_settings, weight=1.0):
+        """
+        Parameters
+        ----------
+        weight: float
+            A weight to scale the prior by.
+        """
+        super().__init__(name, prior_settings, {})
+        self._log_weight = numpy.log(weight)
+
+    def evaluate_log_prior(self, parameters):
+        return (
+            super(UnconditionedModel, self).evaluate_log_prior(parameters)
+            + self._log_weight
+        )
+
+    def evaluate_log_likelihood(self, parameters):
+        return 0.0
+
+    def compute_percentage_deviations(self, parameters):
+        return {}
+
+    def to_json(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_json(cls, json_string):
+        raise NotImplementedError()
 
 
 class TwoCenterLJModel(Model):
@@ -46,7 +80,7 @@ class TwoCenterLJModel(Model):
         super().__init__(name, prior_settings, fixed_parameters)
 
         required_parameters = ["epsilon", "sigma", "L", "Q"]
-        provided_parameters = [*prior_settings.keys(), *fixed_parameters.keys()]
+        provided_parameters = [*self._prior_labels, *self._fixed_labels]
 
         missing_parameters = set(required_parameters) - set(provided_parameters)
         extra_parameters = set(provided_parameters) - set(required_parameters)
@@ -162,158 +196,3 @@ class TwoCenterLJModel(Model):
     @classmethod
     def from_json(cls, json_string):
         raise NotImplementedError()
-
-
-class GaussianModel(Model):
-    """A toy model with a gaussian likelihood function with is
-    not conditioned on any data.
-    """
-
-    def __init__(self, name, prior_settings, loc, scale, weight=1.0):
-
-        super().__init__(name, prior_settings, {})
-
-        self._loc = loc
-        self._scale = scale
-
-        self._log_weight = numpy.log(weight)
-
-    def evaluate_log_likelihood(self, parameters):
-        return (
-            distributions.Normal(self._loc, self._scale).log_pdf(parameters)
-            + self._log_weight
-        )
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
-
-    def to_json(self):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json(cls, json_string):
-        raise NotImplementedError()
-
-
-class CauchyModel(Model):
-    """A toy model with a cauchy likelihood function with is
-    not conditioned on any data.
-    """
-
-    def __init__(self, name, prior_settings, loc, scale, weight=1.0):
-
-        super().__init__(name, prior_settings, {})
-
-        self._loc = loc
-        self._scale = scale
-
-        self._log_weight = numpy.log(weight)
-
-    def evaluate_log_likelihood(self, parameters):
-        return (
-            distributions.Cauchy(self._loc, self._scale).log_pdf(parameters)
-            + self._log_weight
-        )
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
-
-    def to_json(self):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json(cls, json_string):
-        raise NotImplementedError()
-
-
-class MultivariateGaussian(Model):
-    """Represents an _unconditioned_ multivariate gaussian
-    distribution.
-    """
-
-    @property
-    def mean(self):
-        """numpy.ndarray: The mean value of this distribution with
-        shape=(n_trainable_parameters).
-        """
-        return self._means
-
-    @property
-    def covariance(self):
-        """numpy.ndarray: The covariance of this distribution with
-        shape=(n_trainable_parameters, n_trainable_parameters).
-        """
-        return self._covariance
-
-    def __init__(self, name, means, covariance):
-
-        prior_settings = {name: ["none", []] for name in means}
-        super().__init__(name, prior_settings, {})
-
-        self._means = numpy.array([*means.values()])
-        self._dimension = len(self._means)
-
-        assert len(covariance.shape) == 2
-        assert covariance.shape[0] == covariance.shape[1] == self._dimension
-
-        self._covariance = covariance
-        self._inverse_covariance = autograd.numpy.linalg.inv(covariance)
-        self._log_determinant = autograd.numpy.log(
-            autograd.numpy.linalg.det(covariance)
-        )
-
-    def sample_priors(self):
-
-        means = torch.tensor(self._means, requires_grad=False, dtype=torch.float64)
-        covariance = torch.tensor(
-            self._covariance, requires_grad=False, dtype=torch.float64
-        )
-
-        distribution = torch.distributions.MultivariateNormal(means, covariance)
-        return distribution.rsample().numpy()
-
-    def evaluate_log_prior(self, parameters):
-
-        residuals = parameters - self._means
-
-        log_p = -0.5 * (
-            self._log_determinant
-            + autograd.numpy.einsum(
-                "...j,jk,...k", residuals, self._inverse_covariance, residuals
-            )
-            + self._dimension * autograd.numpy.log(2 * autograd.numpy.pi)
-        )
-
-        return log_p
-
-    def evaluate_log_likelihood(self, parameters):
-        return 0.0
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
-
-    def to_json(self):
-
-        mean_dictionary = {
-            label: mean.tolist() for label, mean in zip(self._prior_labels, self._means)
-        }
-
-        dictionary = {
-            "name": self.name,
-            "mean": mean_dictionary,
-            "covariance": self._covariance.tolist(),
-        }
-
-        return json.dumps(dictionary, sort_keys=True, indent=4, separators=(",", ": "))
-
-    @classmethod
-    def from_json(cls, json_string):
-
-        dictionary = json.loads(json_string)
-
-        mean = {
-            label: numpy.asarray(value) for label, value in dictionary["mean"].items()
-        }
-        covariance = numpy.asarray(dictionary["covariance"])
-
-        return cls(dictionary["name"], mean, covariance)
