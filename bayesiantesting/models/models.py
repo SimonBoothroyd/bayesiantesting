@@ -239,7 +239,7 @@ class Model:
             log_prior += prior.log_pdf(
                 parameters[counter : counter + prior.n_variables]
             )
-            counter += 1
+            counter += prior.n_variables
 
         return log_prior
 

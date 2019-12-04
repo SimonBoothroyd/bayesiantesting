@@ -33,7 +33,7 @@ class Distribution(Serializable):
         raise NotImplementedError()
 
 
-class MultivariateDistribution(abc.ABC, Distribution):
+class MultivariateDistribution(Distribution, abc.ABC):
     """A distribution which a function of more than
     one variable.
     """
@@ -55,7 +55,7 @@ class MultivariateNormal(MultivariateDistribution):
     def __init__(self, mean, covariance):
 
         self._mean = mean
-        self._dimension = len(self._means)
+        self._dimension = len(self._mean)
 
         assert len(covariance.shape) == 2
         assert covariance.shape[0] == covariance.shape[1] == self._dimension
@@ -69,7 +69,7 @@ class MultivariateNormal(MultivariateDistribution):
             autograd.numpy.linalg.det(covariance)
         )
 
-    def evaluate_log_prior(self, x):
+    def log_pdf(self, x):
 
         residuals = x - self._mean
 
@@ -92,7 +92,7 @@ class MultivariateNormal(MultivariateDistribution):
 
     def sample(self):
 
-        torch_mean = torch.tensor(self._means, dtype=torch.float64)
+        torch_mean = torch.tensor(self._mean, dtype=torch.float64)
         torch_covariance = torch.tensor(self._covariance, dtype=torch.float64)
 
         distribution = torch.distributions.MultivariateNormal(
