@@ -19,35 +19,8 @@ class UnconditionedModel(Model):
     any data and with a uniform likelihood - i.e. a model
     with only priors and log p (D|x) = 0.0.
     """
-
-    def __init__(self, name, prior_settings, weight=1.0):
-        """
-        Parameters
-        ----------
-        weight: float
-            A weight to scale the prior by.
-        """
-        super().__init__(name, prior_settings, {})
-        self._log_weight = numpy.log(weight)
-
-    def evaluate_log_prior(self, parameters):
-        return (
-            super(UnconditionedModel, self).evaluate_log_prior(parameters)
-            + self._log_weight
-        )
-
     def evaluate_log_likelihood(self, parameters):
         return 0.0
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
-
-    def to_json(self):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json(cls, json_string):
-        raise NotImplementedError()
 
 
 class TwoCenterLJModel(Model):
@@ -190,13 +163,6 @@ class TwoCenterLJModel(Model):
 
         return deviations
 
-    def to_json(self):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json(cls, json_string):
-        raise NotImplementedError()
-
 
 class GaussianModel(Model):
     """A toy model with a gaussian likelihood function with is
@@ -248,13 +214,3 @@ class CauchyModel(Model):
             distributions.Cauchy(self._loc, self._scale).log_pdf(parameters)
             + self._log_weight
         )
-
-    def compute_percentage_deviations(self, parameters):
-        return {}
-
-    def to_json(self):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json(cls, json_string):
-        raise NotImplementedError()

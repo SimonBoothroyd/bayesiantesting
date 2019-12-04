@@ -89,3 +89,26 @@ def test_gradients(distribution_type, reference_type, args):
     if reference_log_p._grad_fn is not None:
         reference_log_p.backward()
         assert numpy.isclose(log_p_gradient, sample_tensor.grad.item(), rtol=1.0e-2)
+
+
+def test_multivariate():
+
+    mean = numpy.random.rand(3)
+
+    covariance = numpy.random.rand(3, 3)
+    covariance = numpy.dot(covariance, covariance.T)
+
+    mean_torch = torch.tensor(mean, dtype=torch.float64)
+    covariance_torch = torch.tensor(covariance, dtype=torch.float64)
+
+    distribution = distributions.MultivariateNormal(mean, covariance)
+    reference = references.MultivariateNormal(mean_torch, covariance_torch)
+
+    sample = distribution.sample()
+    sample_torch = torch.tensor(sample, dtype=torch.float64)
+
+    assert numpy.isclose(
+        distribution.log_pdf(sample),
+        reference.log_prob(sample_torch),
+        rtol=1.0e-2,
+    )

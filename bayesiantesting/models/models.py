@@ -293,9 +293,8 @@ class Model:
         Returns
         -------
         dict of str and numpy.ndarray
-
         """
-        raise NotImplementedError()
+        return {}
 
     def plot_trace(self, trace, show=False):
         """Use `Arviz` to plot a trace of the trainable parameters,
@@ -453,13 +452,6 @@ class Model:
             self.plot_log_p(log_p, show),
             self.plot_percentage_deviations(percentage_deviations, show),
         )
-
-    def to_json(self):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json(cls, json_string):
-        raise NotImplementedError()
 
 
 class ModelCollection:
