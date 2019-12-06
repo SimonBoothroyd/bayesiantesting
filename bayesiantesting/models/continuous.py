@@ -19,6 +19,7 @@ class UnconditionedModel(Model):
     any data and with a uniform likelihood - i.e. a model
     with only priors and log p (D|x) = 0.0.
     """
+
     def evaluate_log_likelihood(self, parameters):
         return 0.0
 

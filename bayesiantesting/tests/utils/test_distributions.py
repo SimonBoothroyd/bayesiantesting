@@ -108,7 +108,5 @@ def test_multivariate():
     sample_torch = torch.tensor(sample, dtype=torch.float64)
 
     assert numpy.isclose(
-        distribution.log_pdf(sample),
-        reference.log_prob(sample_torch),
-        rtol=1.0e-2,
+        distribution.log_pdf(sample), reference.log_prob(sample_torch), rtol=1.0e-2,
     )
