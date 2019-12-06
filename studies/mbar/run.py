@@ -9,15 +9,89 @@ import numpy
 
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.kernels.bayes import MBARIntegration
-from bayesiantesting.models.continuous import MultivariateGaussian
+from bayesiantesting.models.continuous import UnconditionedModel
 from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data
+
+
+def prior_dictionary_to_json(prior_settings, file_path):
+    """Saves a dictionary of prior settings to JSON.
+
+    Parameters
+    ----------
+    prior_settings: dict
+        The dictionary of settings.
+    file_path: str
+        The file path to save the JSON to.
+    """
+
+    json_dictionary = {}
+
+    for label in prior_settings:
+
+        json_label = label
+
+        if isinstance(json_label, tuple):
+            json_label = ",".join(json_label)
+
+        json_dictionary[json_label] = [prior_settings[label][0], []]
+
+        for parameter in prior_settings[label][1]:
+
+            parameter_list = parameter.tolist()
+            json_dictionary[json_label][1].append(parameter_list)
+
+    with open(file_path, "w") as file:
+        json.dump(
+            json_dictionary, file, sort_keys=False, indent=4, separators=(",", ": ")
+        )
+
+
+def prior_dictionary_from_json(file_path):
+    """Loads a dictionary of prior settings from a JSON
+    file.
+
+    Parameters
+    ----------
+    file_path: str
+        The file path to load the JSON from.
+
+    Returns
+    -------
+    dict
+        The dictionary of prior settings.
+    """
+
+    with open(file_path, "r") as file:
+        json_dictionary = json.load(file)
+
+    prior_settings = {}
+
+    for json_label in json_dictionary:
+
+        label = json_label
+
+        if label.find(",") >= 0:
+            label = tuple(label.split(","))
+
+        prior_settings[label] = [json_dictionary[json_label][0], []]
+
+        for parameter_list in json_dictionary[json_label][1]:
+
+            parameter = parameter_list
+
+            if isinstance(parameter, list):
+                parameter = numpy.asarray(parameter_list)
+
+            prior_settings[label][1].append(parameter)
+
+    return prior_settings
 
 
 def fit_multivariate_to_trace(
     model, output_directory, initial_parameters, use_existing=True
 ):
     """Fits a multivariate gaussian distribution to the posterior
-    of the model as sampled by a short MCMC simulation.
+    of the model as sampled by an MCMC simulation.
 
     Parameters
     ----------
@@ -33,16 +107,17 @@ def fit_multivariate_to_trace(
 
     Returns
     -------
-    MultivariateGaussian
-        The fitted multivariate gaussian model.
+    UnconditionedModel
+        The fitted model.
     """
 
-    fit_path = os.path.join(output_directory, f"{model.name}_fit.json")
+    fit_name = f"{model.name}_fit"
+    fit_path = os.path.join(output_directory, f"{fit_name}.json")
 
     if use_existing and os.path.isfile(fit_path):
 
-        with open(fit_path) as file:
-            return MultivariateGaussian.from_json(file.read())
+        prior_dictionary = prior_dictionary_from_json(fit_path)
+        return UnconditionedModel(fit_name, prior_dictionary, {})
 
     # initial_parameters = generate_initial_parameters(model)
     initial_parameters = initial_parameters[model.name]
@@ -51,24 +126,58 @@ def fit_multivariate_to_trace(
     simulation = MCMCSimulation(
         model_collection=model,
         warm_up_steps=1000000,
-        steps=1000000,
+        steps=1500000,
         discard_warm_up_data=True,
         output_directory_path=output_directory,
     )
 
     trace, _, _ = simulation.run(initial_parameters)
 
-    mean = numpy.mean(trace[:, 1:], axis=0)
-    covariance = numpy.cov(trace[:, 1:].T)
+    # Fit the multivariate distribution
+    n_multivariate_parameters = model.n_trainable_parameters
 
-    mean_dictionary = {
-        label: value for label, value in zip(model.trainable_parameter_labels, mean)
+    if model.name == "AUA+Q":
+        n_multivariate_parameters -= 1
+
+    multivariate_mean = numpy.mean(trace[:, 1 : 1 + n_multivariate_parameters], axis=0)
+    multivariate_covariance = numpy.cov(trace[:, 1 : 1 + n_multivariate_parameters].T)
+
+    multivariate_key = tuple(
+        [
+            label
+            for label in model.trainable_parameter_labels[:n_multivariate_parameters]
+        ]
+    )
+
+    prior_dictionary = {
+        multivariate_key: [
+            "multivariate normal",
+            [multivariate_mean, multivariate_covariance],
+        ]
     }
 
-    fitted_distribution = MultivariateGaussian("gaussian", mean_dictionary, covariance)
+    for index, label in enumerate(
+        model.trainable_parameter_labels[n_multivariate_parameters:]
+    ):
 
-    with open(fit_path, "w") as file:
-        file.write(fitted_distribution.to_json())
+        parameter_trace = trace[:, n_multivariate_parameters + index + 1]
+
+        loc = numpy.mean(parameter_trace)
+        scale = numpy.std(parameter_trace)
+        prior_dictionary[label] = ["normal", [scale]]
+
+        if loc - 5.0 * scale > 0.0:
+            # Check to make sure whether a half-normal distribution may be
+            # more appropriate.
+            continue
+
+        scale = numpy.sqrt(numpy.sum(parameter_trace ** 2) / len(parameter_trace))
+        prior_dictionary[label] = ["half normal", [scale]]
+
+    fitted_distribution = UnconditionedModel(fit_name, prior_dictionary, {})
+
+    # Save a copy of the fit
+    prior_dictionary_to_json(prior_dictionary, fit_path)
 
     return fitted_distribution
 
@@ -128,7 +237,7 @@ def main(compound, n_processes):
         )
 
         _, integral, error = simulation.run(
-            reference_model.mean, number_of_processes=n_processes
+            reference_model.sample_priors(), number_of_processes=n_processes
         )
 
         results[model.name] = {"integral": integral, "error": error}

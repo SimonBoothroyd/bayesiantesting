@@ -33,7 +33,7 @@ def main():
         warm_up_steps=100000,
         steps=1500000,
         discard_warm_up_data=True,
-        sampler=sampler
+        sampler=sampler,
     )
 
     trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
