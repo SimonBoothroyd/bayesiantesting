@@ -87,9 +87,34 @@ def prior_dictionary_from_json(file_path):
     return prior_settings
 
 
-def fit_multivariate_to_trace(
-    model, output_directory, initial_parameters, use_existing=True
-):
+def fit_prior_to_trace(parameter_trace):
+    """Fits either a normal or a half normal distribution
+    to a given trace.
+
+    Parameters
+    ----------
+    parameter_trace: numpy.ndarray
+        The parameter trace from an `MCMCSimulation` simulation
+        with shape=(n_steps).
+
+    Returns
+    -------
+    list
+        The prior settings.
+    """
+    loc = numpy.mean(parameter_trace)
+    scale = numpy.std(parameter_trace)
+
+    if loc - 5.0 * scale > 0.0:
+        # Check to make sure whether a half-normal distribution may be
+        # more appropriate.
+        return ["normal", [loc, scale]]
+
+    scale = numpy.sqrt(numpy.sum(parameter_trace ** 2) / len(parameter_trace))
+    return ["half normal", [scale]]
+
+
+def fit_to_trace(model, output_directory, initial_parameters, use_existing=True):
     """Fits a multivariate gaussian distribution to the posterior
     of the model as sampled by an MCMC simulation.
 
@@ -108,32 +133,45 @@ def fit_multivariate_to_trace(
     Returns
     -------
     UnconditionedModel
-        The fitted model.
+        The fitted univariate model.
+    UnconditionedModel
+        The fitted multivariate model.
     """
 
-    fit_name = f"{model.name}_fit"
-    fit_path = os.path.join(output_directory, f"{fit_name}.json")
+    trace_path = os.path.join(output_directory, model.name, f"trace.npy")
 
-    if use_existing and os.path.isfile(fit_path):
+    if not use_existing or not os.path.isfile(trace_path):
 
-        prior_dictionary = prior_dictionary_from_json(fit_path)
-        return UnconditionedModel(fit_name, prior_dictionary, {})
+        # initial_parameters = generate_initial_parameters(model)
+        initial_parameters = initial_parameters[model.name]
 
-    # initial_parameters = generate_initial_parameters(model)
-    initial_parameters = initial_parameters[model.name]
+        # Run a short MCMC simulation to get better initial parameters
+        simulation = MCMCSimulation(
+            model_collection=model,
+            warm_up_steps=1000000,
+            steps=1500000,
+            discard_warm_up_data=True,
+            output_directory_path=output_directory,
+        )
 
-    # Run a short MCMC simulation to get better initial parameters
-    simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=1000000,
-        steps=1500000,
-        discard_warm_up_data=True,
-        output_directory_path=output_directory,
+        simulation.run(initial_parameters)
+
+    trace = numpy.load(trace_path)
+
+    # Fit the univariate distributions.
+    univariate_prior_dictionary = {}
+
+    for index, label in enumerate(model.trainable_parameter_labels):
+
+        parameter_trace = trace[:, index + 1]
+        univariate_prior_dictionary[label] = fit_prior_to_trace(parameter_trace)
+
+    prior_dictionary_to_json(
+        univariate_prior_dictionary,
+        os.path.join(output_directory, f"{model.name}_univariate_fit.json"),
     )
 
-    trace, _, _ = simulation.run(initial_parameters)
-
-    # Fit the multivariate distribution
+    # Fit the multivariate distribution.
     n_multivariate_parameters = model.n_trainable_parameters
 
     if model.name == "AUA+Q":
@@ -149,7 +187,7 @@ def fit_multivariate_to_trace(
         ]
     )
 
-    prior_dictionary = {
+    multivariate_prior_dictionary = {
         multivariate_key: [
             "multivariate normal",
             [multivariate_mean, multivariate_covariance],
@@ -161,25 +199,19 @@ def fit_multivariate_to_trace(
     ):
 
         parameter_trace = trace[:, n_multivariate_parameters + index + 1]
+        multivariate_prior_dictionary[label] = fit_prior_to_trace(parameter_trace)
 
-        loc = numpy.mean(parameter_trace)
-        scale = numpy.std(parameter_trace)
-        prior_dictionary[label] = ["normal", [scale]]
+    prior_dictionary_to_json(
+        multivariate_prior_dictionary,
+        os.path.join(output_directory, f"{model.name}_multivariate_fit.json"),
+    )
 
-        if loc - 5.0 * scale > 0.0:
-            # Check to make sure whether a half-normal distribution may be
-            # more appropriate.
-            continue
-
-        scale = numpy.sqrt(numpy.sum(parameter_trace ** 2) / len(parameter_trace))
-        prior_dictionary[label] = ["half normal", [scale]]
-
-    fitted_distribution = UnconditionedModel(fit_name, prior_dictionary, {})
-
-    # Save a copy of the fit
-    prior_dictionary_to_json(prior_dictionary, fit_path)
-
-    return fitted_distribution
+    return (
+        UnconditionedModel(f"{model.name}_univariate", univariate_prior_dictionary, {}),
+        UnconditionedModel(
+            f"{model.name}_multivariate", multivariate_prior_dictionary, {}
+        ),
+    )
 
 
 def main(compound, n_processes):
@@ -207,9 +239,9 @@ def main(compound, n_processes):
     }
 
     with Pool(n_processes) as pool:
-        reference_fits = pool.map(
+        all_fits = pool.map(
             functools.partial(
-                fit_multivariate_to_trace,
+                fit_to_trace,
                 output_directory=fitting_directory,
                 initial_parameters=initial_parameters,
             ),
@@ -219,7 +251,9 @@ def main(compound, n_processes):
     # Run the MBAR calculations
     results = {}
 
-    for model, reference_model in zip(models, reference_fits):
+    for model, fits in zip(models, all_fits):
+
+        _, reference_model = fits
 
         # Run the MBAR simulation
         lambda_values = numpy.linspace(0.0, 1.0, 8)
