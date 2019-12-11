@@ -38,7 +38,9 @@ def main():
 
     for model in sub_models:
 
-        fit_path = os.path.join(simulation_params['compound'], f"{model.name}_univariate_fit.json")
+        fit_path = os.path.join(
+            simulation_params["compound"], f"{model.name}_univariate_fit.json"
+        )
 
         with open(fit_path) as file:
             fit_distributions = json.load(file)
@@ -72,7 +74,9 @@ def main():
     with open(bias_file_name) as file:
         bias_factor_dictionary = json.load(file)
 
-    bias_factors = [bias_factor_dictionary[model.name]["integral"] for model in sub_models]
+    bias_factors = [
+        bias_factor_dictionary[model.name]["integral"] for model in sub_models
+    ]
     bias_factors = -numpy.asarray(bias_factors)
 
     # Draw the initial parameter values from the model priors.
@@ -90,7 +94,7 @@ def main():
         discard_warm_up_data=True,
         swap_frequency=simulation_params["swap_freq"],
         log_biases=bias_factors,
-        output_directory_path=output_directory_path
+        output_directory_path=output_directory_path,
     )
 
     simulation.run(initial_parameters, initial_model_index)
