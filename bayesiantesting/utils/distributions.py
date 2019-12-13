@@ -14,6 +14,12 @@ from bayesiantesting.utils.serializeable import Serializable
 
 
 class Distribution(Serializable):
+    @property
+    def n_variables(self):
+        """int: The number of variables which this distribution is a
+        function of."""
+        return 1
+
     @abc.abstractmethod
     def log_pdf(self, x):
         raise NotImplementedError()
@@ -27,6 +33,90 @@ class Distribution(Serializable):
         raise NotImplementedError()
 
 
+class MultivariateDistribution(Distribution, abc.ABC):
+    """A distribution which a function of more than
+    one variable.
+    """
+
+    @property
+    @abc.abstractmethod
+    def n_variables(self):
+        raise NotImplementedError()
+
+
+class MultivariateNormal(MultivariateDistribution):
+    """A multivariate normal distribution.
+    """
+
+    @property
+    def n_variables(self):
+        return self._dimension
+
+    def __init__(self, mean, covariance):
+
+        self._mean = mean
+        self._dimension = len(self._mean)
+
+        assert len(covariance.shape) == 2
+        assert covariance.shape[0] == covariance.shape[1] == self._dimension
+
+        self._covariance = covariance
+
+        # noinspection PyUnresolvedReferences
+        self._inverse_covariance = autograd.numpy.linalg.inv(covariance)
+        # noinspection PyUnresolvedReferences
+        self._log_determinant = autograd.numpy.log(
+            autograd.numpy.linalg.det(covariance)
+        )
+
+    def log_pdf(self, x):
+
+        residuals = x - self._mean
+
+        # noinspection PyUnresolvedReferences
+        log_p = -0.5 * (
+            self._log_determinant
+            + autograd.numpy.einsum(
+                "...j,jk,...k", residuals, self._inverse_covariance, residuals
+            )
+            + self._dimension * autograd.numpy.log(2 * autograd.numpy.pi)
+        )
+
+        return log_p
+
+    def cdf(self, x):
+        raise NotImplementedError()
+
+    def inverse_cdf(self, x):
+        raise NotImplementedError()
+
+    def sample(self):
+
+        torch_mean = torch.tensor(self._mean, dtype=torch.float64)
+        torch_covariance = torch.tensor(self._covariance, dtype=torch.float64)
+
+        distribution = torch.distributions.MultivariateNormal(
+            torch_mean, torch_covariance
+        )
+        return distribution.rsample().numpy()
+
+    def to_dict(self):
+        return {"mean": self._mean.tolist(), "covariance": self._covariance.tolist()}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(MultivariateNormal, cls).from_dict(dictionary)
+        # noinspection PyUnresolvedReferences
+        return cls(
+            autograd.numpy.asarray(dictionary["mean"]),
+            autograd.numpy.asarray(dictionary["covariance"]),
+        )
+
+    @staticmethod
+    def _validate(dictionary):
+        assert "mean" in dictionary and "covariance" in dictionary
+
+
 class Exponential(Distribution):
     def __init__(self, rate):
         self.rate = rate
@@ -34,6 +124,7 @@ class Exponential(Distribution):
     def log_pdf(self, x):
 
         if x < 0.0:
+            # noinspection PyUnresolvedReferences
             return -autograd.numpy.inf
 
         # noinspection PyUnresolvedReferences
@@ -169,6 +260,7 @@ class Uniform(Distribution):
             # noinspection PyUnresolvedReferences
             return -autograd.numpy.log(self.high - self.low)
 
+        # noinspection PyUnresolvedReferences
         return -autograd.numpy.inf
 
     def cdf(self, x):
@@ -206,7 +298,9 @@ class HalfNormal(Normal):
 
     def log_pdf(self, x):
 
+        # noinspection PyUnresolvedReferences
         log_pdf = super(HalfNormal, self).log_pdf(x) + autograd.numpy.log(2)
+        # noinspection PyUnresolvedReferences
         log_pdf = autograd.numpy.where(x >= 0.0, log_pdf, -autograd.numpy.inf)
 
         return log_pdf

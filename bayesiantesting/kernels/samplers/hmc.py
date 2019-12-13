@@ -60,7 +60,7 @@ class Hamiltonian(Sampler):
 
     def _initial_momentum(self, model_index):
         model = self._model_collection.models[model_index]
-        return torch.randn(model.n_trainable_parameters).item()
+        return torch.randn(model.n_trainable_parameters).numpy()
 
     def step(self, parameters, model_index, log_p, adapt):
 
