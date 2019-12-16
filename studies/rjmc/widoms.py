@@ -53,6 +53,8 @@ def fit_distributions(models, simulation_params, n_processes):
         pool.map(
             functools.partial(
                 fit_to_trace,
+                warm_up_steps=int(simulation_params["fit_steps"] * 2.0 / 3.0),
+                steps=simulation_params["fit_steps"],
                 output_directory=fitting_directory,
                 initial_parameters=initial_parameters,
             ),
@@ -91,7 +93,7 @@ def fit_distributions(models, simulation_params, n_processes):
 def main(n_processes=1):
 
     # Load in the simulation parameters.
-    simulation_params = parse_input_yaml("basic_run.yaml")
+    simulation_params = parse_input_yaml("widom_run.yaml")
 
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
