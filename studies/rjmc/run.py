@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct 31 14:42:37 2019
-
-@author: owenmadin
-"""
 import json
 import os
 
@@ -89,17 +83,17 @@ def main():
 
     simulation = BiasedRJMCSimulation(
         model_collection=model_collection,
-        warm_up_steps=int(simulation_params["steps"] * 0.1),
-        steps=simulation_params["steps"],
-        discard_warm_up_data=True,
+        initial_parameters=initial_parameters,
+        initial_model_index=initial_model_index,
         swap_frequency=simulation_params["swap_freq"],
         log_biases=bias_factors,
-        output_directory_path=output_directory_path,
     )
 
-    simulation.run(initial_parameters, initial_model_index)
-
-    print("Finished!")
+    simulation.run(
+        warm_up_steps=int(simulation_params["steps"] * 0.1),
+        steps=simulation_params["steps"],
+        output_directory=output_directory_path,
+    )
 
 
 if __name__ == "__main__":

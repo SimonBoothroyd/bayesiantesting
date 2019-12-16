@@ -126,7 +126,6 @@ def main():
             model=model,
             warm_up_steps=int(simulation_params["steps"] * 0.2),
             steps=simulation_params["steps"],
-            discard_warm_up_data=True,
             output_directory_path=f"ti_{model_name}",
         )
 

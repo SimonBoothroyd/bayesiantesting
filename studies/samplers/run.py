@@ -3,9 +3,9 @@
 import numpy
 
 from bayesiantesting.kernels import MCMCSimulation
-from bayesiantesting.kernels.samplers import NUTS, MetropolisSampler
 from bayesiantesting.models import ModelCollection
 from bayesiantesting.models.continuous import GaussianModel
+from bayesiantesting.samplers import NUTS, MetropolisSampler
 
 
 def main():
@@ -21,38 +21,29 @@ def main():
 
     # Run a simulation using a Metropolis sampler.
     proposal_scales = numpy.array([initial_parameters / 100.0])
-
     sampler = MetropolisSampler(None, model_collection, proposal_scales)
 
     simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=50000,
-        steps=50000,
-        discard_warm_up_data=True,
-        sampler=sampler,
-        output_directory_path="metropolis",
+        model_collection=model, initial_parameters=initial_parameters, sampler=sampler,
     )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
+    trace, log_p_trace, percent_deviation_trace = simulation.run(
+        warm_up_steps=50000, steps=50000, output_directory="metropolis",
+    )
+
     model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
 
     # Run a simulation using a NUTS sampler.
-    def log_p_function(parameters, _):
-        return model.evaluate_log_posterior(parameters)
-
-    step_size = 1.0  # NUTS.find_reasonable_epsilon(initial_parameters, log_p_function)
-    sampler = NUTS(None, model_collection, step_size)
+    sampler = NUTS(None, model_collection, step_size=1.0)
 
     simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=5000,
-        steps=10000,
-        discard_warm_up_data=True,
-        sampler=sampler,
-        output_directory_path="nuts",
+        model_collection=model, initial_parameters=initial_parameters, sampler=sampler
     )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
+    trace, log_p_trace, percent_deviation_trace = simulation.run(
+        warm_up_steps=5000, steps=10000, output_directory="nuts",
+    )
+
     model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
 
 

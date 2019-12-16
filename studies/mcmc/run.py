@@ -8,7 +8,6 @@ from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data
 
 def main():
 
-    print("Parsing simulation params")
     simulation_params = parse_input_yaml("basic_run.yaml")
 
     # Load the data.
@@ -23,21 +22,21 @@ def main():
     }
 
     # Build the model / models.
-    for model_name in ["AUA+Q"]:
+    for model_name in ["UA", "AUA", "AUA+Q"]:
 
         model = get_2clj_model(model_name, data_set, property_types, simulation_params)
 
         # Run the simulation.
         simulation = MCMCSimulation(
-            model_collection=model,
-            warm_up_steps=int(simulation_params["steps"] * 0.2),
-            steps=simulation_params["steps"],
-            discard_warm_up_data=True,
+            model_collection=model, initial_parameters=initial_parameters[model.name]
         )
 
         trace, log_p_trace, percent_deviation_trace = simulation.run(
-            initial_parameters[model.name]
+            warm_up_steps=int(simulation_params["steps"] * 0.2),
+            steps=simulation_params["steps"],
         )
+
+        # Plot the output.
         model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
 
 

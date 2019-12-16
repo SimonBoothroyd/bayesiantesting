@@ -147,14 +147,12 @@ def fit_to_trace(model, output_directory, initial_parameters, use_existing=True)
 
         # Run a short MCMC simulation to get better initial parameters
         simulation = MCMCSimulation(
-            model_collection=model,
-            warm_up_steps=1000000,
-            steps=1500000,
-            discard_warm_up_data=True,
-            output_directory_path=output_directory,
+            model_collection=model, initial_parameters=initial_parameters,
         )
 
-        simulation.run(initial_parameters)
+        simulation.run(
+            warm_up_steps=1000000, steps=1500000, output_directory=output_directory
+        )
 
     trace = numpy.load(trace_path)
 
@@ -265,7 +263,6 @@ def main(compound, n_processes):
             model=model,
             warm_up_steps=simulation_params["warm_up_steps"],
             steps=simulation_params["steps"],
-            discard_warm_up_data=True,
             output_directory_path=output_directory,
             reference_model=reference_model,
         )

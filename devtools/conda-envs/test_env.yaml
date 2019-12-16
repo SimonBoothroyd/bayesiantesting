@@ -36,6 +36,9 @@ dependencies:
   - cpuonly
   - autograd
 
+  # Replica Exchange
+  - mpiplus
+
     # Pip-only installs
   #- pip:
   #  - codecov
