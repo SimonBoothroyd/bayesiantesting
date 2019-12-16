@@ -1,4 +1,4 @@
-from .samplers import Sampler
+from .samplers import Sampler  # isort:skip
 from .hmc import NUTS, Hamiltonian
 from .mcmc import MetropolisSampler
 

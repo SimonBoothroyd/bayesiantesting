@@ -68,6 +68,9 @@ class LambdaSimulation(MCMCSimulation):
             into.
         """
 
+        self._lambda = lambda_value
+        self._reference_model = reference_model
+
         super().__init__(
             model_collection,
             initial_parameters,
@@ -75,9 +78,6 @@ class LambdaSimulation(MCMCSimulation):
             sampler,
             random_seed,
         )
-
-        self._lambda = lambda_value
-        self._reference_model = reference_model
 
     def _evaluate_log_p(self, parameters, model_index):
 
@@ -115,7 +115,7 @@ class LambdaSimulation(MCMCSimulation):
             log_prior = model.evaluate_log_prior(parameters)
             log_likelihood = 0.0
 
-            if not numpy.isclose(lambda_value, 0.0):
+            if not autograd.numpy.isclose(lambda_value, 0.0):
 
                 log_likelihood = model.evaluate_log_likelihood(parameters)
 
@@ -124,7 +124,7 @@ class LambdaSimulation(MCMCSimulation):
 
         else:
 
-            if numpy.isclose(lambda_value, 0.0):
+            if autograd.numpy.isclose(lambda_value, 0.0):
 
                 log_prior = reference_model.evaluate_log_prior(parameters)
                 log_likelihood = reference_model.evaluate_log_likelihood(parameters)

@@ -26,18 +26,16 @@ def main():
     model = UnconditionedModel("multivariate", prior_settings, {})
 
     # Run the simulation.
-    sampler = None  # NUTS(None, ModelCollection(model.name, [model]), 1.0)
-
     simulation = MCMCSimulation(
-        model_collection=model,
-        warm_up_steps=100000,
-        steps=1500000,
-        discard_warm_up_data=True,
-        sampler=sampler,
+        model_collection=model, initial_parameters=initial_parameters,
     )
 
-    trace, log_p_trace, percent_deviation_trace = simulation.run(initial_parameters)
-    model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
+    trace, log_p_trace, percent_deviation_trace = simulation.run = simulation.run(
+        warm_up_steps=100000, steps=1500000
+    )
+    model.plot(
+        trace, log_p_trace, percent_deviation_trace, show=True,
+    )
 
 
 if __name__ == "__main__":

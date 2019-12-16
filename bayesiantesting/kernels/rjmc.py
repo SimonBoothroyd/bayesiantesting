@@ -41,6 +41,8 @@ class RJMCSimulation(MCMCSimulation):
                 "sub-models to jump between."
             )
 
+        self._swap_frequency = swap_frequency
+
         super().__init__(
             model_collection,
             initial_parameters,
@@ -48,8 +50,6 @@ class RJMCSimulation(MCMCSimulation):
             sampler,
             random_seed,
         )
-
-        self._swap_frequency = swap_frequency
 
     def _step(
         self, current_parameters, current_model_index, current_log_p, adapt=False,
@@ -165,6 +165,9 @@ class BiasedRJMCSimulation(RJMCSimulation):
             The log biasing factors to add to the posterior
             distribution of each model (shape=(model_collection.n_models)).
         """
+        self._log_biases = log_biases
+        assert len(log_biases) == model_collection.n_models
+
         super().__init__(
             model_collection,
             initial_parameters,
@@ -173,9 +176,6 @@ class BiasedRJMCSimulation(RJMCSimulation):
             random_seed,
             swap_frequency,
         )
-
-        self._log_biases = log_biases
-        assert len(log_biases) == model_collection.n_models
 
     def _evaluate_log_p(self, parameters, model_index):
         return (

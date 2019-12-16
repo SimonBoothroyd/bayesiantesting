@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+
 import numpy
 
 from bayesiantesting.kernels.rjmc import BiasedRJMCSimulation
@@ -86,12 +87,12 @@ def main():
         initial_model_index=initial_model_index,
         swap_frequency=simulation_params["swap_freq"],
         log_biases=bias_factors,
-        output_directory_path=output_directory_path,
     )
 
     simulation.run(
         warm_up_steps=int(simulation_params["steps"] * 0.1),
         steps=simulation_params["steps"],
+        output_directory=output_directory_path,
     )
 
 

@@ -30,7 +30,7 @@ class MCMCSimulation:
     def log_p_trace(self):
         """numpy.ndarray: A trajectory of the value of log p over the course
         of the simulation with shape=(n_steps,)."""
-        return np.asarray(self._trace)
+        return np.asarray(self._log_p_trace)
 
     @property
     def percentage_deviation_trace(self):
@@ -191,6 +191,10 @@ class MCMCSimulation:
             current_model_index
         ].compute_percentage_deviations(current_parameters)
 
+        n_total_parameters = max(
+            model.n_trainable_parameters for model in self._model_collection.models
+        )
+
         for i in range(steps):
 
             # Propagate the simulation one step forward.
@@ -206,14 +210,21 @@ class MCMCSimulation:
             # Update the bookkeeping.
             if not warm_up:
 
+                current_model = self._model_collection.models[current_model_index]
+
                 if acceptance:
 
-                    current_model = self._model_collection.models[current_model_index]
                     current_percent_deviation = current_model.compute_percentage_deviations(
                         current_parameters
                     )
 
-                self._trace.append((current_model_index, *current_parameters))
+                trace_padding = [0.0] * (
+                    n_total_parameters - current_model.n_trainable_parameters
+                )
+
+                self._trace.append(
+                    (current_model_index, *current_parameters, *trace_padding)
+                )
                 self._log_p_trace.append(current_log_p)
 
                 for label in current_percent_deviation:

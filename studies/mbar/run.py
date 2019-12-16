@@ -147,8 +147,7 @@ def fit_to_trace(model, output_directory, initial_parameters, use_existing=True)
 
         # Run a short MCMC simulation to get better initial parameters
         simulation = MCMCSimulation(
-            model_collection=model,
-            initial_parameters=initial_parameters,
+            model_collection=model, initial_parameters=initial_parameters,
         )
 
         simulation.run(
