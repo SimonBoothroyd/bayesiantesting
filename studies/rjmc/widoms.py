@@ -39,7 +39,7 @@ def fit_distributions(models, simulation_params, n_processes):
         The MAP of each model as determined from the
         fitted distributions.
     """
-    fitting_directory = os.path.join(simulation_params["compound"])
+    fitting_directory = os.path.join(simulation_params["compound"], "fitting")
     os.makedirs(fitting_directory, exist_ok=True)
 
     initial_parameters = {
@@ -90,7 +90,7 @@ def fit_distributions(models, simulation_params, n_processes):
     return mapping_distributions, maximum_a_posteriori
 
 
-def main(n_processes=1):
+def main(n_processes=3):
 
     # Load in the simulation parameters.
     simulation_params = parse_input_yaml("widom_run.yaml")
@@ -122,7 +122,9 @@ def main(n_processes=1):
     initial_model = model_collection.models[initial_model_index]
     initial_parameters = maximum_a_posteriori[initial_model_index]
 
-    output_directory_path = simulation_params["compound"] + f"_{initial_model.name}"
+    output_directory_path = os.path.join(
+        simulation_params["compound"], initial_model.name
+    )
 
     simulation = WidomRJMC(
         model_collection=model_collection,

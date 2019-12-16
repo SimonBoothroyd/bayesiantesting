@@ -3,6 +3,7 @@ Code to perform RJMC simulations on simple toy models.
 This code was originally authored by Owen Madin (github name ocmadin).
 """
 import math
+import os
 
 import numpy as np
 import torch
@@ -270,3 +271,8 @@ class WidomRJMC(RJMCSimulation):
 
         self._proposal_trace.append(proposal_alphas)
         return current_parameters, current_model_index, current_log_p, False
+
+    def _save_traces(self, directory_path, save_trace_plots=True):
+
+        super(WidomRJMC, self)._save_traces(directory_path, save_trace_plots)
+        np.save(os.path.join(directory_path, "proposal_trace.npy"), self.proposal_trace)

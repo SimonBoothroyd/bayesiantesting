@@ -18,8 +18,8 @@ priors:
   - - 0
     - 1
 properties: All
-fit_steps: 1500000
-steps: 4000000
+fit_steps: 5000
+steps: 10000
 swap_freq: 0.5
 trange:
 - 0.55
