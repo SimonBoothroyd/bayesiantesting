@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+import json
+import os
 import numpy
 
 from bayesiantesting.kernels.rjmc import BiasedRJMCSimulation
+from bayesiantesting.models.continuous import UnconditionedModel
 from bayesiantesting.models.discrete import TwoCenterLJModelCollection
 from bayesiantesting.utils import distributions
 from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data
@@ -15,32 +18,6 @@ def main():
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
-    # Define the initial parameters as pre-computed MAP values,
-    maximum_a_posteriori = [
-        numpy.array([97.08159, 0.37892, 0.14780]),
-        numpy.array([97.29539, 0.37873, 0.14832, 0.01]),
-        numpy.array([99.50692, 0.37684]),
-    ]
-
-    # Define the mapping distributions
-    mapping_distributions = [
-        [
-            distributions.Normal(97.08159267795193, 1.2637469268027388),
-            distributions.Normal(0.3789200872391254, 0.0010927724031321946),
-            distributions.Normal(0.14780378661729715, 0.003037464915064883),
-        ],
-        [
-            distributions.Normal(97.2953923060582, 1.378483671271809),
-            distributions.Normal(0.37873425430708474, 0.001196249460173617),
-            distributions.Normal(0.148316663447079, 0.00330744876139567),
-            distributions.HalfNormal(0.03396779721823569),
-        ],
-        [
-            distributions.Normal(99.50692414427614, 0.05847002434279269),
-            distributions.Normal(0.3768443138925703, 9.88599085152091e-05),
-        ],
-    ]
-
     # Build the model / models.
     sub_models = [
         get_2clj_model("AUA", data_set, property_types, simulation_params),
@@ -48,12 +25,52 @@ def main():
         get_2clj_model("UA", data_set, property_types, simulation_params),
     ]
 
+    # Load the mapping distributions
+    mapping_distributions = []
+    maximum_a_posteriori = []
+
+    for model in sub_models:
+
+        fit_path = os.path.join(
+            simulation_params["compound"], f"{model.name}_univariate_fit.json"
+        )
+
+        with open(fit_path) as file:
+            fit_distributions = json.load(file)
+
+        fit_model = UnconditionedModel(model.name, fit_distributions, {})
+        mapping_distributions.append(fit_model.priors)
+
+        # Determine the maximum a posteriori of the fit
+        map_parameters = []
+
+        for distribution in fit_model.priors:
+
+            if isinstance(distribution, distributions.Normal):
+                map_parameters.append(distribution.loc)
+            else:
+                raise NotImplementedError()
+
+        maximum_a_posteriori.append(numpy.asarray(map_parameters))
+
     for mean, model in zip(maximum_a_posteriori, sub_models):
         print(model.evaluate_log_posterior(mean))
 
+    # Create the full model collection
     model_collection = TwoCenterLJModelCollection(
         "2CLJ Models", sub_models, mapping_distributions
     )
+
+    # Load in the bias factors
+    bias_file_name = f"mbar_{simulation_params['compound']}_results.json"
+
+    with open(bias_file_name) as file:
+        bias_factor_dictionary = json.load(file)
+
+    bias_factors = [
+        bias_factor_dictionary[model.name]["integral"] for model in sub_models
+    ]
+    bias_factors = -numpy.asarray(bias_factors)
 
     # Draw the initial parameter values from the model priors.
     initial_model_index = 1  # torch.randint(len(sub_models), (1,)).item()
@@ -61,7 +78,7 @@ def main():
     # initial_parameters = generate_initial_parameters(sub_models[initial_model_index])
     initial_parameters = maximum_a_posteriori[initial_model_index]
 
-    bias_factors = simulation_params["biasing_factor"]
+    output_directory_path = simulation_params["compound"]
 
     simulation = BiasedRJMCSimulation(
         model_collection=model_collection,
@@ -69,6 +86,7 @@ def main():
         initial_model_index=initial_model_index,
         swap_frequency=simulation_params["swap_freq"],
         log_biases=bias_factors,
+        output_directory_path=output_directory_path,
     )
 
     simulation.run(

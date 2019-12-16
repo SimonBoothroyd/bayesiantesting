@@ -135,7 +135,7 @@ def test_saturation_pressure():
     value = model.saturation_pressure(
         temperatures, epsilon, sigma, bond_length, quadrupole
     )
-    assert numpy.isclose(value, 5089.09761408)
+    assert numpy.isclose(value, 5027.57796073)
 
     reduced_gradient_function = autograd.grad(model.saturation_pressure_star, (1, 2))
     gradient_function = autograd.grad(model.saturation_pressure, (1, 2, 3, 4))
@@ -148,7 +148,7 @@ def test_saturation_pressure():
     assert len(reduced_gradient) == 2 and not numpy.allclose(reduced_gradient, 0.0)
     assert numpy.allclose(
         gradient,
-        numpy.array([-235.19495191, -69856.91940789, 74257.50320125, -0.11145016]),
+        numpy.array([-234.84756081, -68931.5713522, 73156.01894348, -0.11010289]),
     )
 
 

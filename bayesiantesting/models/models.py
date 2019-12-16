@@ -10,7 +10,7 @@ import bayesiantesting.utils.distributions as distributions
 
 
 class Model:
-    """ Sets up a simply model based on the user-specified prior
+    """ Sets up a simple model based on the user-specified prior
     types and parameters
     """
 
@@ -82,8 +82,15 @@ class Model:
 
         for parameter_name in priors:
 
-            self._priors.append(self._initialize_prior(priors[parameter_name]))
-            self._prior_labels.append(parameter_name)
+            distribution = self._initialize_prior(priors[parameter_name])
+            self._priors.append(distribution)
+
+            if isinstance(parameter_name, tuple):
+                self._prior_labels.extend(parameter_name)
+                assert len(parameter_name) == distribution.n_variables
+            else:
+                self._prior_labels.append(parameter_name)
+                assert distribution.n_variables == 1
 
         for parameter_name in fixed_parameters:
 
@@ -126,6 +133,10 @@ class Model:
 
             prior = distributions.Normal(prior_values[0], prior_values[1])
 
+        elif prior_type == "multivariate normal":
+
+            prior = distributions.MultivariateNormal(prior_values[0], prior_values[1])
+
         elif prior_type == "half normal":
 
             prior = distributions.HalfNormal(prior_values[0])
@@ -155,9 +166,12 @@ class Model:
         """
 
         initial_parameters = np.zeros(self.n_trainable_parameters)
+        counter = 0
 
-        for index, prior in enumerate(self._priors):
-            initial_parameters[index] = prior.sample()
+        for prior in self._priors:
+
+            initial_parameters[counter : counter + prior.n_variables] = prior.sample()
+            counter += prior.n_variables
 
         return initial_parameters
 
@@ -178,7 +192,7 @@ class Model:
         """
 
         if initial_parameters is None:
-            initial_parameters = self.sample_priors()[0 : self.n_trainable_parameters]
+            initial_parameters = self.sample_priors()
 
         if len(initial_parameters) != self.n_trainable_parameters:
 
@@ -218,9 +232,14 @@ class Model:
             The sum of the log values of priors evaluated at `parameters`.
         """
         log_prior = 0.0
+        counter = 0
 
-        for index, prior in enumerate(self._priors):
-            log_prior += prior.log_pdf(parameters[index])
+        for prior in self._priors:
+
+            log_prior += prior.log_pdf(
+                parameters[counter : counter + prior.n_variables]
+            )
+            counter += prior.n_variables
 
         return log_prior
 
@@ -274,9 +293,8 @@ class Model:
         Returns
         -------
         dict of str and numpy.ndarray
-
         """
-        raise NotImplementedError()
+        return {}
 
     def plot_trace(self, trace, show=False):
         """Use `Arviz` to plot a trace of the trainable parameters,
@@ -434,13 +452,6 @@ class Model:
             self.plot_log_p(log_p, show),
             self.plot_percentage_deviations(percentage_deviations, show),
         )
-
-    def to_json(self):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_json(cls, json_string):
-        raise NotImplementedError()
 
 
 class ModelCollection:

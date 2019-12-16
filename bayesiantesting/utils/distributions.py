@@ -10,8 +10,16 @@ import autograd.scipy.special
 import autograd.scipy.stats.gamma
 import torch.distributions
 
+from bayesiantesting.utils.serializeable import Serializable
 
-class Distribution(abc.ABC):
+
+class Distribution(Serializable):
+    @property
+    def n_variables(self):
+        """int: The number of variables which this distribution is a
+        function of."""
+        return 1
+
     @abc.abstractmethod
     def log_pdf(self, x):
         raise NotImplementedError()
@@ -25,6 +33,90 @@ class Distribution(abc.ABC):
         raise NotImplementedError()
 
 
+class MultivariateDistribution(Distribution, abc.ABC):
+    """A distribution which a function of more than
+    one variable.
+    """
+
+    @property
+    @abc.abstractmethod
+    def n_variables(self):
+        raise NotImplementedError()
+
+
+class MultivariateNormal(MultivariateDistribution):
+    """A multivariate normal distribution.
+    """
+
+    @property
+    def n_variables(self):
+        return self._dimension
+
+    def __init__(self, mean, covariance):
+
+        self._mean = mean
+        self._dimension = len(self._mean)
+
+        assert len(covariance.shape) == 2
+        assert covariance.shape[0] == covariance.shape[1] == self._dimension
+
+        self._covariance = covariance
+
+        # noinspection PyUnresolvedReferences
+        self._inverse_covariance = autograd.numpy.linalg.inv(covariance)
+        # noinspection PyUnresolvedReferences
+        self._log_determinant = autograd.numpy.log(
+            autograd.numpy.linalg.det(covariance)
+        )
+
+    def log_pdf(self, x):
+
+        residuals = x - self._mean
+
+        # noinspection PyUnresolvedReferences
+        log_p = -0.5 * (
+            self._log_determinant
+            + autograd.numpy.einsum(
+                "...j,jk,...k", residuals, self._inverse_covariance, residuals
+            )
+            + self._dimension * autograd.numpy.log(2 * autograd.numpy.pi)
+        )
+
+        return log_p
+
+    def cdf(self, x):
+        raise NotImplementedError()
+
+    def inverse_cdf(self, x):
+        raise NotImplementedError()
+
+    def sample(self):
+
+        torch_mean = torch.tensor(self._mean, dtype=torch.float64)
+        torch_covariance = torch.tensor(self._covariance, dtype=torch.float64)
+
+        distribution = torch.distributions.MultivariateNormal(
+            torch_mean, torch_covariance
+        )
+        return distribution.rsample().numpy()
+
+    def to_dict(self):
+        return {"mean": self._mean.tolist(), "covariance": self._covariance.tolist()}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(MultivariateNormal, cls).from_dict(dictionary)
+        # noinspection PyUnresolvedReferences
+        return cls(
+            autograd.numpy.asarray(dictionary["mean"]),
+            autograd.numpy.asarray(dictionary["covariance"]),
+        )
+
+    @staticmethod
+    def _validate(dictionary):
+        assert "mean" in dictionary and "covariance" in dictionary
+
+
 class Exponential(Distribution):
     def __init__(self, rate):
         self.rate = rate
@@ -32,6 +124,7 @@ class Exponential(Distribution):
     def log_pdf(self, x):
 
         if x < 0.0:
+            # noinspection PyUnresolvedReferences
             return -autograd.numpy.inf
 
         # noinspection PyUnresolvedReferences
@@ -47,6 +140,18 @@ class Exponential(Distribution):
 
     def sample(self):
         return torch.distributions.Exponential(self.rate).rsample().item()
+
+    def to_dict(self):
+        return {"rate": self.rate}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Exponential, cls).from_dict(dictionary)
+        return cls(dictionary["rate"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert "rate" in dictionary and dictionary["rate"] >= 0.0
 
 
 class Normal(Distribution):
@@ -86,6 +191,20 @@ class Normal(Distribution):
     def sample(self):
         return torch.distributions.Normal(self.loc, self.scale).rsample().item()
 
+    def to_dict(self):
+        return {"loc": self.loc, "scale": self.scale}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Normal, cls).from_dict(dictionary)
+        return cls(dictionary["loc"], dictionary["scale"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert (
+            "loc" in dictionary and "scale" in dictionary and dictionary["scale"] >= 0.0
+        )
+
 
 class Cauchy(Distribution):
     def __init__(self, loc, scale):
@@ -114,6 +233,20 @@ class Cauchy(Distribution):
     def sample(self):
         return torch.distributions.Cauchy(self.loc, self.scale).rsample().item()
 
+    def to_dict(self):
+        return {"loc": self.loc, "scale": self.scale}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Cauchy, cls).from_dict(dictionary)
+        return cls(dictionary["loc"], dictionary["scale"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert (
+            "loc" in dictionary and "scale" in dictionary and dictionary["scale"] >= 0.0
+        )
+
 
 class Uniform(Distribution):
     def __init__(self, low=0.0, high=1.0):
@@ -127,6 +260,7 @@ class Uniform(Distribution):
             # noinspection PyUnresolvedReferences
             return -autograd.numpy.log(self.high - self.low)
 
+        # noinspection PyUnresolvedReferences
         return -autograd.numpy.inf
 
     def cdf(self, x):
@@ -140,6 +274,22 @@ class Uniform(Distribution):
     def sample(self):
         return torch.distributions.Uniform(self.low, self.high).rsample().item()
 
+    def to_dict(self):
+        return {"low": self.low, "high": self.high}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Uniform, cls).from_dict(dictionary)
+        return cls(dictionary["low"], dictionary["high"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert (
+            "low" in dictionary
+            and "high" in dictionary
+            and dictionary["low"] < dictionary["high"]
+        )
+
 
 class HalfNormal(Normal):
     def __init__(self, scale):
@@ -148,7 +298,9 @@ class HalfNormal(Normal):
 
     def log_pdf(self, x):
 
+        # noinspection PyUnresolvedReferences
         log_pdf = super(HalfNormal, self).log_pdf(x) + autograd.numpy.log(2)
+        # noinspection PyUnresolvedReferences
         log_pdf = autograd.numpy.where(x >= 0.0, log_pdf, -autograd.numpy.inf)
 
         return log_pdf
@@ -161,6 +313,18 @@ class HalfNormal(Normal):
 
     def sample(self):
         return torch.distributions.HalfNormal(self.scale).rsample().item()
+
+    def to_dict(self):
+        return {"scale": self.scale}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(HalfNormal, cls).from_dict(dictionary)
+        return cls(dictionary["scale"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert "scale" in dictionary and dictionary["scale"] >= 0.0
 
 
 class Gamma(Distribution):
@@ -185,3 +349,20 @@ class Gamma(Distribution):
 
     def sample(self):
         return torch.distributions.Gamma(self.alpha, self.rate).rsample().item()
+
+    def to_dict(self):
+        return {"alpha": self.alpha, "rate": self.rate}
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        super(Gamma, cls).from_dict(dictionary)
+        return cls(dictionary["alpha"], dictionary["rate"])
+
+    @staticmethod
+    def _validate(dictionary):
+        assert (
+            "alpha" in dictionary
+            and dictionary["alpha"] >= 0.0
+            and "rate" in dictionary
+            and dictionary["rate"] >= 0.0
+        )
