@@ -1,4 +1,4 @@
-compound: C2H6
+compound: O2
 number_data_points: 10
 priors:
   epsilon:

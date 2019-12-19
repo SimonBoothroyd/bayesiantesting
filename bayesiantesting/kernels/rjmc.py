@@ -245,7 +245,6 @@ class WidomRJMC(RJMCSimulation):
                 # model.
                 proposal_alphas.append(0.0)
                 continue
-
             proposed_parameters = current_parameters.copy()
 
             # Propose a cross-model move.
@@ -256,16 +255,13 @@ class WidomRJMC(RJMCSimulation):
                 jacobian,
                 transition_probability,
             ) = self.model_proposal(proposed_parameters, proposed_model_index)
-
             alpha = (
                 (proposed_log_p - current_log_p)
                 + np.log(jacobian)
-                + np.log(transition_probability)
             )
-
             # Check for NaNs in the proposed state.
-            if proposed_log_p == math.nan:
-                alpha = -math.inf
+            if np.isnan(alpha):
+                alpha = -1*math.inf
 
             proposal_alphas.append(alpha)
 

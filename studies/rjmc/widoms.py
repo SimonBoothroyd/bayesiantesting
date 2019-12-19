@@ -43,9 +43,9 @@ def fit_distributions(models, simulation_params, n_processes):
     os.makedirs(fitting_directory, exist_ok=True)
 
     initial_parameters = {
-        "UA": numpy.array([100.0, 0.4]),
-        "AUA": numpy.array([100.0, 0.4, 0.15]),
-        "AUA+Q": numpy.array([136.0, 0.321, 0.21, 0.01]),
+        "UA": numpy.array([50, 0.3]),
+        "AUA": numpy.array([50, 0.3, 0.11]),
+        "AUA+Q": numpy.array([50, 0.3, 0.11, 0.05]),
     }
 
     with Pool(n_processes) as pool:
@@ -140,7 +140,9 @@ def main(n_processes=3):
     )
 
     # TODO: Apply EXP / BAR.
-    # proposal_alphas = simulation.proposal_trace
+    proposal_alphas = simulation.proposal_trace
+    simulation._save_traces('.')
+#    numpy.save(proposal_alphas)
 
 
 if __name__ == "__main__":
