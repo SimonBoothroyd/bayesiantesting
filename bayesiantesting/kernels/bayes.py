@@ -671,7 +671,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
                 )
 
         mbar = pymbar.MBAR(reduced_potentials, frame_counts)
-        result = mbar.getFreeEnergyDifferences()
+        delta_f, d_delta_f = mbar.getFreeEnergyDifferences()
 
         self._overlap_matrix = mbar.computeOverlap()["matrix"]
         print("==============================")
@@ -679,7 +679,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
         pprint.pprint(self._overlap_matrix)
         print("==============================")
 
-        return result["Delta_f"][-1, 0], result["dDelta_f"][-1, 0]
+        return delta_f[-1, 0], d_delta_f[-1, 0]
 
     def _get_results_dictionary(
         self,
