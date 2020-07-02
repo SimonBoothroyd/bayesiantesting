@@ -56,6 +56,13 @@ class StollWerthOp(tt.Op):
             precisions = precisions ** -2.0
             reference_values = reference_values
 
+            if (
+                any(numpy.isnan(surrogate_values))
+                or any(numpy.isinf(surrogate_values))
+                or any(surrogate_values > 1e10)
+            ):
+                return -numpy.inf
+
             # Compute likelihood based on gaussian penalty function
             log_p += autograd.numpy.sum(
                 distributions.Normal(surrogate_values, precisions).log_pdf(
@@ -76,6 +83,7 @@ class StollWerthOp(tt.Op):
         (theta,) = inputs
 
         if theta.ndim == 1:
-            return [numpy.zeros(4)]
+            return [tt.zeros(4)]
 
-        return [g[0] * self._log_p_grad(numpy.asarray(theta))]
+        d_log_p_d_theta = self._log_p_grad(numpy.asarray(theta))
+        return [g[0] * d_log_p_d_theta]

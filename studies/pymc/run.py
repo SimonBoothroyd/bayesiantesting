@@ -82,17 +82,18 @@ def main():
 
     # Define a value which PyMC3 can use to test that the provided model
     # can be correctly evaluated.
-    test_value = tt.as_tensor_variable([95.0, 0.35, bond_length, quadrupole])
+    test_value = tt.as_tensor_variable([99.85, 0.3771, bond_length, quadrupole])
 
     # Build the model / models.
     with pymc3.Model() as model:
 
         epsilon = pymc3.Bound(pymc3.Exponential, 0.0)("epsilon", lam=1.0 / 400.0)
         sigma = pymc3.Bound(pymc3.Exponential, 0.0)("sigma", lam=1.0 / 5.0)
-        bond_length = pymc3.Bound(pymc3.Exponential, 0.0)("bond_length", lam=1.0 / 3.0)
 
+        # Uncomment this line to turn the two parameter model into a three parameter model.
+        bond_length = pymc3.Bound(pymc3.Exponential, 0.0)("bond_length", lam=1.0 / 3.0)
         # Uncomment this line to turn the three parameter model into a two parameter model.
-        # quadrupole = pymc3.Bound(pymc3.Exponential, 0.0)('quadrupole', lam=1.0)
+        quadrupole = pymc3.Bound(pymc3.Exponential, 0.0)('quadrupole', lam=1.0)
 
         theta = tt.as_tensor_variable([epsilon, sigma, bond_length, quadrupole])
 
@@ -105,9 +106,19 @@ def main():
 
     with model:
 
-        # step = pymc3.NUTS()
-        # trace = pymc3.sample(500, step=step)
-        trace = pymc3.sample(5000, step=pymc3.Metropolis(), chains=2)
+        print("Initial: ", test_value)
+
+        trace = pymc3.sample(
+            10000,
+            step=pymc3.Metropolis(),
+            chains=2,
+            start={
+                "epsilon": 99.85,
+                "sigma": 0.3771,
+                "bond_length": data_set.bond_length.to(unit.nanometer).magnitude,
+                "quadrupole": 0.0,
+            }
+        )
 
     pymc3.traceplot(trace)
     pyplot.show()
