@@ -52,9 +52,7 @@ class StollWerthOp(tt.Op):
                 property_type, theta, temperatures
             )
 
-            surrogate_values = surrogate_values
             precisions = precisions ** -2.0
-            reference_values = reference_values
 
             if (
                 any(numpy.isnan(surrogate_values))
