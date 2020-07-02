@@ -72,12 +72,17 @@ def main():
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
-    # Build the likelihood op.
+    # Build the likelihood operator.
     surrogate_model = StollWerthSurrogate(data_set.molecular_weight)
-
     log_likelihood = StollWerthOp(data_set, property_types, surrogate_model)
 
-    test_value = tt.as_tensor_variable([95, 0.35, 0.12026, 0.0])
+    # Define the potentially 'fixed' model constants.
+    bond_length = data_set.bond_length.to(unit.nanometer).magnitude
+    quadrupole = 0.0
+
+    # Define a value which PyMC3 can use to test that the provided model
+    # can be correctly evaluated.
+    test_value = tt.as_tensor_variable([95.0, 0.35, bond_length, quadrupole])
 
     # Build the model / models.
     with pymc3.Model() as model:
@@ -85,9 +90,11 @@ def main():
         epsilon = pymc3.Bound(pymc3.Exponential, 0.0)("epsilon", lam=1.0 / 400.0)
         sigma = pymc3.Bound(pymc3.Exponential, 0.0)("sigma", lam=1.0 / 5.0)
         bond_length = pymc3.Bound(pymc3.Exponential, 0.0)("bond_length", lam=1.0 / 3.0)
+
+        # Uncomment this line to turn the three parameter model into a two parameter model.
         # quadrupole = pymc3.Bound(pymc3.Exponential, 0.0)('quadrupole', lam=1.0)
 
-        theta = tt.as_tensor_variable([epsilon, sigma, bond_length, 0.0])
+        theta = tt.as_tensor_variable([epsilon, sigma, bond_length, quadrupole])
 
         pymc3.DensityDist(
             "likelihood",
@@ -100,7 +107,7 @@ def main():
 
         # step = pymc3.NUTS()
         # trace = pymc3.sample(500, step=step)
-        trace = pymc3.sample(5000, step=pymc3.Slice(), chains=2)
+        trace = pymc3.sample(5000, step=pymc3.Metropolis(), chains=2)
 
     pymc3.traceplot(trace)
     pyplot.show()
