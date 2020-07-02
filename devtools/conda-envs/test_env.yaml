@@ -23,7 +23,7 @@ dependencies:
   - statsmodels
   - pint
   - uncertainties
-  - arviz
+  - arviz <=0.6.1
   - corner
 
     # PyMC3

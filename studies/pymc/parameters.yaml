@@ -1,0 +1,7 @@
+compound: C2H6
+number_data_points: 10
+properties: rhol+Psat
+steps: 1500000
+trange:
+- 0.55
+- 0.95
