@@ -474,9 +474,7 @@ class BaseModelEvidenceKernel:
         axes.set_xlabel(r"$\lambda$")
         axes.set_ylabel(r"$\ln{p}$")
 
-        figure.savefig(
-            os.path.join(self._output_directory_path, "log_p_vs_lambda.pdf")
-        )
+        figure.savefig(os.path.join(self._output_directory_path, "log_p_vs_lambda.pdf"))
         pyplot.close(figure)
 
         # Plot d log p d lambda
