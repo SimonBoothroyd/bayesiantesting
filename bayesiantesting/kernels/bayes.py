@@ -217,8 +217,8 @@ class BaseModelEvidenceKernel:
         if len(initial_parameters) != self._model.n_trainable_parameters:
 
             raise ValueError(
-                f"The initial parameters vector should contain "
-                f"one value for each of the trainable model parameters."
+                "The initial parameters vector should contain "
+                "one value for each of the trainable model parameters."
             )
 
     def run(self, initial_parameters, number_of_processes=1):
@@ -454,16 +454,16 @@ class BaseModelEvidenceKernel:
             lambda_directory = os.path.join(self._output_directory_path, str(index))
 
             trace_figure = self._model.plot_trace(trace)
-            trace_figure.savefig(os.path.join(lambda_directory, f"trace.pdf"))
+            trace_figure.savefig(os.path.join(lambda_directory, "trace.pdf"))
             pyplot.close(trace_figure)
 
             log_p_figure = self._model.plot_log_p(log_p_trace)
-            log_p_figure.savefig(os.path.join(lambda_directory, f"log_p.pdf"))
+            log_p_figure.savefig(os.path.join(lambda_directory, "log_p.pdf"))
             pyplot.close(log_p_figure)
 
             lambda_figure = self._model.plot_log_p(d_log_p_d_lambda, label=axis_label)
             lambda_figure.savefig(
-                os.path.join(lambda_directory, f"d_log_p_d_lambda.pdf")
+                os.path.join(lambda_directory, "d_log_p_d_lambda.pdf")
             )
             pyplot.close(lambda_figure)
 
@@ -474,9 +474,7 @@ class BaseModelEvidenceKernel:
         axes.set_xlabel(r"$\lambda$")
         axes.set_ylabel(r"$\ln{p}$")
 
-        figure.savefig(
-            os.path.join(self._output_directory_path, f"log_p_vs_lambda.pdf")
-        )
+        figure.savefig(os.path.join(self._output_directory_path, "log_p_vs_lambda.pdf"))
         pyplot.close(figure)
 
         # Plot d log p d lambda
@@ -493,7 +491,7 @@ class BaseModelEvidenceKernel:
             axes.set_ylabel(r"$\dfrac{\partial \ln{p}_{\lambda}}{\partial {\lambda}}$")
 
             figure.savefig(
-                os.path.join(self._output_directory_path, f"d_log_p_d_lambdas.pdf")
+                os.path.join(self._output_directory_path, "d_log_p_d_lambdas.pdf")
             )
             pyplot.close(figure)
 
@@ -675,7 +673,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
 
         self._overlap_matrix = mbar.computeOverlap()["matrix"]
         print("==============================")
-        print(f"Overlap matrix:\n")
+        print("Overlap matrix:\n")
         pprint.pprint(self._overlap_matrix)
         print("==============================")
 
@@ -824,6 +822,6 @@ class MBARIntegration(BaseModelEvidenceKernel):
     def _save_results(self, results, integral, standard_error):
 
         figure = self.plot_overlap_matrix(self._overlap_matrix)
-        figure.savefig(os.path.join(self._output_directory_path, f"overlap_matrix.pdf"))
+        figure.savefig(os.path.join(self._output_directory_path, "overlap_matrix.pdf"))
 
         super(MBARIntegration, self)._save_results(results, integral, standard_error)
