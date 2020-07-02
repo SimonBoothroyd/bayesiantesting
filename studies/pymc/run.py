@@ -24,16 +24,16 @@ def build_model(model_name, data_set, property_types):
         sigma = pymc3.Bound(pymc3.Exponential, 0.0)("sigma", lam=1.0 / 5.0)
 
         if model_name == "AUA" or model_name == "AUA+Q":
-            bond_length = pymc3.Bound(pymc3.Exponential, 0.0)("bond_length", lam=1.0 / 3.0)
+            bond_length = pymc3.Bound(pymc3.Exponential, 0.0)(
+                "bond_length", lam=1.0 / 3.0
+            )
         if model_name == "AUA+Q":
-            quadrupole = pymc3.Bound(pymc3.Exponential, 0.0)('quadrupole', lam=1.0)
+            quadrupole = pymc3.Bound(pymc3.Exponential, 0.0)("quadrupole", lam=1.0)
 
         theta = tt.as_tensor_variable([epsilon, sigma, bond_length, quadrupole])
 
         pymc3.DensityDist(
-            "likelihood",
-            lambda v: log_likelihood(v),
-            observed={"v": theta},
+            "likelihood", lambda v: log_likelihood(v), observed={"v": theta},
         )
 
     return model
@@ -54,19 +54,19 @@ def main():
             "epsilon": 99.55,
             "sigma": 0.3768,
             "bond_length": fixed_bond_length,
-            "quadrupole": 0.0
+            "quadrupole": 0.0,
         },
         "AUA": {
             "epsilon": 140.0,
             "sigma": 0.348,
             "bond_length": 0.243,
-            "quadrupole": 0.0
+            "quadrupole": 0.0,
         },
         "AUA+Q": {
             "epsilon": 140.0,
             "sigma": 0.348,
             "bond_length": 0.243,
-            "quadrupole": 0.0
+            "quadrupole": 0.0,
         },
     }
 
@@ -80,7 +80,7 @@ def main():
                 draws=simulation_parameters["steps"],
                 step=pymc3.Metropolis(),
                 chains=2,
-                start=initial_parameters[model_name]
+                start=initial_parameters[model_name],
             )
 
         axes = pymc3.traceplot(trace)
