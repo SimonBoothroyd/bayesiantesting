@@ -39,7 +39,7 @@ def main():
     _, integral, error = simulation.run(initial_parameters, number_of_processes=20)
 
     print(
-        f"Final Integral:",
+        "Final Integral:",
         integral,
         " +/- ",
         error,
@@ -48,7 +48,7 @@ def main():
 
     print("==============================")
 
-    print(f"Expected Integral:", numpy.log(0.75), " +/- ", error)
+    print("Expected Integral:", numpy.log(0.75), " +/- ", error)
     print("==============================")
 
 
