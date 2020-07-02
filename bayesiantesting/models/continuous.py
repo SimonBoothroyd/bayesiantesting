@@ -5,22 +5,29 @@ all continuous.
 Models in this module should inherit from the `Model`
 subclass.
 """
-import numpy
+
 import autograd.numpy
+import numpy
 
 from bayesiantesting import unit
 from bayesiantesting.models import Model
 from bayesiantesting.utils import distributions as distributions
 
 
+class UnconditionedModel(Model):
+    """Represents a model which isn't conditioned upon
+    any data and with a uniform likelihood - i.e. a model
+    with only priors and log p (D|x) = 0.0.
+    """
+
+    def evaluate_log_likelihood(self, parameters):
+        return 0.0
+
+
 class TwoCenterLJModel(Model):
     """A representation of the two-center Lennard-Jones model, which
     can be evaluated using a surrogate model against a `NISTDataSet`.
     """
-
-    @property
-    def total_parameters(self):
-        return 4
 
     def __init__(
         self,
@@ -47,7 +54,7 @@ class TwoCenterLJModel(Model):
         super().__init__(name, prior_settings, fixed_parameters)
 
         required_parameters = ["epsilon", "sigma", "L", "Q"]
-        provided_parameters = [*prior_settings.keys(), *fixed_parameters.keys()]
+        provided_parameters = [*self._prior_labels, *self._fixed_labels]
 
         missing_parameters = set(required_parameters) - set(provided_parameters)
         extra_parameters = set(provided_parameters) - set(required_parameters)
@@ -99,6 +106,8 @@ class TwoCenterLJModel(Model):
         """
         log_p = 0.0
 
+        all_parameters = numpy.array([*parameters, *self._fixed_parameters])
+
         for property_type in self._property_types:
 
             reference_data = self._reference_data[property_type]
@@ -108,12 +117,19 @@ class TwoCenterLJModel(Model):
 
             reference_values = reference_data[:, 1]
             surrogate_values = self._surrogate_model.evaluate(
-                property_type, parameters, temperatures
+                property_type, all_parameters, temperatures
             )
 
             surrogate_values = surrogate_values
             precisions = precisions ** -2.0
             reference_values = reference_values
+
+            if (
+                any(autograd.numpy.isnan(surrogate_values))
+                or any(autograd.numpy.isinf(surrogate_values))
+                or any(surrogate_values > 1e10)
+            ):
+                return -numpy.inf
 
             # Compute likelihood based on gaussian penalty function
             log_p += autograd.numpy.sum(
@@ -128,13 +144,15 @@ class TwoCenterLJModel(Model):
 
         deviations = {}
 
+        all_parameters = numpy.array([*parameters, *self._fixed_parameters])
+
         for property_type in self._property_types:
 
             reference_data = self._reference_data[property_type]
 
             reference_values = reference_data[:, 1]
             surrogate_values = self._surrogate_model.evaluate(
-                property_type, parameters, reference_data[:, 0]
+                property_type, all_parameters, reference_data[:, 0]
             )
 
             deviation_vector = (
@@ -145,3 +163,55 @@ class TwoCenterLJModel(Model):
             deviations[property_type] = mean_percentage_deviation
 
         return deviations
+
+
+class GaussianModel(Model):
+    """A toy model with a gaussian likelihood function with is
+    not conditioned on any data.
+    """
+
+    def __init__(self, name, prior_settings, loc, scale, weight=1.0):
+
+        super().__init__(name, prior_settings, {})
+
+        self._loc = loc
+        self._scale = scale
+
+        self._log_weight = numpy.log(weight)
+
+    def evaluate_log_likelihood(self, parameters):
+        return (
+            distributions.Normal(self._loc, self._scale).log_pdf(parameters)
+            + self._log_weight
+        )
+
+    def compute_percentage_deviations(self, parameters):
+        return {}
+
+    def to_json(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_json(cls, json_string):
+        raise NotImplementedError()
+
+
+class CauchyModel(Model):
+    """A toy model with a cauchy likelihood function with is
+    not conditioned on any data.
+    """
+
+    def __init__(self, name, prior_settings, loc, scale, weight=1.0):
+
+        super().__init__(name, prior_settings, {})
+
+        self._loc = loc
+        self._scale = scale
+
+        self._log_weight = numpy.log(weight)
+
+    def evaluate_log_likelihood(self, parameters):
+        return (
+            distributions.Cauchy(self._loc, self._scale).log_pdf(parameters)
+            + self._log_weight
+        )

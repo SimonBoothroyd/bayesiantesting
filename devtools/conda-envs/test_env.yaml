@@ -23,6 +23,8 @@ dependencies:
   - statsmodels
   - pint
   - uncertainties
+  - arviz
+  - corner
 
     # PyMC3
   - mkl-service
@@ -33,6 +35,9 @@ dependencies:
   - torchvision
   - cpuonly
   - autograd
+
+  # Replica Exchange
+  - mpiplus
 
     # Pip-only installs
   #- pip:

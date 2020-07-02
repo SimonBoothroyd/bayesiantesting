@@ -18,14 +18,38 @@ class TwoCenterLJModelCollection(ModelCollection):
     as RJMC.
     """
 
-    def __init__(self, name, models):
+    def __init__(self, name, models, mapping_distributions=None):
 
         supported_models = ["AUA", "AUA+Q", "UA"]
 
         assert all(isinstance(model, TwoCenterLJModel) for model in models)
         assert all(model.name in supported_models for model in models)
 
-        super().__init__(name, models)
+        super().__init__(name, models, mapping_distributions)
+
+    def _mapping_function(
+        self, parameter, model_index_a, model_index_b, parameter_index
+    ):
+
+        model_a = self._models[model_index_a]
+        model_b = self._models[model_index_b]
+
+        if (
+            parameter_index < model_a.n_trainable_parameters
+            and parameter_index < model_b.n_trainable_parameters
+            and self._mapping_distributions is not None
+        ):
+
+            cdf_x = self._mapping_distributions[model_index_a][parameter_index].cdf(
+                parameter
+            )
+            return self._mapping_distributions[model_index_b][
+                parameter_index
+            ].inverse_cdf(cdf_x)
+
+        return super(TwoCenterLJModelCollection, self)._mapping_function(
+            parameter, model_index_a, model_index_b, parameter_index
+        )
 
     # def transition_probabilities(self):
     #

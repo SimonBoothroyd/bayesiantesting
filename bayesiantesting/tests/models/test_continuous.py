@@ -1,12 +1,12 @@
 """
 Unit and regression test for the datasets module.
 """
-import autograd
-import numpy
-
 from random import random
 
+import autograd
+import numpy
 import pytest
+
 from bayesiantesting.datasets.nist import NISTDataSet
 from bayesiantesting.models import Model
 from bayesiantesting.models.continuous import TwoCenterLJModel
@@ -46,10 +46,21 @@ def test_evaluate_log_prior():
     }
 
     model = Model("test", prior_settings, {})
-    parameters = model.sample_priors()
 
-    # Make sure the method call doesn't fail.
-    model.evaluate_log_prior(parameters)
+    parameters = None
+    log_p = -numpy.inf
+
+    counter = 0
+
+    while numpy.isinf(log_p) and counter < 10000:
+
+        parameters = model.sample_priors()
+        # Make sure the method call doesn't fail.
+        log_p = model.evaluate_log_prior(parameters)
+
+        counter += 1
+
+    assert not numpy.isinf(log_p)
 
     # Test the gradient.
     prior_gradient_function = autograd.grad(model.evaluate_log_prior)
@@ -62,10 +73,20 @@ def test_evaluate_log_prior():
 @pytest.mark.parametrize("model", [_get_two_center_model()])
 def test_evaluate_log_likelihood(model):
 
-    parameters = model.sample_priors()
+    parameters = None
+    log_p = -numpy.inf
 
-    # Make sure the method call doesn't fail.
-    model.evaluate_log_likelihood(parameters)
+    counter = 0
+
+    while numpy.isinf(log_p) and counter < 10000:
+
+        parameters = model.sample_priors()
+        # Make sure the method call doesn't fail.
+        log_p = model.evaluate_log_likelihood(parameters)
+
+        counter += 1
+
+    assert not numpy.isinf(log_p)
 
     # Test the gradient.
     prior_gradient_function = autograd.grad(model.evaluate_log_likelihood)
@@ -78,10 +99,20 @@ def test_evaluate_log_likelihood(model):
 @pytest.mark.parametrize("model", [_get_two_center_model()])
 def test_evaluate_log_posterior(model):
 
-    parameters = model.sample_priors()
+    parameters = None
+    log_p = -numpy.inf
 
-    # Make sure the method call doesn't fail.
-    model.evaluate_log_posterior(parameters)
+    counter = 0
+
+    while numpy.isinf(log_p) and counter < 10000:
+
+        parameters = model.sample_priors()
+        # Make sure the method call doesn't fail.
+        log_p = model.evaluate_log_posterior(parameters)
+
+        counter += 1
+
+    assert not numpy.isinf(log_p)
 
     # Test the gradient.
     prior_gradient_function = autograd.grad(model.evaluate_log_posterior)
