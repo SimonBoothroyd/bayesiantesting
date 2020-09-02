@@ -20,20 +20,17 @@ from studies.benchmarking import calculate_elpd, sample_trace, choose_test_datap
 
 
 def main(compound, properties):
-
-
     # create file structure for output
     output_path = os.path.join('output',
-    compound,
-    properties,
-    str(datetime.date.today()))
+                               compound,
+                               properties,
+                               str(datetime.date.today()))
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(os.path.join(output_path, 'intermediate'), exist_ok=True)
     runfile_path = os.path.join('runfiles', compound, properties)
     os.makedirs(os.path.join(output_path, 'figures'), exist_ok=True)
 
-
-    simulation_params = mcmc_choose_priors(runfile_path,output_path)
+    simulation_params = mcmc_choose_priors(runfile_path, output_path)
     print(simulation_params['priors'])
     bayes_factors, results = calculate_bayes_factor(simulation_params, runfile_path, output_path, n_processes=3)
     counts = rjmc_validation(simulation_params, results, runfile_path, output_path, n_processes=3)
@@ -65,7 +62,7 @@ def mcmc_choose_priors(runfile_path, output_path):
     )
 
     path = os.path.join(output_path, 'intermediate', 'mcmc_prior')
-    os.makedirs(path,exist_ok=True)
+    os.makedirs(path, exist_ok=True)
     trace, log_p_trace, percent_deviation_trace = simulation.run(
         warm_up_steps=int(simulation_params["steps"] * 0.2),
         steps=simulation_params["steps"],
@@ -79,24 +76,24 @@ def mcmc_choose_priors(runfile_path, output_path):
     params['Q'][1][1] *= 5
     variables = ['epsilon', 'sigma', 'L', 'Q']
 
-    prior_figure_path = os.path.join(output_path,'figures','priors')
-    os.makedirs(prior_figure_path,exist_ok=True)
+    prior_figure_path = os.path.join(output_path, 'figures', 'priors')
+    os.makedirs(prior_figure_path, exist_ok=True)
     for i in range(len(trace[0, 1:])):
-        plt.hist(trace[:, i+1], bins=50, alpha=0.5, color='b', label='Trace', density=True)
-        x_vec = numpy.linspace(0.666*min(trace[:, i+1]), 1.5*max(trace[:, i+1]), num=500)
+        plt.hist(trace[:, i + 1], bins=50, alpha=0.5, color='b', label='Trace', density=True)
+        x_vec = numpy.linspace(0.666 * min(trace[:, i + 1]), 1.5 * max(trace[:, i + 1]), num=500)
         if i == 3:
             plt.plot(x_vec, dist.expon.pdf(x_vec, *params[variables[i]][1]), label='Prior')
         else:
             plt.plot(x_vec, dist.norm.pdf(x_vec, *params[variables[i]][1]), label='Prior')
-        plt.savefig(os.path.join(prior_figure_path, 'prior_'+variables[i]+'.png'))
+        plt.savefig(os.path.join(prior_figure_path, 'prior_' + variables[i] + '.png'))
     simulation_params["priors"] = params
     #   for key in simulation_params['priors'].keys()
 
-
     return simulation_params
 
+
 def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_processes):
-    mbar_params = parse_input_yaml(os.path.join(runfile_path,"mbar_basic_run.yaml"))
+    mbar_params = parse_input_yaml(os.path.join(runfile_path, "mbar_basic_run.yaml"))
     mbar_params['priors'] = simulation_params['priors']
     compound = simulation_params['compound']
     # Load the data.
@@ -134,7 +131,6 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
     results = {}
 
     for model, fits in zip(models, all_fits):
-
         _, reference_model = fits
 
         # Run the MBAR simulation
@@ -162,15 +158,15 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
         models.append(key)
     evidences = numpy.asarray(evidences)
     evidences -= max(evidences)
-    bayes_factors = numpy.exp(evidences)/min(numpy.exp(evidences))
+    bayes_factors = numpy.exp(evidences) / min(numpy.exp(evidences))
     bayes_results = [models, bayes_factors]
     # TODO add errors in here
-
 
     with open(f"mbar_{compound}_results.json", "w") as file:
         json.dump(results, file, sort_keys=True, indent=4, separators=(",", ": "))
 
     return bayes_results, results
+
 
 def rjmc_validation(simulation_params, results, runfile_path, output_path, n_processes):
     # Load in the simulation parameters.
@@ -208,7 +204,6 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
             ),
             sub_models,
         )
-
 
     for model in sub_models:
 
@@ -280,6 +275,8 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
         elif trace[i, 0] == 2:
             rjmc_counts[2] += 1
     return rjmc_counts
+
+
 def mcmc_placeholder(simulation_params):
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
@@ -298,15 +295,14 @@ def mcmc_placeholder(simulation_params):
         model_collection=model, initial_parameters=initial_parameters[model.name]
     )
 
-
     trace, log_p_trace, percent_deviation_trace = simulation.run(
         warm_up_steps=int(simulation_params["steps"] * 0.2),
         steps=simulation_params["steps"],
     )
     model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
 
-def mcmc_benchmarking(simulation_params,runfile_path,output_path):
 
+def mcmc_benchmarking(simulation_params, runfile_path, output_path):
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
@@ -342,8 +338,6 @@ def mcmc_benchmarking(simulation_params,runfile_path,output_path):
         params = simulation.fit_prior_exponential()
         print(params)
 
-
-
         # calculate summary statistics
         benchmark_filepath = os.path.join(runfile_path, 'evaluate_params.yaml')
         test_set = choose_test_datapoints(benchmark_filepath, simulation_params, data_set)
@@ -352,7 +346,7 @@ def mcmc_benchmarking(simulation_params,runfile_path,output_path):
         test_model = get_2clj_model(model_name, test_set, property_types, simulation_params)
         elpd, elppd = calculate_elpd(test_model, property_types, samples)
 
-        #model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
+        # model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
 
         model_elpds[model_name] = [elpd, elppd]
         fixed_samples = []
@@ -371,13 +365,13 @@ def mcmc_benchmarking(simulation_params,runfile_path,output_path):
         for key in model_elpds.keys():
             print(f"For model {key},"
                   f" -ELPPD is {model_elpds[key][1][property]}"
-                  f" tested against {len(model_elpds[key][0][property])} data points (average stdev away from experiment "
-                  f"= {numpy.sqrt(2 * (model_elpds[key][1][property]/len(model_elpds[key][0][property])))}")
+                  f" tested against {len(model_elpds[key][0][property])}"
+                  f" data points (average stdev away from experiment "
+                  f"= {numpy.sqrt(2 * (model_elpds[key][1][property] / len(model_elpds[key][0][property])))}")
         print('==================')
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Perform a calculation of Bayes factors and associated benchmarking for a compound.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
