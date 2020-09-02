@@ -1,0 +1,24 @@
+number_data_points: 10
+trange:
+- 0.7
+- 0.8
+priors:
+  epsilon:
+  - exponential
+  - - 0
+    - 150
+  sigma:
+  - exponential
+  - - 0
+    - 0.5
+  L:
+  - exponential
+  - - 0
+    - 0.5
+  Q:
+  - exponential
+  - - 0
+    - 0.5
+properties: ['rhol','Psat']
+fit_steps: 50000
+steps: 100000

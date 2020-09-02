@@ -1,0 +1,6 @@
+number_data_points: 20
+trange:
+- 0.55
+- 0.95
+number_samples: 1000
+
