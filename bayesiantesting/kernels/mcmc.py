@@ -6,9 +6,12 @@ import json
 import os
 
 import numpy as np
+import scipy.stats.distributions as dist
 import torch
+
 from matplotlib import pyplot
 from tqdm import tqdm
+
 
 from bayesiantesting.models import Model, ModelCollection
 from bayesiantesting.samplers import MetropolisSampler
@@ -518,3 +521,37 @@ class MCMCSimulation:
         self.save_results(output_directory, save_trace_plots)
 
         return self.trace, self.log_p_trace, self.percentage_deviation_trace
+
+    def fit_prior_exponential(self,
+    ):
+        """Utility to generate exponential prior distributions
+        based off the trace of a short MCMC simulation
+        Inputs
+        ------
+        self.trace: numpy.ndarray
+            A trajectory from a simulation object.
+
+        Outputs
+        -------
+        param_dict: dict
+        A dictionary of parameters required for the
+
+        """
+        priors = {}
+        expon = dist.expon
+        norm = dist.norm
+        variables = ['epsilon', 'sigma', 'L', 'Q']
+        for i in range(1, len(self.trace[0])):
+            if i == 4:
+                loc, scale = expon.fit(self.trace[:, i], floc=0)
+                prior_type = 'exponential'
+            else:
+                loc, scale = norm.fit(self.trace[:, i])
+                prior_type = 'normal'
+            priors[variables[i-1]] = [prior_type, [loc, scale]]
+        print(priors['epsilon'][1][1])
+        return priors
+
+
+
+
