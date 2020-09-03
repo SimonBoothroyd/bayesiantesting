@@ -3,13 +3,17 @@ import os
 
 import numpy
 import yaml
+import pandas
+import os
+import json
 
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.models.continuous import TwoCenterLJModel, UnconditionedModel
 from bayesiantesting.surrogates import StollWerthSurrogate
-
+from bayesiantesting.models.continuous import UnconditionedModel
+from bayesiantesting.kernels import MCMCSimulation
 
 def parse_input_yaml(filepath):
 
@@ -21,7 +25,7 @@ def parse_input_yaml(filepath):
     return simulation_params
 
 
-def prepare_data(simulation_params, compound=None):
+def prepare_data(simulation_params, compound=None, filtering=True):
     """From input parameters, pull appropriate experimental data and
     uncertainty information.
     """
@@ -31,22 +35,22 @@ def prepare_data(simulation_params, compound=None):
 
     # Retrieve the constants and thermophysical data
     data_set = NISTDataSet(compound)
+    if filtering is True:
+        # Filter the data to selected conditions.
+        minimum_temperature = (
+            simulation_params["trange"][0]
+            * data_set.critical_temperature.value.to(unit.kelvin).magnitude
+        )
+        maximum_temperature = (
+            simulation_params["trange"][1]
+            * data_set.critical_temperature.value.to(unit.kelvin).magnitude
+        )
 
-    # Filter the data to selected conditions.
-    minimum_temperature = (
-        simulation_params["trange"][0]
-        * data_set.critical_temperature.value.to(unit.kelvin).magnitude
-    )
-    maximum_temperature = (
-        simulation_params["trange"][1]
-        * data_set.critical_temperature.value.to(unit.kelvin).magnitude
-    )
-
-    data_set.filter(
-        minimum_temperature * unit.kelvin,
-        maximum_temperature * unit.kelvin,
-        simulation_params["number_data_points"],
-    )
+        data_set.filter(
+            minimum_temperature * unit.kelvin,
+            maximum_temperature * unit.kelvin,
+            simulation_params["number_data_points"],
+        )
 
     property_types = []
 
@@ -228,6 +232,7 @@ def fit_prior_to_trace(parameter_trace):
     return ["half normal", [scale]]
 
 
+<<<<<<< HEAD
 def fit_to_trace(
     model,
     output_directory,
@@ -236,6 +241,9 @@ def fit_to_trace(
     steps=1500000,
     use_existing=True,
 ):
+=======
+def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use_existing=True):
+>>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
     """Fits a multivariate gaussian distribution to the posterior
     of the model as sampled by an MCMC simulation.
 
@@ -247,10 +255,13 @@ def fit_to_trace(
         The directory to store the working files in.
     initial_parameters: numpy.ndarray
         The parameters to start the simulation from.
+<<<<<<< HEAD
     warm_up_steps: int
         The number of warm-up steps to take.
     steps: int
         The number of production steps to take.
+=======
+>>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
     use_existing: bool
         If True, any existing fits will be used rather than regenerating
         new fits.
@@ -263,7 +274,11 @@ def fit_to_trace(
         The fitted multivariate model.
     """
 
+<<<<<<< HEAD
     trace_path = os.path.join(output_directory, model.name, f"trace.npy")
+=======
+    trace_path = os.path.join(output_directory, model.name, "trace.npy")
+>>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
 
     if not use_existing or not os.path.isfile(trace_path):
 
@@ -276,7 +291,11 @@ def fit_to_trace(
         )
 
         simulation.run(
+<<<<<<< HEAD
             warm_up_steps=warm_up_steps, steps=steps, output_directory=output_directory
+=======
+            warm_up_steps, steps=15000, output_directory=output_directory
+>>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
         )
 
     trace = numpy.load(trace_path)
@@ -334,4 +353,8 @@ def fit_to_trace(
         UnconditionedModel(
             f"{model.name}_multivariate", multivariate_prior_dictionary, {}
         ),
+<<<<<<< HEAD
     )
+=======
+    )
+>>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
