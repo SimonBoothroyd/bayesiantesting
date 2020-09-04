@@ -255,7 +255,6 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
     trace_path = os.path.join(output_directory, model.name, "trace.npy")
 
     if not use_existing or not os.path.isfile(trace_path):
-
         # initial_parameters = generate_initial_parameters(model)
         initial_parameters = initial_parameters[model.name]
 
