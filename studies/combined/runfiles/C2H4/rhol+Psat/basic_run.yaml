@@ -1,4 +1,4 @@
-compound: O2
+compound: C2H4
 number_data_points: 10
 priors:
   epsilon:
@@ -20,16 +20,16 @@ priors:
 
 initial_parameters:
   UA:
-    - 40
-    - 0.31
+    - 80
+    - 0.375
   AUA:
-    - 40
-    - 0.31
-    - 0.1
+    - 80
+    - 0.375
+    - 0.13
   AUA+Q:
-    - 40
-    - 0.31
-    - 0.1
+    - 80
+    - 0.375
+    - 0.13
     - 0.1
 properties: ['rhol','Psat']
 mcmc_steps: 20000

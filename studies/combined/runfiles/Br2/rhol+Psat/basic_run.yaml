@@ -1,4 +1,4 @@
-compound: O2
+compound: Br2
 number_data_points: 10
 priors:
   epsilon:
@@ -20,17 +20,17 @@ priors:
 
 initial_parameters:
   UA:
-    - 40
-    - 0.31
+    - 250
+    - 0.35
   AUA:
-    - 40
-    - 0.31
-    - 0.1
+    - 250
+    - 0.35
+    - 0.22
   AUA+Q:
-    - 40
-    - 0.31
-    - 0.1
-    - 0.1
+    - 250
+    - 0.35
+    - 0.22
+    - 0.5
 properties: ['rhol','Psat']
 mcmc_steps: 20000
 

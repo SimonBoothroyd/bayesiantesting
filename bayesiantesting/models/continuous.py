@@ -140,6 +140,65 @@ class TwoCenterLJModel(Model):
 
         return log_p
 
+
+
+    def evaluate_pointwise_log_likelihood(self, parameters):
+        """Evaluates the log value of the this models likelihood for
+        a set of parameters. based on a gaussian penalty function.
+
+        Parameters
+        ----------
+        parameters: numpy.ndarray
+            The values of the parameters (with shape=(n parameters, 1))
+            to evaluate at.
+
+        Returns
+        -------
+        float
+            The log value of the likelihood evaluated at `parameters`.
+        """
+
+
+        all_parameters = numpy.array([*parameters, *self._fixed_parameters])
+        pointwise_log_likelihood = {}
+        for property_type in self._property_types:
+
+            reference_data = self._reference_data[property_type]
+            precisions = self._reference_precisions[property_type]
+
+            temperatures = reference_data[:, 0]
+
+            reference_values = reference_data[:, 1]
+            log_likelihoods = []
+            for temperature, reference_value, precision in zip(temperatures, reference_values, precisions):
+                log_p = 0.0
+                temperature = numpy.array([temperature])
+                surrogate_value = self._surrogate_model.evaluate(
+                    property_type, all_parameters, temperature
+                )
+                surrogate_value = surrogate_value
+                precision = precision ** -2.0
+                reference_value = reference_value
+                if (
+                    autograd.numpy.isnan(surrogate_value)
+                    or autograd.numpy.isinf(surrogate_value)
+                    or surrogate_value > 1e10
+                ):
+                    return -numpy.inf
+
+                # Compute likelihood based on gaussian penalty function
+                log_p += autograd.numpy.sum(
+                    distributions.Normal(surrogate_value, precision).log_pdf(
+                        reference_value
+                    )
+
+                )
+                log_p += numpy.log(precision) + 0.5 * numpy.log(2 * numpy.pi)
+                log_likelihoods.append(-log_p)
+
+            pointwise_log_likelihood[property_type] = numpy.asarray(log_likelihoods)
+        return pointwise_log_likelihood
+
     def compute_percentage_deviations(self, parameters):
 
         deviations = {}

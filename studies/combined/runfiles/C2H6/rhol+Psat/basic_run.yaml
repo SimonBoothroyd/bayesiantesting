@@ -1,4 +1,4 @@
-compound: O2
+compound: C2H6
 number_data_points: 10
 priors:
   epsilon:
@@ -20,16 +20,16 @@ priors:
 
 initial_parameters:
   UA:
-    - 40
-    - 0.31
+    - 140
+    - 0.35
   AUA:
-    - 40
-    - 0.31
-    - 0.1
+    - 140
+    - 0.35
+    - 0.25
   AUA+Q:
-    - 40
-    - 0.31
-    - 0.1
+    - 140
+    - 0.35
+    - 0.25
     - 0.1
 properties: ['rhol','Psat']
 mcmc_steps: 20000
@@ -41,8 +41,8 @@ swap_freq: 0.5
 mbar_fit_steps: 50000
 mbar_steps: 100000
 trange:
+- 0.6
 - 0.7
-- 0.8
 benchmark_number_data_points: 20
 benchmark_trange:
 - 0.55

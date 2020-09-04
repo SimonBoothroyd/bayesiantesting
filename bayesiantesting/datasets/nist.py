@@ -238,6 +238,21 @@ class NISTDataSet:
         uncertainties /= 100
         return uncertainties
 
+    def remove_datapoints(self,other_dataset):
+
+        for data_type in self.data_types:
+
+            data_frame = self._data[data_type]
+
+            other_data_frame = other_dataset.get_data(data_type)
+
+            df = pd.merge(data_frame, other_data_frame, how='outer', indicator=True) \
+                .query("_merge != 'both'") \
+                .drop('_merge', axis=1) \
+                .reset_index(drop=True)
+            df = df.drop_duplicates(subset='T (K)', keep='last')
+            self._data[data_type] = df
+
     def filter(self, minimum_temperature, maximum_temperature, maximum_data_points):
         """Filters a data frame based on a number of specified criteria..
 

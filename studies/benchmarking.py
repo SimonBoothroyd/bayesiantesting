@@ -40,6 +40,7 @@ def choose_test_datapoints(filepath, simulation_params, train_set):
 
     return test_set
 
+
 def calculate_deviations(property_types, test_set, train_set, samples):
     surrogate = StollWerthSurrogate(test_set.molecular_weight)
     test_results = {}
@@ -63,18 +64,20 @@ def calculate_deviations(property_types, test_set, train_set, samples):
     for property_type in property_types:
         property_measurements = []
         for sample in samples:
-            values = surrogate.evaluate(property_type, sample, numpy.asarray(train_set.get_data(property_type)['T (K)']))
+            values = surrogate.evaluate(property_type, sample,
+                                        numpy.asarray(train_set.get_data(property_type)['T (K)']))
             property_measurements.append(values)
         property_measurements = numpy.asarray(property_measurements).transpose()
         train_results[property_type] = {}
         train_results[property_type]['mean'] = property_measurements.mean(axis=1)
         train_results[property_type]['std'] = property_measurements.std(axis=1)
         train_results[property_type]['temperature'] = numpy.asarray(train_set.get_data(property_type)['T (K)'])
-        train_results[property_type]['measurement uncertainties'] = numpy.asarray(train_set.get_data(property_type)[train_set.get_data(property_type).columns[2]])
-        train_results[property_type]['measurements'] = numpy.asarray(train_set.get_data(property_type)[train_set.get_data(property_type).columns[1]])
+        train_results[property_type]['measurement uncertainties'] = numpy.asarray(
+            train_set.get_data(property_type)[train_set.get_data(property_type).columns[2]])
+        train_results[property_type]['measurements'] = numpy.asarray(
+            train_set.get_data(property_type)[train_set.get_data(property_type).columns[1]])
 
     return test_results, train_results
-
 
 
 def plot_deviations(model_deviations, model_names, property_types, path):
@@ -93,18 +96,16 @@ def plot_deviations(model_deviations, model_names, property_types, path):
         plt.figure(figsize=(8, 8))
         # plot data points
         plt.xlabel(xlabel, fontsize=16)
-        #plt.ylabel(ylabel, fontsize=16)
+        # plt.ylabel(ylabel, fontsize=16)
         plt.title(title, fontsize=24)
-        #plot test
-        print(model_names)
-        markers = [ 's', 'o', 'v']
-        colors = ['red','blue','orange']
+        # plot test
+        markers = ['s', 'o', 'v']
+        colors = ['red', 'blue', 'orange']
         plt.axhline(0, color='grey', linestyle='--', label='Experiment')
         for model_name, marker, color in zip(model_names, markers, colors):
-
             plt.scatter(model_deviations[model_name][0][property]['temperature'],
                         100 * (model_deviations[model_name][0][property]['mean']
-                        - model_deviations[model_name][0][property]['measurements'])/
+                               - model_deviations[model_name][0][property]['measurements']) /
                         model_deviations[model_name][0][property]['measurements'],
                         marker=marker,
                         facecolors='none',
@@ -113,7 +114,7 @@ def plot_deviations(model_deviations, model_names, property_types, path):
             # plot train
             plt.scatter(model_deviations[model_name][1][property]['temperature'],
                         100 * (model_deviations[model_name][1][property]['mean']
-                        - model_deviations[model_name][1][property]['measurements'])/
+                               - model_deviations[model_name][1][property]['measurements']) /
                         model_deviations[model_name][1][property]['measurements'],
                         marker=marker,
                         facecolors=color,
@@ -122,8 +123,9 @@ def plot_deviations(model_deviations, model_names, property_types, path):
         plt.legend()
         figpath = os.path.join(path, 'figures', 'benchmarking')
         os.makedirs(figpath, exist_ok=True)
-        plt.savefig(figpath + '/' + title+'.png')
+        plt.savefig(figpath + '/' + title + '.png')
         plt.clf()
+
 
 def plot_points(model_deviations, model_names, property_types):
     for property in property_types:
@@ -143,14 +145,14 @@ def plot_points(model_deviations, model_names, property_types):
         plt.xlabel(xlabel, fontsize=16)
         plt.ylabel(ylabel, fontsize=16)
         plt.title(title, fontsize=24)
-        #plot test
+        # plot test
         plt.scatter(model_deviations[model_names[0]][0][property]['temperature'],
                     model_deviations[model_names[0]][0][property]['measurements'],
-                    marker = 'o',
+                    marker='o',
                     facecolors='none',
-                    edgecolors = 'grey',
-                    label = 'Measured Test Points')
-        #plot train
+                    edgecolors='grey',
+                    label='Measured Test Points')
+        # plot train
         plt.scatter(model_deviations[model_names[0]][1][property]['temperature'],
                     model_deviations[model_names[0]][1][property]['measurements'],
                     marker='o',
@@ -177,9 +179,6 @@ def plot_points(model_deviations, model_names, property_types):
         plt.show()
 
 
-
-
-
 def calculate_elpd(model, property_types, samples):
     elpd_dict = {}
     for property in property_types:
@@ -189,10 +188,18 @@ def calculate_elpd(model, property_types, samples):
         for key in logs_sample.keys():
             elpd_dict[key].append(logs_sample[key])
 
+
+    if property == NISTDataType.LiquidDensity:
+        property_name = 'Density'
+    elif property == NISTDataType.SaturationPressure:
+        property_name = 'Saturation Pressure'
+    elif property == NISTDataType.SurfaceTension:
+        property_name = 'Surface Tension'
     elppd_dict = {}
     for key, value in elpd_dict.items():
         elpd_dict[key] = numpy.asarray(value).transpose().mean(1)
         elppd_dict[key] = numpy.sum(elpd_dict[key])
+        elpd_dict[key] = elpd_dict[key].tolist()
     return elpd_dict, elppd_dict
 
 
@@ -218,5 +225,3 @@ def calculate_rmses(results):
         rmses.append(numpy.asarray(results[i][2])[:, 2])
     rmses = numpy.asarray(rmses)
     return results, rmses
-
-
