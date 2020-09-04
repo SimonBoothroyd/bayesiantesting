@@ -38,7 +38,6 @@ def main(compound, properties):
     mcmc_benchmarking(simulation_params, runfile_path, output_path)
     print(results)
     print(bayes_factors)
-    print(counts)
 
 
 def mcmc_choose_priors(runfile_path, output_path):

@@ -264,7 +264,7 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
         )
 
         simulation.run(
-            warm_up_steps, steps=15000, output_directory=output_directory
+            warm_up_steps/3, steps=warm_up_steps, output_directory=output_directory
         )
 
     trace = numpy.load(trace_path)
