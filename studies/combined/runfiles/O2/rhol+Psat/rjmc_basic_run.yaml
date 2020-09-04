@@ -18,9 +18,9 @@ priors:
   - - 0
     - 1
 properties: ['rhol','Psat']
-steps: 40000
-fit_steps: 20000
+steps: 1000000
+fit_steps: 100000
 swap_freq: 0.5
 trange:
-- 0.55
-- 0.95
+- 0.7
+- 0.8

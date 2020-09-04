@@ -17,8 +17,8 @@ priors:
   - exponential
   - - 0
     - 1
-properties: 'All'
-steps: 20000
+properties: 'rhol+Psat'
+steps: 500000
 trange:
 - 0.7
 - 0.8

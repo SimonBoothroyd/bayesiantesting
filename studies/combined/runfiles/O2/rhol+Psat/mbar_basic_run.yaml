@@ -20,5 +20,5 @@ priors:
   - - 0
     - 0.5
 properties: ['rhol','Psat']
-fit_steps: 50000
-steps: 100000
+fit_steps: 200000
+steps: 1000000
