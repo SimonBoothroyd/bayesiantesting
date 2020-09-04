@@ -1,4 +1,4 @@
-compound: O2
+compound: F2
 number_data_points: 10
 priors:
   epsilon:
@@ -21,14 +21,14 @@ priors:
 initial_parameters:
   UA:
     - 40
-    - 0.31
+    - 0.30
   AUA:
     - 40
-    - 0.31
+    - 0.30
     - 0.1
   AUA+Q:
     - 40
-    - 0.31
+    - 0.30
     - 0.1
     - 0.1
 properties: ['rhol','Psat']

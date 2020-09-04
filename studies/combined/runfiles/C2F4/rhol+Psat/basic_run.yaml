@@ -20,17 +20,17 @@ priors:
 
 initial_parameters:
   UA:
-    - 40
-    - 0.31
+    - 106
+    - 0.385
   AUA:
-    - 40
-    - 0.31
-    - 0.1
+    - 106
+    - 0.385
+    - 0.13
   AUA+Q:
-    - 40
-    - 0.31
-    - 0.1
-    - 0.1
+    - 106
+    - 0.385
+    - 0.13
+    - 0.7
 properties: ['rhol','Psat']
 mcmc_steps: 20000
 
