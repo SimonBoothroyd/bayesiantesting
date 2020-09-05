@@ -39,7 +39,6 @@ def main(compound, properties):
     mcmc_benchmarking(simulation_params, runfile_path, output_path)
     print(results)
     print(bayes_factors)
-    print(counts)
 
 
 def mcmc_choose_priors(runfile_path, output_path):
@@ -120,7 +119,7 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
         all_fits = pool.map(
             functools.partial(
                 fit_to_trace,
-                warm_up_steps=mbar_params["mbar_fit_steps"],
+                steps=mbar_params["mbar_fit_steps"],
                 output_directory=fitting_directory,
                 initial_parameters=initial_parameters,
             ),
@@ -196,7 +195,7 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
         pool.map(
             functools.partial(
                 fit_to_trace,
-                warm_up_steps=int(rjmc_params["rjmc_fit_steps"] * 2.0 / 3.0),
+                steps=rjmc_params["rjmc_fit_steps"],
                 output_directory=output_directory,
                 initial_parameters=initial_parameters,
             ),

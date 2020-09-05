@@ -233,7 +233,7 @@ def fit_prior_to_trace(parameter_trace):
 
 
 
-def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use_existing=True):
+def fit_to_trace(model, output_directory, initial_parameters, steps, use_existing=True):
     """Fits a multivariate gaussian distribution to the posterior
     of the model as sampled by an MCMC simulation.
 
@@ -245,8 +245,6 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
         The directory to store the working files in.
     initial_parameters: numpy.ndarray
         The parameters to start the simulation from.
-    warm_up_steps: int
-        The number of warm-up steps to take.
     steps: int
         The number of production steps to take.
     use_existing: bool
@@ -263,7 +261,6 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
 
     trace_path = os.path.join(output_directory, model.name, f"trace.npy")
     if not use_existing or not os.path.isfile(trace_path):
-
         # initial_parameters = generate_initial_parameters(model)
         initial_parameters = initial_parameters[model.name]
 
@@ -273,8 +270,7 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
         )
 
         simulation.run(
-            warm_up_steps=warm_up_steps/2, steps=warm_up_steps, output_directory=output_directory)
-
+            warm_up_steps=int(steps/2), steps=steps, output_directory=output_directory)
     trace = numpy.load(trace_path)
 
     # Fit the univariate distributions.

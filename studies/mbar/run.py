@@ -158,7 +158,7 @@ def fit_to_trace(model, output_directory, initial_parameters, use_existing=True)
         )
 
         simulation.run(
-            warm_up_steps=1000000, steps=1500000, output_directory=output_directory
+            warm_up_steps=10000, steps=15000, output_directory=output_directory
         )
 
     trace = numpy.load(trace_path)
@@ -262,9 +262,9 @@ def main(compound, n_processes):
         _, reference_model = fits
 
         # Run the MBAR simulation
-        lambda_values = numpy.linspace(0.0, 1.0, 8)
+        lambda_values = numpy.linspace(0.0, 1.0, 3)
 
-        output_directory = os.path.join(compound, f"mbar_{model.name}")
+        output_directory = os.path.join(results, compound, f"mbar_{model.name}")
 
         simulation = MBARIntegration(
             lambda_values=lambda_values,
