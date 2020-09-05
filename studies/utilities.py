@@ -232,18 +232,8 @@ def fit_prior_to_trace(parameter_trace):
     return ["half normal", [scale]]
 
 
-<<<<<<< HEAD
-def fit_to_trace(
-    model,
-    output_directory,
-    initial_parameters,
-    warm_up_steps=1000000,
-    steps=1500000,
-    use_existing=True,
-):
-=======
+
 def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use_existing=True):
->>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
     """Fits a multivariate gaussian distribution to the posterior
     of the model as sampled by an MCMC simulation.
 
@@ -255,13 +245,10 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
         The directory to store the working files in.
     initial_parameters: numpy.ndarray
         The parameters to start the simulation from.
-<<<<<<< HEAD
     warm_up_steps: int
         The number of warm-up steps to take.
     steps: int
         The number of production steps to take.
-=======
->>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
     use_existing: bool
         If True, any existing fits will be used rather than regenerating
         new fits.
@@ -274,12 +261,7 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
         The fitted multivariate model.
     """
 
-<<<<<<< HEAD
     trace_path = os.path.join(output_directory, model.name, f"trace.npy")
-=======
-    trace_path = os.path.join(output_directory, model.name, "trace.npy")
->>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
-
     if not use_existing or not os.path.isfile(trace_path):
 
         # initial_parameters = generate_initial_parameters(model)
@@ -291,12 +273,7 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
         )
 
         simulation.run(
-<<<<<<< HEAD
-            warm_up_steps=warm_up_steps, steps=steps, output_directory=output_directory
-=======
-            warm_up_steps, steps=15000, output_directory=output_directory
->>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
-        )
+            warm_up_steps=warm_up_steps/2, steps=warm_up_steps, output_directory=output_directory)
 
     trace = numpy.load(trace_path)
 
@@ -353,8 +330,4 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
         UnconditionedModel(
             f"{model.name}_multivariate", multivariate_prior_dictionary, {}
         ),
-<<<<<<< HEAD
-    )
-=======
-    )
->>>>>>> 2b90661dbbfff0987321bd20f8a796eda07ca493
+     )
