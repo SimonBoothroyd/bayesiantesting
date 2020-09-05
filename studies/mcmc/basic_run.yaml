@@ -1,4 +1,4 @@
-compound: C2H6
+compound: Br2
 number_data_points: 10
 priors:
   epsilon:
@@ -17,8 +17,8 @@ priors:
   - exponential
   - - 0
     - 1
-properties: All
-steps: 1000000
+properties: ['rhol','Psat']
+steps: 10000
 trange:
-- 0.55
-- 0.95
+- 0.7
+- 0.8

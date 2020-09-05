@@ -17,8 +17,8 @@ priors:
   - exponential
   - - 0
     - 1
-properties: All
-steps: 4000000
+properties: ['rhol','Psat']
+steps: 400000
 swap_freq: 0.5
 trange:
 - 0.55
