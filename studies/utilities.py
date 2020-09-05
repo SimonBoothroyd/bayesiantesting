@@ -228,7 +228,7 @@ def fit_prior_to_trace(parameter_trace):
     return ["half normal", [scale]]
 
 
-def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use_existing=True):
+def fit_to_trace(model, output_directory, initial_parameters, steps, use_existing=True):
     """Fits a multivariate gaussian distribution to the posterior
     of the model as sampled by an MCMC simulation.
 
@@ -264,7 +264,7 @@ def fit_to_trace(model, output_directory, initial_parameters, warm_up_steps, use
         )
 
         simulation.run(
-            warm_up_steps/3, steps=warm_up_steps, output_directory=output_directory
+            warm_up_steps=steps/3, steps=steps, output_directory=output_directory
         )
 
     trace = numpy.load(trace_path)
