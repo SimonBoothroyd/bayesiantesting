@@ -17,7 +17,7 @@ from bayesiantesting.kernels import MCMCSimulation
 
 def parse_input_yaml(filepath):
 
-    print("Loading simulation params from " + filepath + "...")
+    # print("Loading simulation params from " + filepath + "...")
 
     with open(filepath) as file:
         simulation_params = yaml.load(file, Loader=yaml.SafeLoader)
@@ -250,6 +250,8 @@ def fit_to_trace(model, output_directory, initial_parameters, steps, use_existin
     use_existing: bool
         If True, any existing fits will be used rather than regenerating
         new fits.
+    steps: int
+        Number of steps used to fit the trace
 
     Returns
     -------
@@ -259,18 +261,19 @@ def fit_to_trace(model, output_directory, initial_parameters, steps, use_existin
         The fitted multivariate model.
     """
 
-    trace_path = os.path.join(output_directory, model.name, f"trace.npy")
+    trace_path = os.path.join(output_directory, model.name, "trace.npy")
     if not use_existing or not os.path.isfile(trace_path):
         # initial_parameters = generate_initial_parameters(model)
         initial_parameters = initial_parameters[model.name]
-
         # Run a short MCMC simulation to get better initial parameters
         simulation = MCMCSimulation(
             model_collection=model, initial_parameters=initial_parameters,
         )
 
         simulation.run(
-            warm_up_steps=int(steps/2), steps=steps, output_directory=output_directory)
+            warm_up_steps=int(steps/3), steps=steps, output_directory=output_directory
+        )
+
     trace = numpy.load(trace_path)
 
     # Fit the univariate distributions.
@@ -294,7 +297,6 @@ def fit_to_trace(model, output_directory, initial_parameters, steps, use_existin
 
     multivariate_mean = numpy.mean(trace[:, 1 : 1 + n_multivariate_parameters], axis=0)
     multivariate_covariance = numpy.cov(trace[:, 1 : 1 + n_multivariate_parameters].T)
-
     multivariate_key = tuple(
         [
             label
@@ -312,7 +314,6 @@ def fit_to_trace(model, output_directory, initial_parameters, steps, use_existin
     for index, label in enumerate(
         model.trainable_parameter_labels[n_multivariate_parameters:]
     ):
-
         parameter_trace = trace[:, n_multivariate_parameters + index + 1]
         multivariate_prior_dictionary[label] = fit_prior_to_trace(parameter_trace)
 
