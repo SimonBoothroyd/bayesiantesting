@@ -21,9 +21,10 @@ from studies.benchmarking import calculate_elpd, sample_trace, choose_test_datap
     plot_deviations
 
 
-def main(compound, properties):
+def main(compound, properties, output_location):
     # create file structure for output
-    output_path = os.path.join('output',
+    output_path = os.path.join(output_location,
+                               'output',
                                compound,
                                properties,
                                str(datetime.date.today()))
@@ -446,6 +447,6 @@ if __name__ == "__main__":
         required=False,
         default=1,
     )
-
+    output_location = '/media/owenmadin/storage/rjmc_output/local'
     args = parser.parse_args()
-    main(args.compound, args.properties)
+    main(args.compound, args.properties, output_location)
