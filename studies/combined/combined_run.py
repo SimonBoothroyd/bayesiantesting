@@ -200,11 +200,9 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
             ),
             sub_models,
         )
-
     for model in sub_models:
 
         fit_path = os.path.join(output_path, 'intermediate', 'rjmc_fitting', f"{model.name}_univariate_fit.json")
-
         with open(fit_path) as file:
             fit_distributions = json.load(file)
 
@@ -225,7 +223,6 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
 
     for mean, model in zip(maximum_a_posteriori, sub_models):
         print(model.evaluate_log_posterior(mean))
-
     # Create the full model collection
     model_collection = TwoCenterLJModelCollection(
         "2CLJ Models", sub_models, mapping_distributions
@@ -323,7 +320,6 @@ def mcmc_benchmarking(simulation_params, runfile_path, output_path):
         )
 
         params = simulation.fit_prior_exponential()
-
         # calculate summary statistics
         benchmark_filepath = os.path.join(runfile_path, 'basic_run.yaml')
         test_set = choose_test_datapoints(benchmark_filepath, simulation_params, data_set)
@@ -402,19 +398,29 @@ def bayes_factor_from_evidence(models, evidences, errors, filepath, plot=False):
         chart_models = []
         for model in models:
             chart_models.append(model + '/' + ref_model)
-        plt.figure(figsize=(8, 8))
-        plt.bar(chart_models, subtract_values, yerr=subtract_stdev, color=['r', 'orange'])
-        plt.ylabel('ln(Bayes Factor) vs ' + ref_model, fontsize=16)
-        plt.axhline(-1, color='k', ls='--', label='Significant Evidence for ' + ref_model, lw=2)
-        plt.axhline(-3, color='k', ls=':', label='Strong Evidence for ' + ref_model, lw=2)
-        plt.axhline(-5, color='k', ls='-.', label='Very Strong Evidence for ' + ref_model, lw=2)
+        fig, ax1 = plt.subplots(figsize=(8, 8), constrained_layout=True)
+        plt.title(f'Model Evidences in favor of {ref_model}', fontsize=24)
+        ax1.bar(chart_models, subtract_values, yerr=subtract_stdev, color=['r', 'orange'])
+        ax1.set_ylabel('ln(Bayes Factor) vs ' + ref_model, fontsize=16)
+        ax1.axhline(-1, color='k', ls='--', label='Significant Evidence for ' + ref_model, lw=1)
+        ax1.axhline(-3, color='k', ls='--', label='Strong Evidence for ' + ref_model, lw=1)
+        ax1.axhline(-5, color='k', ls='--', label='Very Strong Evidence for ' + ref_model, lw=1)
 
-        plt.xlabel('Model', fontsize=16)
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
-        plt.title('Model Evidences', fontsize=24)
-        plt.legend(fontsize=12)
-        plt.savefig(filepath +'/log_bayes_factors.png')
+        # ax1.set_xlabel('Model', fontsize=16)
+
+        # ax1.legend(fontsize=12)
+        pos = [-1, -3, -5]
+        evidence_label = ['Significant \n Evidence', 'Strong \n Evidence', 'Very Strong \n Evidence']
+        ax1.tick_params(axis='y', labelsize=16)
+        ax1.tick_params(axis='x', labelsize=24)
+        ax1.set_ylabel('ln(Bayes Factor) vs ' + ref_model, fontsize=22)
+        ax2 = ax1.twinx()
+        ax2.set_ylim(ax1.axes.get_ylim())
+        ax2.tick_params(labelsize=18)
+        ax2.set_yticks(pos)
+        ax2.set_yticklabels(evidence_label, rotation=-90, va='center')
+        plt.savefig(filepath+'/log_bayes_factors.png')
+
     return output
 
 
