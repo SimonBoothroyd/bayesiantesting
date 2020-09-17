@@ -6,6 +6,8 @@ import os
 from multiprocessing.pool import Pool
 import datetime
 import copy
+import shutil
+
 
 from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data, fit_to_trace
 from matplotlib import pyplot as plt
@@ -61,6 +63,7 @@ def mcmc_choose_priors(runfile_path, output_path):
 
     path = os.path.join(output_path, 'intermediate', 'mcmc_prior')
     os.makedirs(path, exist_ok=True)
+    print(path)
     trace, log_p_trace, percent_deviation_trace = simulation.run(
         warm_up_steps=int(simulation_params["mcmc_steps"] * 0.2),
         steps=simulation_params["mcmc_steps"],
@@ -89,7 +92,10 @@ def mcmc_choose_priors(runfile_path, output_path):
 
     simulation_params["priors"] = params
     #   for key in simulation_params['priors'].keys()
-
+    #shutil.rmtree(os.path.join(path))
+    print('==================')
+    print('Prior Fitting Simulations Complete')
+    print('==================')
     return simulation_params
 
 
@@ -125,17 +131,19 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
             ),
             models,
         )
-
+    print('==================')
+    print('MBAR Fitting Simulations Complete')
+    print('==================')
     # Run the MBAR calculations
     results = {}
-
+    mbar_output_path = os.path.join(output_path,'mbar_results')
     for model, fits in zip(models, all_fits):
         _, reference_model = fits
 
         # Run the MBAR simulation
         lambda_values = numpy.linspace(0.0, 1.0, 3)
 
-        output_directory = os.path.join(output_path, f"mbar_{model.name}")
+        output_directory = os.path.join(mbar_output_path, f"mbar_{model.name}")
 
         simulation = MBARIntegration(
             lambda_values=lambda_values,
@@ -150,6 +158,9 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
         )
 
         results[model.name] = {"integral": integral, "error": error}
+        print('==================')
+        print(f'{model.name} complete, integral of {integral} with {error} error')
+        print('==================')
     models = []
     evidences = []
     errors = []
@@ -164,7 +175,10 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
         json.dump(results, file, sort_keys=True, indent=4, separators=(",", ": "))
     with open(output_path+'/'+f"mbar_{compound}_bayes_factors.json", "w") as file:
         json.dump(output, file, sort_keys=True, indent=4, separators=(",", ": "))
-
+    #shutil.rmtree(fitting_directory)
+    print('==================')
+    print('MBAR Calculations Complete')
+    print('==================')
     return output, results
 
 
@@ -188,39 +202,48 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
     # Load the mapping distributions
     mapping_distributions = []
     maximum_a_posteriori = []
-    output_directory = os.path.join(output_path, 'intermediate', 'rjmc_fitting')
-    os.makedirs(output_directory, exist_ok=True)
+    fitting_directory = os.path.join(output_path, 'intermediate', 'rjmc_fitting')
+    os.makedirs(fitting_directory, exist_ok=True)
     with Pool(n_processes) as pool:
 
         pool.map(
             functools.partial(
                 fit_to_trace,
                 steps=rjmc_params["rjmc_fit_steps"],
-                output_directory=output_directory,
+                output_directory=fitting_directory,
                 initial_parameters=initial_parameters,
             ),
             sub_models,
         )
+    print('==================')
+    print('RJMC Fitting Simulations Complete')
+    print('==================')
     for model in sub_models:
 
-        fit_path = os.path.join(output_path, 'intermediate', 'rjmc_fitting', f"{model.name}_univariate_fit.json")
+        fit_path = os.path.join(fitting_directory, f"{model.name}_univariate_fit.json")
         with open(fit_path) as file:
             fit_distributions = json.load(file)
 
         fit_model = UnconditionedModel(model.name, fit_distributions, {})
         mapping_distributions.append(fit_model.priors)
+        print(fit_model.priors)
 
         # Determine the maximum a posteriori of the fit
         map_parameters = []
 
         for distribution in fit_model.priors:
 
-            if isinstance(distribution, distributions.Normal):
-                map_parameters.append(distribution.loc)
+            if isinstance(distribution, (distributions.Normal)):
+                if isinstance(distribution, (distributions.HalfNormal)):
+                    map_parameters.append(distribution.scale)
+                else:
+                    map_parameters.append(distribution.loc)
+
             else:
                 raise NotImplementedError()
 
         maximum_a_posteriori.append(numpy.asarray(map_parameters))
+    print(maximum_a_posteriori)
 
     for mean, model in zip(maximum_a_posteriori, sub_models):
         print(model.evaluate_log_posterior(mean))
@@ -245,7 +268,8 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
     # initial_parameters = generate_initial_parameters(sub_models[initial_model_index])
     initial_parameters = maximum_a_posteriori[initial_model_index]
 
-    output_directory_path = output_path
+    output_directory_path = os.path.join(output_path,'RJMC_results')
+    os.makedirs(output_directory_path, exist_ok=True)
 
     simulation = BiasedRJMCSimulation(
         model_collection=model_collection,
@@ -268,6 +292,10 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
             rjmc_counts[1] += 1
         elif trace[i, 0] == 2:
             rjmc_counts[2] += 1
+    #shutil.rmtree(fitting_directory)
+    print('==================')
+    print('RJMC Simulations Complete')
+    print('==================')
     return rjmc_counts
 
 
@@ -342,10 +370,9 @@ def mcmc_benchmarking(simulation_params, runfile_path, output_path):
                 fixed_samples.append(samples[i])
         samples = numpy.asarray(fixed_samples)
         model_deviations[model_name] = calculate_deviations(property_types, test_set, data_set, samples)
-
+    #shutil.rmtree(path)
     plot_deviations(model_deviations, model_keys, property_types, output_path)
     for property in property_types:
-        output_elpd = {}
         print(property)
         for key in model_elpds.keys():
             print(f"For model {key},"
@@ -362,6 +389,8 @@ def mcmc_benchmarking(simulation_params, runfile_path, output_path):
             model_elpds[key][0][property_name] = model_elpds[key][0][property]
             model_elpds[key][1][property_name] = model_elpds[key][1][property]
             del model_elpds[key][0][property], model_elpds[key][1][property]
+        print('==================')
+        print('Benchmarking Simulations Complete')
         print('==================')
     with open(output_path+'/'+f"ELPPD.json", "w") as file:
         json.dump(model_elpds, file, sort_keys=True, indent=4, separators=(",", ": "))
