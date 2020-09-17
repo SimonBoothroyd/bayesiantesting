@@ -667,7 +667,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
                     lambda_value,
                     self._reference_model,
                 )
-
+        numpy.save(self._output_directory_path+'/reduced_potentials.npy',reduced_potentials)
         mbar = pymbar.MBAR(reduced_potentials, frame_counts)
         delta_f, d_delta_f = mbar.getFreeEnergyDifferences()
 
