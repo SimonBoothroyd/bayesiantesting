@@ -448,6 +448,6 @@ if __name__ == "__main__":
         required=False,
         default=1,
     )
-    output_location = '/media/owenmadin/storage/rjmc_output/local'
+    output_location = '/home/owenmadin/storage/LINCOLN1/rjmc_output'
     args = parser.parse_args()
     main(args.compound, args.properties, output_location)
