@@ -72,10 +72,12 @@ def mcmc_choose_priors(runfile_path, output_path):
     )
 
     params = simulation.fit_prior_exponential()
+
     params['epsilon'][1][1] *= 5
     params['sigma'][1][1] *= 5
     params['L'][1][1] *= 5
     params['Q'][1][1] *= 5
+
     variables = ['epsilon', 'sigma', 'L', 'Q']
 
     prior_figure_path = os.path.join(output_path, 'figures', 'priors')
@@ -92,6 +94,8 @@ def mcmc_choose_priors(runfile_path, output_path):
         plt.savefig(os.path.join(prior_figure_path, 'prior_' + variables[i] + '.png'))
 
     simulation_params["priors"] = params
+    with open(os.path.join(path,"priors.json"), "w") as file:
+        json.dump(simulation_params['priors'], file, sort_keys=True, indent=4, separators=(",", ": "))
     #   for key in simulation_params['priors'].keys()
     #shutil.rmtree(os.path.join(path))
     print('==================')
@@ -236,7 +240,7 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
 
             if isinstance(distribution, (distributions.Normal)):
                 if isinstance(distribution, (distributions.HalfNormal)):
-                    map_parameters.append(distribution.scale)
+                    map_parameters.append(0)
                 else:
                     map_parameters.append(distribution.loc)
 
