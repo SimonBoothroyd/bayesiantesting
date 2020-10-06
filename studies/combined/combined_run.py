@@ -11,7 +11,7 @@ import shutil
 
 from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data, fit_to_trace
 from matplotlib import pyplot as plt
-from scipy.stats import distributions as dist
+import scipy.stats.distributions as dist
 from bayesiantesting.kernels import MCMCSimulation
 from bayesiantesting.kernels.bayes import MBARIntegration
 from bayesiantesting.models.continuous import UnconditionedModel
@@ -50,53 +50,66 @@ def mcmc_choose_priors(runfile_path, output_path):
     # Load the data.
     data_set, property_types = prepare_data(simulation_params)
 
-    # Set some initial parameter close to the MAP taken from
-    # other runs of C2H6.
     # TODO add initial parameters to runfiles
     initial_parameters = simulation_params['initial_parameters']
+    model_keys = ['UA','AUA','AUA+Q']
+    for model_name in model_keys:
 
-    model = get_2clj_model("AUA+Q", data_set, property_types, simulation_params)
-    # Run the simulation.
-    simulation = MCMCSimulation(
+        model = get_2clj_model(model_name, data_set, property_types, simulation_params)
+
+        simulation = MCMCSimulation(
         model_collection=model, initial_parameters=numpy.asarray(initial_parameters[model.name])
-    )
+        )
 
-    path = os.path.join(output_path, 'intermediate', 'mcmc_prior')
-    os.makedirs(path, exist_ok=True)
-    print(path)
-    trace, log_p_trace, percent_deviation_trace = simulation.run(
-        warm_up_steps=int(simulation_params["mcmc_steps"] * 0.2),
-        steps=simulation_params["mcmc_steps"],
-        output_directory=path
-    )
+        path = os.path.join(output_path, 'intermediate', 'mcmc_prior', model_name)
+        os.makedirs(path, exist_ok=True)
+        trace, log_p_trace, percent_deviation_trace = simulation.run(
+            warm_up_steps=int(simulation_params["mcmc_steps"] * 0.2),
+            steps=simulation_params["mcmc_steps"],
+            output_directory=path
+        )
+        params_length = len(trace[0,1:])
+        params = simulation.fit_prior_exponential()
+        params['epsilon'][1][1] *= 5
+        params['sigma'][1][1] *= 5
+        if model_name == 'UA':
+            params_length-=2
+            variables = ['epsilon', 'sigma']
+        elif model_name == 'AUA':
+            params_length-=1
+            variables = ['epsilon', 'sigma', 'L']
+            params['L'][1][1] *= 5
+        elif model_name == 'AUA+Q':
+            variables = ['epsilon', 'sigma', 'L', 'Q']
+            if params['Q'][0] == 'exponential':
+                params['Q'][1][1] *= 5
 
-    params = simulation.fit_prior_exponential()
 
-    params['epsilon'][1][1] *= 5
-    params['sigma'][1][1] *= 5
-    params['L'][1][1] *= 5
-    params['Q'][1][1] *= 5
 
-    variables = ['epsilon', 'sigma', 'L', 'Q']
+        prior_figure_path = os.path.join(output_path, 'figures', 'priors', model_name)
+        os.makedirs(prior_figure_path, exist_ok=True)
 
-    prior_figure_path = os.path.join(output_path, 'figures', 'priors')
-    os.makedirs(prior_figure_path, exist_ok=True)
-    for i in range(len(trace[0, 1:])):
-        plt.clf()
-        plt.hist(trace[:, i + 1], bins=50, alpha=0.5, color='b', label='Trace', density=True)
-        x_vec = numpy.linspace(0.666 * min(trace[:, i + 1]), 1.5 * max(trace[:, i + 1]), num=500)
-        if i == 3:
-            plt.plot(x_vec, dist.expon.pdf(x_vec, *params[variables[i]][1]), label='Prior')
-        else:
-            plt.plot(x_vec, dist.norm.pdf(x_vec, *params[variables[i]][1]), label='Prior')
+        for i in range(len(trace[0, 1:])):
+            plt.clf()
+            plt.hist(trace[:, i + 1], bins=50, alpha=0.5, color='b', label='Trace', density=True)
+            x_vec = numpy.linspace(0.666 * min(trace[:, i + 1]), 1.5 * max(trace[:, i + 1]), num=500)
+            if i == 3:
+                if params['Q'][0] == 'gamma':
+                    print(params[variables[i]][1])
+                    plt.plot(x_vec, dist.gamma.pdf(x_vec, params[variables[i]][1][0], scale=params[variables[i]][1][1]), label='Prior')
+                elif params['Q'][0] =='exponential':
+                    plt.plot(x_vec, dist.expon.pdf(x_vec, *params[variables[i]][1]), label='Prior')
+            else:
+                plt.plot(x_vec, dist.norm.pdf(x_vec, *params[variables[i]][1]), label='Prior')
+            plt.legend()
+            plt.savefig(os.path.join(prior_figure_path, 'prior_' + variables[i] + '.png'))
 
-        plt.savefig(os.path.join(prior_figure_path, 'prior_' + variables[i] + '.png'))
-
-    simulation_params["priors"] = params
-    with open(os.path.join(path,"priors.json"), "w") as file:
-        json.dump(simulation_params['priors'], file, sort_keys=True, indent=4, separators=(",", ": "))
-    #   for key in simulation_params['priors'].keys()
-    #shutil.rmtree(os.path.join(path))
+        simulation_params["priors"][model_name] = params
+        with open(os.path.join(path, "priors"+model_name+".json"), "w") as file:
+            json.dump(simulation_params['priors'], file, sort_keys=True, indent=4, separators=(",", ": "))
+        #   for key in simulation_params['priors'].keys()
+        #shutil.rmtree(os.path.join(path))
+    plot_priors(simulation_params, os.path.join(output_path, 'figures', 'priors'))
     print('==================')
     print('Prior Fitting Simulations Complete')
     print('==================')
@@ -106,8 +119,8 @@ def mcmc_choose_priors(runfile_path, output_path):
 def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_processes):
     mbar_params = parse_input_yaml(os.path.join(runfile_path, "basic_run.yaml"))
     mbar_params['priors'] = simulation_params['priors']
+    print(mbar_params['priors'])
     compound = simulation_params['compound']
-    # TODO make everything run off of simulation_params
     # Load the data.
     data_set, property_types = prepare_data(mbar_params, compound)
 
@@ -123,6 +136,7 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
     os.makedirs(fitting_directory, exist_ok=True)
 
     initial_parameters = simulation_params['initial_parameters']
+    print(initial_parameters)
     for key in initial_parameters.keys():
         initial_parameters[key] = numpy.asarray(initial_parameters[key])
     with Pool(n_processes) as pool:
@@ -458,6 +472,38 @@ def bayes_factor_from_evidence(models, evidences, errors, filepath, plot=False):
     return output
 
 
+def plot_priors(simulation_params, path):
+    model_names = ['UA','AUA','AUA+Q']
+    parameter_names = ['epsilon','sigma','L','Q']
+    dist_expon = dist.expon
+    dist_norm = dist.norm
+    dist_gamma = dist.gamma
+
+    for param_name in parameter_names:
+        dists = []
+        models = []
+        for model_name in model_names:
+            if param_name in simulation_params['priors'][model_name]:
+                models.append(model_name)
+                if simulation_params['priors'][model_name][param_name][0] == 'exponential':
+                    dists.append(dist_expon(*simulation_params['priors'][model_name][param_name][1]))
+                elif simulation_params['priors'][model_name][param_name][0] == 'normal':
+                    dists.append(dist_norm(*simulation_params['priors'][model_name][param_name][1]))
+                elif simulation_params['priors'][model_name][param_name][0] == 'gamma':
+                    dists.append(dist_gamma(simulation_params['priors'][model_name][param_name][1][0], scale=simulation_params['priors'][model_name][param_name][1][1]))
+        mins = []
+        maxs = []
+        for distribution in dists:
+            mins.append(distribution.ppf(0.01))
+            maxs.append(distribution.ppf(0.99))
+        x_vec = numpy.linspace(min(mins), max(maxs), num=500)
+        plt.cla()
+        for distribution, model in zip(dists, models):
+            plt.plot(x_vec, distribution.pdf(x_vec), label=model)
+        plt.legend()
+        plt.savefig(os.path.join(path, param_name+'_all.png'))
+
+    return
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Perform a calculation of Bayes factors and associated benchmarking for a compound.",

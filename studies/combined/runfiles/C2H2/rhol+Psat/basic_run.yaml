@@ -1,48 +1,71 @@
-compound: O2
+compound: C2H2
 number_data_points: 10
 priors:
-  epsilon:
-  - exponential
-  - - 0
-    - 400
-  sigma:
-  - exponential
-  - - 0
-    - 5
-  L:
-  - exponential
-  - - 0
-    - 3
-  Q:
-  - exponential
-  - - 0
-    - 1
+  AUA+Q:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+    Q:
+    - exponential
+    - - 0
+      - 5
+  AUA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+  UA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
 
 initial_parameters:
   UA:
-    - 80
-    - 0.36
+    - 93
+    - 0.35
   AUA:
-    - 80
-    - 0.36
-    - 0.13
+    - 170
+    - 0.30
+    - 0.28
   AUA+Q:
-    - 80
+    - 90
     - 0.36
-    - 0.13
+    - 0.14
     - 0.5
 properties: ['rhol','Psat']
-mcmc_steps: 20000
+mcmc_steps: 100000
 
-rjmc_fit_steps: 20000
+rjmc_fit_steps: 50000
 rjmc_steps: 40000
 swap_freq: 0.5
 
 mbar_fit_steps: 50000
 mbar_steps: 100000
 trange:
-- 0.7
-- 0.8
+- 0.55
+- 0.95
 benchmark_number_data_points: 20
 benchmark_trange:
 - 0.55

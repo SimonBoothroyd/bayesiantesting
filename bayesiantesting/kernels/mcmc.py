@@ -130,7 +130,6 @@ class MCMCSimulation:
         self._percent_deviation_trace = {label: [] for label in deviations}
 
     def _validate_parameter_shapes(self, initial_parameters, initial_model_index):
-
         if (
             initial_model_index < 0
             or initial_model_index >= self._model_collection.n_models
@@ -144,7 +143,7 @@ class MCMCSimulation:
         initial_log_p = self._evaluate_log_p(initial_parameters, initial_model_index)
 
         if np.isnan(initial_log_p) or np.isinf(initial_log_p):
-            raise ValueError(f"The initial log p is NaN / inf - {initial_log_p}")
+            raise ValueError(f"The initial log p is NaN / inf - {initial_log_p} - initial parameters are {initial_parameters} ")
 
     def propagate(self, steps, warm_up=False, progress_bar=True):
         """Propagate the simulation forward by the specified number of
@@ -543,13 +542,25 @@ class MCMCSimulation:
         variables = ['epsilon', 'sigma', 'L', 'Q']
         for i in range(1, len(self.trace[0])):
             if i == 4:
-                loc, scale = expon.fit(self.trace[:, i], floc=0)
-                prior_type = 'exponential'
+                counts, bins = np.histogram(self.trace[:, i], range=(0, max(self.trace[:, i])))
+                quadavg = np.mean(self.trace[:, i])
+                for j in range(len(bins)):
+                    if bins[j] < quadavg < bins[j + 1]:
+                        argloc = j
+                if counts[0] > counts[argloc]:
+                    prior_type = 'exponential'
+                    loc = 0
+                    scale = np.mean(self.trace[:, i])
+                else:
+                    prior_type = 'gamma'
+                    loc = 1/np.std(self.trace[:, i])
+                    scale = np.mean(self.trace[:, i])/loc
+
             else:
                 loc, scale = norm.fit(self.trace[:, i])
                 prior_type = 'normal'
             priors[variables[i-1]] = [prior_type, [loc, scale]]
-        print(priors['epsilon'][1][1])
+
         return priors
 
 

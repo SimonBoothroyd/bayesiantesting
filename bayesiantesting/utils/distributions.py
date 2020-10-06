@@ -338,7 +338,7 @@ class Gamma(Distribution):
             self.alpha * autograd.numpy.log(self.rate)
             + (self.alpha - 1) * autograd.numpy.log(x)
             - self.rate * x
-            - autograd.scipy.special.gamma(self.alpha)
+            - autograd.numpy.log(autograd.scipy.special.gamma(self.alpha))
         )
 
     def cdf(self, x):

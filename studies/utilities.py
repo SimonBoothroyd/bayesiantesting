@@ -63,24 +63,24 @@ def prepare_data(simulation_params, compound=None, filtering=True):
 
 def get_2clj_model(model_name, data_set, property_types, simulation_params):
 
-    priors = {
-        "epsilon": simulation_params["priors"]["epsilon"],
-        "sigma": simulation_params["priors"]["sigma"],
-    }
+    priors = {}
     fixed = {}
 
     if model_name == "AUA":
-
-        priors["L"] = simulation_params["priors"]["L"]
+        priors["epsilon"] = simulation_params["priors"]["AUA"]["epsilon"]
+        priors["sigma"] = simulation_params["priors"]["AUA"]["sigma"]
+        priors["L"] = simulation_params["priors"]["AUA"]["L"]
         fixed["Q"] = 0.0
 
     elif model_name == "AUA+Q":
-
-        priors["L"] = simulation_params["priors"]["L"]
-        priors["Q"] = simulation_params["priors"]["Q"]
+        priors["epsilon"] = simulation_params["priors"]["AUA+Q"]["epsilon"]
+        priors["sigma"] = simulation_params["priors"]["AUA+Q"]["sigma"]
+        priors["L"] = simulation_params["priors"]["AUA+Q"]["L"]
+        priors["Q"] = simulation_params["priors"]["AUA+Q"]["Q"]
 
     elif model_name == "UA":
-
+        priors["epsilon"] = simulation_params["priors"]["UA"]["epsilon"]
+        priors["sigma"] = simulation_params["priors"]["UA"]["sigma"]
         fixed["L"] = data_set.bond_length.to(unit.nanometer).magnitude
         fixed["Q"] = 0.0
 
@@ -222,13 +222,13 @@ def fit_prior_to_trace(parameter_trace):
     if loc - 5.0 * scale > 0.0:
         # Check to make sure whether a half-normal distribution may be
         # more appropriate.
-        return ["normal", [loc, scale]]
+        return ["normal", [loc, scale/2]]
 
     scale = numpy.sqrt(numpy.sum(parameter_trace ** 2) / len(parameter_trace))
-    return ["half normal", [scale]]
+    return ["half normal", [scale/2]]
 
 
-def fit_to_trace(model, output_directory, initial_parameters, steps, use_existing=True):
+def fit_to_trace(model, output_directory, initial_parameters, steps, use_existing=False):
     """Fits a multivariate gaussian distribution to the posterior
     of the model as sampled by an MCMC simulation.
 
@@ -258,6 +258,7 @@ def fit_to_trace(model, output_directory, initial_parameters, steps, use_existin
     if not use_existing or not os.path.isfile(trace_path):
         # initial_parameters = generate_initial_parameters(model)
         initial_parameters = initial_parameters[model.name]
+        print(initial_parameters)
         # Run a short MCMC simulation to get better initial parameters
         simulation = MCMCSimulation(
             model_collection=model, initial_parameters=initial_parameters,

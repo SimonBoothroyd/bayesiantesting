@@ -122,13 +122,13 @@ class Model:
             prior = distributions.Exponential(rate=1.0 / prior_values[1])
 
         elif prior_type == "gamma":
-
+            '''
             if not np.isclose(prior_values[1], 0.0):
                 # The loc argument is not supported in PyTorch.
                 raise NotImplementedError()
-
-            prior = distributions.Gamma(prior_values[0], rate=1.0 / prior_values[2])
-
+            '''
+            #prior = distributions.Gamma(prior_values[0], rate=1.0 / prior_values[2])
+            prior = distributions.Gamma(prior_values[0], prior_values[1])
         elif prior_type == "normal":
 
             prior = distributions.Normal(prior_values[0], prior_values[1])

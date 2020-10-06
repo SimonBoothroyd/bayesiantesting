@@ -213,7 +213,6 @@ class BaseModelEvidenceKernel:
             The initial parameters to use in the lambda
             simulations, with shape=(n_trainable_parameters).
         """
-
         if len(initial_parameters) != self._model.n_trainable_parameters:
 
             raise ValueError(
@@ -321,7 +320,7 @@ class BaseModelEvidenceKernel:
         lambda_value, lambda_index = lambda_tuple
 
         lambda_directory = os.path.join(output_directory_path, str(lambda_index))
-
+        print(model._name,lambda_value,initial_parameters)
         simulation = LambdaSimulation(
             model_collection=model,
             initial_parameters=initial_parameters,
