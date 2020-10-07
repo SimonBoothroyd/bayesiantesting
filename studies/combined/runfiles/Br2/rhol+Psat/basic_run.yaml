@@ -1,36 +1,58 @@
 compound: Br2
 number_data_points: 10
 priors:
-  epsilon:
-  - exponential
-  - - 0
-    - 400
-  sigma:
-  - exponential
-  - - 0
-    - 5
-  L:
-  - exponential
-  - - 0
-    - 3
-  Q:
-  - exponential
-  - - 0
-    - 1
-
+  AUA+Q:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+    Q:
+    - exponential
+    - - 0
+      - 1
+  AUA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+  UA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
 initial_parameters:
   UA:
-    - 250
+    - 200
     - 0.35
   AUA:
-    - 250
+    - 200
     - 0.35
-    - 0.22
+    - 0.2
   AUA+Q:
-    - 250
+    - 200
     - 0.35
-    - 0.22
-    - 0.5
+    - 0.2
+    - 0.2
 properties: ['rhol','Psat']
 mcmc_steps: 1000000
 
@@ -40,6 +62,7 @@ swap_freq: 0.5
 
 mbar_fit_steps: 500000
 mbar_steps: 4000000
+
 trange:
 - 0.7
 - 0.8

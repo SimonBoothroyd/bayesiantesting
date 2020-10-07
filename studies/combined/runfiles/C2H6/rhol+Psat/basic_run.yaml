@@ -1,22 +1,45 @@
 compound: C2H6
 number_data_points: 10
 priors:
-  epsilon:
-  - exponential
-  - - 0
-    - 400
-  sigma:
-  - exponential
-  - - 0
-    - 5
-  L:
-  - exponential
-  - - 0
-    - 3
-  Q:
-  - exponential
-  - - 0
-    - 1
+  AUA+Q:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+    Q:
+    - exponential
+    - - 0
+      - 1
+  AUA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+  UA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
 
 initial_parameters:
   UA:
@@ -40,6 +63,7 @@ swap_freq: 0.5
 
 mbar_fit_steps: 500000
 mbar_steps: 4000000
+
 trange:
 - 0.6
 - 0.7
