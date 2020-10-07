@@ -9,7 +9,7 @@ import copy
 import shutil
 
 
-from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data, fit_to_trace
+from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data, fit_to_trace, prior_dictionary_to_json
 from matplotlib import pyplot as plt
 import scipy.stats.distributions as dist
 from bayesiantesting.kernels import MCMCSimulation
@@ -105,8 +105,13 @@ def mcmc_choose_priors(runfile_path, output_path):
             plt.savefig(os.path.join(prior_figure_path, 'prior_' + variables[i] + '.png'))
 
         simulation_params["priors"][model_name] = params
-        with open(os.path.join(path, "priors"+model_name+".json"), "w") as file:
-            json.dump(simulation_params['priors'], file, sort_keys=True, indent=4, separators=(",", ": "))
+        prior_dictionary_to_json(
+            simulation_params["priors"][model_name],
+            os.path.join(path, "priors_"+model_name+".json"),
+        )
+
+        # with open(os.path.join(path, "priors_"+model_name+".json"), "w") as file:
+        #     json.dump(simulation_params['priors'][model_name], file, sort_keys=True, indent=4, separators=(",", ": "))
         #   for key in simulation_params['priors'].keys()
         #shutil.rmtree(os.path.join(path))
     plot_priors(simulation_params, os.path.join(output_path, 'figures', 'priors'))

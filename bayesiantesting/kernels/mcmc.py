@@ -428,7 +428,14 @@ class MCMCSimulation:
                 continue
 
             model_trace = trace[model_trace_indices]
-            model_log_p = log_p_trace[model_trace_indices]
+            log_prior = []
+            for counter in range(len(model_trace)):
+                log_prior.append(model.evaluate_log_prior(trace[counter,1:]))
+            log_prior = np.asarray(log_prior)
+
+
+
+            model_log_p = [np.asarray(log_p_trace[model_trace_indices]),np.asarray(log_prior)]
             model_counts[index] = len(model_trace)
             model_deviations = {}
 
@@ -448,7 +455,7 @@ class MCMCSimulation:
                     pyplot.close(figures[figure_index])
 
             np.save(os.path.join(model_directory, "trace.npy"), model_trace)
-            np.save(os.path.join(model_directory, "log_p.npy"), model_log_p)
+            np.save(os.path.join(model_directory, "log_p.npy"), model_log_p[0])
             np.save(os.path.join(model_directory, "percentages.npy"), model_deviations)
 
         if save_trace_plots and self._model_collection.n_models > 1:
@@ -547,14 +554,14 @@ class MCMCSimulation:
                 for j in range(len(bins)):
                     if bins[j] < quadavg < bins[j + 1]:
                         argloc = j
-                if counts[0] > counts[argloc]:
+                if counts[0] > 0.75*counts[argloc]:
                     prior_type = 'exponential'
                     loc = 0
                     scale = np.mean(self.trace[:, i])
                 else:
                     prior_type = 'gamma'
                     loc = 1/np.std(self.trace[:, i])
-                    scale = np.mean(self.trace[:, i])/loc
+                    scale = (np.mean(self.trace[:, i])/loc)
 
             else:
                 loc, scale = norm.fit(self.trace[:, i])

@@ -328,17 +328,17 @@ class HalfNormal(Normal):
 
 
 class Gamma(Distribution):
-    def __init__(self, alpha, rate):
+    def __init__(self, alpha, scale):
         self.alpha = alpha
-        self.rate = rate
+        self.scale = scale
 
     def log_pdf(self, x):
         # noinspection PyUnresolvedReferences
         return (
-            self.alpha * autograd.numpy.log(self.rate)
+            -self.alpha * autograd.numpy.log(self.scale)
             + (self.alpha - 1) * autograd.numpy.log(x)
-            - self.rate * x
-            - autograd.numpy.log(autograd.scipy.special.gamma(self.alpha))
+            - x/self.scale
+            - autograd.scipy.special.gammaln(self.alpha)
         )
 
     def cdf(self, x):

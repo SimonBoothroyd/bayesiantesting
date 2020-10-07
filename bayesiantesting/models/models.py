@@ -356,7 +356,7 @@ class Model:
 
         return figure
 
-    def plot_log_p(self, log_p, show=False, label="$log p$"):
+    def plot_log_p(self, log_p, show=False, label="$-log p$",d_log_p_d_lambda=False):
         """Plot the log p trace.
 
         Parameters
@@ -373,12 +373,25 @@ class Model:
         matplotlib.pyplot.Figure
             The plotted figure.
         """
-        figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
-
-        axes.plot(log_p, color="#17becf")
-        axes.set_title(f"{self._name}")
-        axes.set_xlabel("steps")
-        axes.set_ylabel(f"{label}")
+        if d_log_p_d_lambda == True:
+            figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
+            axes.plot(log_p,color="#17becf")
+            axes.set_title(f"{self._name}")
+            axes.set_xlabel("steps")
+            axes.set_ylabel(f"{label}")
+        else:
+            prior = -log_p[1].flatten()
+            posterior = -log_p[0].flatten()
+            figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
+            x = np.linspace(0, len(log_p[0]), num=len(log_p[0]))
+            axes.plot(x, prior, color="#17becf")
+            axes.plot(x, posterior, color='m')
+            axes.fill_between(x, prior, 0, color="#17becf", label='prior',alpha=0.3)
+            axes.fill_between(x, posterior, prior, color='m', label='likelihood', alpha=0.3)
+            axes.set_title(f"{self._name}")
+            axes.set_xlabel("steps")
+            axes.set_ylabel(f"{label}")
+            axes.legend()
 
         if show:
             figure.show()
