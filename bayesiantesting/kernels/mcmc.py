@@ -556,7 +556,7 @@ class MCMCSimulation:
                         argloc = j
                 if counts[0] > 0.75*counts[argloc]:
                     prior_type = 'exponential'
-                    loc = 0
+                    loc = np.float64(0)
                     scale = np.mean(self.trace[:, i])
                 else:
                     prior_type = 'gamma'
