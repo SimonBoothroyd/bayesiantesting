@@ -124,7 +124,6 @@ def mcmc_choose_priors(runfile_path, output_path):
 def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_processes):
     mbar_params = parse_input_yaml(os.path.join(runfile_path, "basic_run.yaml"))
     mbar_params['priors'] = simulation_params['priors']
-    print(mbar_params['priors'])
     compound = simulation_params['compound']
     # Load the data.
     data_set, property_types = prepare_data(mbar_params, compound)
@@ -141,7 +140,6 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
     os.makedirs(fitting_directory, exist_ok=True)
 
     initial_parameters = simulation_params['initial_parameters']
-    print(initial_parameters)
     for key in initial_parameters.keys():
         initial_parameters[key] = numpy.asarray(initial_parameters[key])
     with Pool(n_processes) as pool:
@@ -154,6 +152,7 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
             ),
             models,
         )
+    print(all_fits)
     print('==================')
     print('MBAR Fitting Simulations Complete')
     print('==================')
@@ -249,7 +248,6 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
 
         fit_model = UnconditionedModel(model.name, fit_distributions, {})
         mapping_distributions.append(fit_model.priors)
-        print(fit_model.priors)
 
         # Determine the maximum a posteriori of the fit
         map_parameters = []
@@ -266,7 +264,6 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
                 raise NotImplementedError()
 
         maximum_a_posteriori.append(numpy.asarray(map_parameters))
-    print(maximum_a_posteriori)
 
     for mean, model in zip(maximum_a_posteriori, sub_models):
         print(model.evaluate_log_posterior(mean))

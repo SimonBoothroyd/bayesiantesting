@@ -150,9 +150,9 @@ def prior_dictionary_to_json(prior_settings, file_path):
         json_dictionary[json_label] = [prior_settings[label][0], []]
 
         for parameter in prior_settings[label][1]:
-
             parameter_list = parameter.tolist()
             json_dictionary[json_label][1].append(parameter_list)
+
 
     with open(file_path, "w") as file:
         json.dump(
@@ -192,7 +192,6 @@ def prior_dictionary_from_json(file_path):
         for parameter_list in json_dictionary[json_label][1]:
 
             parameter = parameter_list
-
             if isinstance(parameter, list):
                 parameter = numpy.asarray(parameter_list)
 
@@ -291,6 +290,7 @@ def fit_to_trace(model, output_directory, initial_parameters, steps, use_existin
 
     multivariate_mean = numpy.mean(trace[:, 1 : 1 + n_multivariate_parameters], axis=0)
     multivariate_covariance = numpy.cov(trace[:, 1 : 1 + n_multivariate_parameters].T)
+    multivariate_covariance /= 1.5
     multivariate_key = tuple(
         [
             label
