@@ -1,0 +1,72 @@
+compound: N2
+number_data_points: 10
+priors:
+  AUA+Q:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+    Q:
+    - exponential
+    - - 0
+      - 1
+  AUA:
+    epsilon:
+      - exponential
+      - - 0
+        - 400
+    sigma:
+      - exponential
+      - - 0
+        - 5
+    L:
+      - exponential
+      - - 0
+        - 3
+  UA:
+    epsilon:
+      - exponential
+      - - 0
+        - 400
+    sigma:
+      - exponential
+      - - 0
+        - 5
+initial_parameters:
+  UA:
+    - 35
+    - 0.33
+  AUA:
+    - 35
+    - 0.33
+    - 0.1
+  AUA+Q:
+    - 35
+    - 0.33
+    - 0.1
+    - 0.1
+properties: 'All'
+mcmc_steps: 100000
+
+rjmc_fit_steps: 5000
+rjmc_steps: 20000
+swap_freq: 0.5
+
+mbar_fit_steps: 20000
+mbar_steps: 1000000
+trange:
+- 0.55
+- 0.95
+benchmark_number_data_points: 20
+benchmark_trange:
+- 0.55
+- 0.95
+number_samples: 1000

@@ -111,6 +111,17 @@ def plot_deviations(model_deviations, model_names, property_types, path):
                         facecolors='none',
                         edgecolors=color,
                         label=model_name + ' Test Deviations')
+
+            plt.errorbar(model_deviations[model_name][0][property]['temperature'],
+                         100 * (model_deviations[model_name][0][property]['mean']
+                                - model_deviations[model_name][0][property]['measurements']) /
+                         model_deviations[model_name][0][property]['measurements'],
+                         yerr=100 * (model_deviations[model_name][0][property]['std'] /
+                         model_deviations[model_name][0][property]['measurements']),
+                         fmt='none',
+                         ecolor=color,
+                         capsize=2,
+                         alpha=0.5)
             # plot train
             plt.scatter(model_deviations[model_name][1][property]['temperature'],
                         100 * (model_deviations[model_name][1][property]['mean']
@@ -120,6 +131,16 @@ def plot_deviations(model_deviations, model_names, property_types, path):
                         facecolors=color,
                         edgecolors=color,
                         label=model_name + ' Train Deviations')
+            plt.errorbar(model_deviations[model_name][1][property]['temperature'],
+                         100 * (model_deviations[model_name][1][property]['mean']
+                                - model_deviations[model_name][1][property]['measurements']) /
+                         model_deviations[model_name][1][property]['measurements'],
+                         yerr=100 * (model_deviations[model_name][1][property]['std']/
+                         model_deviations[model_name][1][property]['measurements']),
+                         fmt='none',
+                         ecolor=color,
+                         capsize=2,
+                         alpha=0.5)
         plt.legend()
         figpath = os.path.join(path, 'figures', 'benchmarking')
         os.makedirs(figpath, exist_ok=True)

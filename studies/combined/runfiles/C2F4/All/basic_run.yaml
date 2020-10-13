@@ -1,0 +1,73 @@
+compound: C2F4
+number_data_points: 10
+priors:
+  AUA+Q:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+    Q:
+    - exponential
+    - - 0
+      - 5
+  AUA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+  UA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+
+initial_parameters:
+  UA:
+    - 106
+    - 0.385
+  AUA:
+    - 106
+    - 0.385
+    - 0.13
+  AUA+Q:
+    - 106
+    - 0.385
+    - 0.13
+    - 0.7
+properties: 'All'
+mcmc_steps: 100000
+
+rjmc_fit_steps: 20000
+rjmc_steps: 40000
+swap_freq: 0.5
+
+mbar_fit_steps: 50000
+mbar_steps: 100000
+trange:
+- 0.55
+- 0.95
+benchmark_number_data_points: 20
+benchmark_trange:
+- 0.55
+- 0.95
+number_samples: 1000

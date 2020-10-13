@@ -152,7 +152,6 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
             ),
             models,
         )
-    print(all_fits)
     print('==================')
     print('MBAR Fitting Simulations Complete')
     print('==================')
@@ -443,7 +442,6 @@ def bayes_factor_from_evidence(models, evidences, errors, filepath, plot=False):
         ref_model = models[numpy.argmax(subtract_values)]
         subtract_stdev = numpy.sqrt(numpy.delete(subtract_variance, numpy.argmax(subtract_values)))
         subtract_values = numpy.delete(subtract_values, numpy.argmax(subtract_values))
-        print(subtract_values, subtract_stdev)
         models.pop(numpy.argmax(subtract_values))
         chart_models = []
         for model in models:

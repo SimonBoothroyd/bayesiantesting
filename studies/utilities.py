@@ -257,7 +257,6 @@ def fit_to_trace(model, output_directory, initial_parameters, steps, use_existin
     if not use_existing or not os.path.isfile(trace_path):
         # initial_parameters = generate_initial_parameters(model)
         initial_parameters = initial_parameters[model.name]
-        print(initial_parameters)
         # Run a short MCMC simulation to get better initial parameters
         simulation = MCMCSimulation(
             model_collection=model, initial_parameters=initial_parameters,

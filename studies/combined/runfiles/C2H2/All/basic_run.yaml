@@ -1,0 +1,73 @@
+compound: C2H2
+number_data_points: 10
+priors:
+  AUA+Q:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+    Q:
+    - exponential
+    - - 0
+      - 5
+  AUA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+    L:
+    - exponential
+    - - 0
+      - 3
+  UA:
+    epsilon:
+    - exponential
+    - - 0
+      - 400
+    sigma:
+    - exponential
+    - - 0
+      - 5
+
+initial_parameters:
+  UA:
+    - 93
+    - 0.35
+  AUA:
+    - 170
+    - 0.30
+    - 0.28
+  AUA+Q:
+    - 84.7
+    - 0.355
+    - 0.133
+    - 0.482
+properties: 'All'
+mcmc_steps: 50000
+
+rjmc_fit_steps: 50000
+rjmc_steps: 40000
+swap_freq: 0.5
+
+mbar_fit_steps: 50000
+mbar_steps: 100000
+trange:
+- 0.55
+- 0.95
+benchmark_number_data_points: 20
+benchmark_trange:
+- 0.55
+- 0.95
+number_samples: 1000
