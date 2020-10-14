@@ -64,8 +64,8 @@ mbar_fit_steps: 500000
 mbar_steps: 4000000
 
 trange:
-- 0.7
-- 0.8
+- 0.55
+- 0.95
 benchmark_number_data_points: 20
 benchmark_trange:
 - 0.55
