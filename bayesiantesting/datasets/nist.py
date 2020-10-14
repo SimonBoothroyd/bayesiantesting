@@ -253,6 +253,15 @@ class NISTDataSet:
             df = df.drop_duplicates(subset='T (K)', keep='last')
             self._data[data_type] = df
 
+    def concatenate_datasets(self, other_dataset):
+        for data_type in self.data_types:
+            data_frame = self._data[data_type]
+            other_data_frame = other_dataset.get_data(data_type)
+            df = pd.merge(data_frame, other_data_frame, how='outer')
+            df = df.drop_duplicates(subset='T (K)', keep='last')
+            self._data[data_type] = df
+
+
     def filter(self, minimum_temperature, maximum_temperature, maximum_data_points):
         """Filters a data frame based on a number of specified criteria..
 

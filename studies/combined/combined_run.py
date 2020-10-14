@@ -7,7 +7,7 @@ import sys
 from multiprocessing.pool import Pool
 import datetime
 import copy
-import shutil
+# import shutil
 
 
 from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data, fit_to_trace, prior_dictionary_to_json
@@ -19,7 +19,7 @@ from bayesiantesting.models.continuous import UnconditionedModel
 from bayesiantesting.models.discrete import TwoCenterLJModelCollection
 from bayesiantesting.utils import distributions
 from bayesiantesting.kernels.rjmc import BiasedRJMCSimulation
-from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
+from bayesiantesting.datasets.nist import NISTDataType
 from studies.benchmarking import calculate_elpd, sample_trace, choose_test_datapoints, calculate_deviations, \
     plot_deviations
 
@@ -49,17 +49,17 @@ def mcmc_choose_priors(runfile_path, output_path):
     simulation_params = parse_input_yaml(full_path)
     # TODO clean up and merge runfiles
     # Load the data.
-    data_set, property_types = prepare_data(simulation_params)
+    prior_data_set, property_types = prepare_data(simulation_params, scenario='prior')
 
     # TODO add initial parameters to runfiles
     initial_parameters = simulation_params['initial_parameters']
-    model_keys = ['UA','AUA','AUA+Q']
+    model_keys = ['UA', 'AUA', 'AUA+Q']
     for model_name in model_keys:
 
-        model = get_2clj_model(model_name, data_set, property_types, simulation_params)
+        model = get_2clj_model(model_name, prior_data_set, property_types, simulation_params)
 
         simulation = MCMCSimulation(
-        model_collection=model, initial_parameters=numpy.asarray(initial_parameters[model.name])
+            model_collection=model, initial_parameters=numpy.asarray(initial_parameters[model.name])
         )
 
         path = os.path.join(output_path, 'intermediate', 'mcmc_prior', model_name)
@@ -69,23 +69,21 @@ def mcmc_choose_priors(runfile_path, output_path):
             steps=simulation_params["mcmc_steps"],
             output_directory=path
         )
-        params_length = len(trace[0,1:])
+        params_length = len(trace[0, 1:])
         params = simulation.fit_prior_exponential()
         params['epsilon'][1][1] *= 5
         params['sigma'][1][1] *= 5
         if model_name == 'UA':
-            params_length-=2
+            params_length -= 2
             variables = ['epsilon', 'sigma']
         elif model_name == 'AUA':
-            params_length-=1
+            params_length -= 1
             variables = ['epsilon', 'sigma', 'L']
             params['L'][1][1] *= 5
         elif model_name == 'AUA+Q':
             variables = ['epsilon', 'sigma', 'L', 'Q']
             if params['Q'][0] == 'exponential':
                 params['Q'][1][1] *= 5
-
-
 
         prior_figure_path = os.path.join(output_path, 'figures', 'priors', model_name)
         os.makedirs(prior_figure_path, exist_ok=True)
@@ -97,8 +95,9 @@ def mcmc_choose_priors(runfile_path, output_path):
             if i == 3:
                 if params['Q'][0] == 'gamma':
                     print(params[variables[i]][1])
-                    plt.plot(x_vec, dist.gamma.pdf(x_vec, params[variables[i]][1][0], scale=params[variables[i]][1][1]), label='Prior')
-                elif params['Q'][0] =='exponential':
+                    plt.plot(x_vec, dist.gamma.pdf(x_vec, params[variables[i]][1][0], scale=params[variables[i]][1][1]),
+                             label='Prior')
+                elif params['Q'][0] == 'exponential':
                     plt.plot(x_vec, dist.expon.pdf(x_vec, *params[variables[i]][1]), label='Prior')
             else:
                 plt.plot(x_vec, dist.norm.pdf(x_vec, *params[variables[i]][1]), label='Prior')
@@ -108,14 +107,15 @@ def mcmc_choose_priors(runfile_path, output_path):
         simulation_params["priors"][model_name] = params
         prior_dictionary_to_json(
             simulation_params["priors"][model_name],
-            os.path.join(path, "priors_"+model_name+".json"),
+            os.path.join(path, "priors_" + model_name + ".json"),
         )
 
         # with open(os.path.join(path, "priors_"+model_name+".json"), "w") as file:
         #     json.dump(simulation_params['priors'][model_name], file, sort_keys=True, indent=4, separators=(",", ": "))
         #   for key in simulation_params['priors'].keys()
-        #shutil.rmtree(os.path.join(path))
+        # shutil.rmtree(os.path.join(path))
     plot_priors(simulation_params, os.path.join(output_path, 'figures', 'priors'))
+    simulation_params["prior_data_set"] = prior_data_set
     print('==================')
     print('Prior Fitting Simulations Complete')
     print('==================')
@@ -127,8 +127,9 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
     mbar_params['priors'] = simulation_params['priors']
     compound = simulation_params['compound']
     # Load the data.
-    data_set, property_types = prepare_data(mbar_params, compound)
-
+    initial_data_set, property_types = prepare_data(mbar_params, compound, scenario='prior')
+    data_set = choose_test_datapoints(os.path.join(runfile_path, "basic_run.yaml"), simulation_params, initial_data_set,
+                                      scenario='main')
     # Build the models.
     models = [
         get_2clj_model(model_name, data_set, property_types, mbar_params)
@@ -153,13 +154,12 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
             ),
             models,
         )
-    print(all_fits)
     print('==================')
     print('MBAR Fitting Simulations Complete')
     print('==================')
     # Run the MBAR calculations
     results = {}
-    mbar_output_path = os.path.join(output_path,'mbar_results')
+    mbar_output_path = os.path.join(output_path, 'mbar_results')
     for model, fits in zip(models, all_fits):
         _, reference_model = fits
 
@@ -192,13 +192,14 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
         evidences.append(results[key]['integral'])
         models.append(key)
         errors.append(results[key]['error'])
-    output = bayes_factor_from_evidence(models, evidences, errors, output_path+'/figures', plot=True)
+    output = bayes_factor_from_evidence(models, evidences, errors, output_path + '/figures', plot=True)
 
-    with open(output_path+'/'+f"mbar_{compound}_results.json", "w") as file:
+    with open(output_path + '/' + f"mbar_{compound}_results.json", "w") as file:
         json.dump(results, file, sort_keys=True, indent=4, separators=(",", ": "))
-    with open(output_path+'/'+f"mbar_{compound}_bayes_factors.json", "w") as file:
+    with open(output_path + '/' + f"mbar_{compound}_bayes_factors.json", "w") as file:
         json.dump(output, file, sort_keys=True, indent=4, separators=(",", ": "))
-    #shutil.rmtree(fitting_directory)
+    # shutil.rmtree(fitting_directory)
+    simulation_params["production_data_set"] = data_set
     print('==================')
     print('MBAR Calculations Complete')
     print('==================')
@@ -210,7 +211,8 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
     rjmc_params = parse_input_yaml(os.path.join(runfile_path, 'basic_run.yaml'))
     rjmc_params['priors'] = simulation_params['priors']
     # Load the data.
-    data_set, property_types = prepare_data(rjmc_params)
+    _, property_types = prepare_data(rjmc_params, scenario='main')
+    data_set = simulation_params['production_data_set']
 
     # Build the model / models.
     sub_models = [
@@ -289,7 +291,7 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
     # initial_parameters = generate_initial_parameters(sub_models[initial_model_index])
     initial_parameters = maximum_a_posteriori[initial_model_index]
 
-    output_directory_path = os.path.join(output_path,'RJMC_results')
+    output_directory_path = os.path.join(output_path, 'RJMC_results')
     os.makedirs(output_directory_path, exist_ok=True)
 
     simulation = BiasedRJMCSimulation(
@@ -313,7 +315,7 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
             rjmc_counts[1] += 1
         elif trace[i, 0] == 2:
             rjmc_counts[2] += 1
-    #shutil.rmtree(fitting_directory)
+    # shutil.rmtree(fitting_directory)
     print('==================')
     print('RJMC Simulations Complete')
     print('==================')
@@ -322,7 +324,7 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
 
 def mcmc_placeholder(simulation_params):
     # Load the data.
-    data_set, property_types = prepare_data(simulation_params)
+    data_set, property_types = prepare_data(simulation_params, scenario='main')
 
     # Set some initial parameter close to the MAP taken from
     # other runs of C2H6.
@@ -342,8 +344,7 @@ def mcmc_placeholder(simulation_params):
 
 def mcmc_benchmarking(simulation_params, runfile_path, output_path):
     # Load the data.
-    data_set, property_types = prepare_data(simulation_params)
-
+    _, property_types = prepare_data(simulation_params, scenario='main')
     # Set some initial parameter close to the MAP taken from
     # other runs of C2H6.
     initial_parameters = simulation_params['initial_parameters']
@@ -354,6 +355,7 @@ def mcmc_benchmarking(simulation_params, runfile_path, output_path):
     model_keys = ["UA", "AUA", "AUA+Q"]
     for model_name in model_keys:
 
+        data_set = copy.deepcopy(simulation_params['production_data_set'])
         model = get_2clj_model(model_name, data_set, property_types, simulation_params)
 
         # Run the simulation.
@@ -372,14 +374,13 @@ def mcmc_benchmarking(simulation_params, runfile_path, output_path):
         params = simulation.fit_prior_exponential()
         # calculate summary statistics
         benchmark_filepath = os.path.join(runfile_path, 'basic_run.yaml')
-        test_set = choose_test_datapoints(benchmark_filepath, simulation_params, data_set)
+        data_set.concatenate_datasets(simulation_params['prior_data_set'])
         test_params = parse_input_yaml(benchmark_filepath)
+        test_set = choose_test_datapoints(benchmark_filepath, simulation_params, data_set)
         samples = sample_trace(trace, test_set, model_name, test_params["number_samples"])
         test_model = get_2clj_model(model_name, test_set, property_types, simulation_params)
         elpd, elppd = calculate_elpd(test_model, property_types, samples)
-
         # model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
-
         model_elpds[model_name] = [elpd, elppd]
         fixed_samples = []
         for i in range(len(samples)):
@@ -391,7 +392,8 @@ def mcmc_benchmarking(simulation_params, runfile_path, output_path):
                 fixed_samples.append(samples[i])
         samples = numpy.asarray(fixed_samples)
         model_deviations[model_name] = calculate_deviations(property_types, test_set, data_set, samples)
-    #shutil.rmtree(path)
+        data_set = None
+    # shutil.rmtree(path)
     plot_deviations(model_deviations, model_keys, property_types, output_path)
     for property in property_types:
         print(property)
@@ -413,11 +415,11 @@ def mcmc_benchmarking(simulation_params, runfile_path, output_path):
         print('==================')
         print('Benchmarking Simulations Complete')
         print('==================')
-    with open(output_path+'/'+f"ELPPD.json", "w") as file:
+    with open(output_path + '/' + f"ELPPD.json", "w") as file:
         json.dump(model_elpds, file, sort_keys=True, indent=4, separators=(",", ": "))
 
-def bayes_factor_from_evidence(models, evidences, errors, filepath, plot=False):
 
+def bayes_factor_from_evidence(models, evidences, errors, filepath, plot=False):
     output = {}
     output['models'] = copy.deepcopy(models)
     evidences = numpy.asarray(evidences)
@@ -440,11 +442,10 @@ def bayes_factor_from_evidence(models, evidences, errors, filepath, plot=False):
     divide_stdev = numpy.sqrt(divide_variance)
     output['Bayes factor'] = divide_values.tolist()
     output['Bayes factor uncertainty'] = divide_stdev.tolist()
-    if plot==True:
+    if plot is True:
         ref_model = models[numpy.argmax(subtract_values)]
         subtract_stdev = numpy.sqrt(numpy.delete(subtract_variance, numpy.argmax(subtract_values)))
         subtract_values = numpy.delete(subtract_values, numpy.argmax(subtract_values))
-        print(subtract_values, subtract_stdev)
         models.pop(numpy.argmax(subtract_values))
         chart_models = []
         for model in models:
@@ -470,14 +471,14 @@ def bayes_factor_from_evidence(models, evidences, errors, filepath, plot=False):
         ax2.tick_params(labelsize=18)
         ax2.set_yticks(pos)
         ax2.set_yticklabels(evidence_label, rotation=-90, va='center')
-        plt.savefig(filepath+'/log_bayes_factors.png')
+        plt.savefig(filepath + '/log_bayes_factors.png')
 
     return output
 
 
 def plot_priors(simulation_params, path):
-    model_names = ['UA','AUA','AUA+Q']
-    parameter_names = ['epsilon','sigma','L','Q']
+    model_names = ['UA', 'AUA', 'AUA+Q']
+    parameter_names = ['epsilon', 'sigma', 'L', 'Q']
     dist_expon = dist.expon
     dist_norm = dist.norm
     dist_gamma = dist.gamma
@@ -493,7 +494,8 @@ def plot_priors(simulation_params, path):
                 elif simulation_params['priors'][model_name][param_name][0] == 'normal':
                     dists.append(dist_norm(*simulation_params['priors'][model_name][param_name][1]))
                 elif simulation_params['priors'][model_name][param_name][0] == 'gamma':
-                    dists.append(dist_gamma(simulation_params['priors'][model_name][param_name][1][0], scale=simulation_params['priors'][model_name][param_name][1][1]))
+                    dists.append(dist_gamma(simulation_params['priors'][model_name][param_name][1][0],
+                                            scale=simulation_params['priors'][model_name][param_name][1][1]))
         mins = []
         maxs = []
         for distribution in dists:
@@ -504,9 +506,11 @@ def plot_priors(simulation_params, path):
         for distribution, model in zip(dists, models):
             plt.plot(x_vec, distribution.pdf(x_vec), label=model)
         plt.legend()
-        plt.savefig(os.path.join(path, param_name+'_all.png'))
+        plt.savefig(os.path.join(path, param_name + '_all.png'))
 
     return
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Perform a calculation of Bayes factors and associated benchmarking for a compound.",

@@ -15,11 +15,14 @@ def sample_trace(trace, test_set, model_name, n_samples):
     return samples
 
 
-def choose_test_datapoints(filepath, simulation_params, train_set):
+def choose_test_datapoints(filepath, simulation_params, train_set, scenario='benchmark'):
     test_params = parse_input_yaml(filepath)
-    simulation_params["number_data_points"] = test_params["benchmark_number_data_points"]
-    simulation_params["trange"] = test_params["benchmark_trange"]
-
+    if scenario == 'benchmark':
+        simulation_params["number_data_points"] = test_params["benchmark_number_data_points"]
+        simulation_params["trange"] = test_params["benchmark_trange"]
+    elif scenario == 'prior':
+        simulation_params["number_data_points"] = test_params["prior_number_data_points"]
+        simulation_params["trange"] = test_params["prior_trange"]
     test_set, property_types = prepare_data(simulation_params, filtering=False)
 
     test_set.remove_datapoints(train_set)
@@ -111,6 +114,17 @@ def plot_deviations(model_deviations, model_names, property_types, path):
                         facecolors='none',
                         edgecolors=color,
                         label=model_name + ' Test Deviations')
+
+            plt.errorbar(model_deviations[model_name][0][property]['temperature'],
+                         100 * (model_deviations[model_name][0][property]['mean']
+                                - model_deviations[model_name][0][property]['measurements']) /
+                         model_deviations[model_name][0][property]['measurements'],
+                         yerr=100 * (model_deviations[model_name][0][property]['std'] /
+                         model_deviations[model_name][0][property]['measurements']),
+                         fmt='none',
+                         ecolor=color,
+                         capsize=2,
+                         alpha=0.5)
             # plot train
             plt.scatter(model_deviations[model_name][1][property]['temperature'],
                         100 * (model_deviations[model_name][1][property]['mean']
@@ -120,6 +134,16 @@ def plot_deviations(model_deviations, model_names, property_types, path):
                         facecolors=color,
                         edgecolors=color,
                         label=model_name + ' Train Deviations')
+            plt.errorbar(model_deviations[model_name][1][property]['temperature'],
+                         100 * (model_deviations[model_name][1][property]['mean']
+                                - model_deviations[model_name][1][property]['measurements']) /
+                         model_deviations[model_name][1][property]['measurements'],
+                         yerr=100 * (model_deviations[model_name][1][property]['std']/
+                         model_deviations[model_name][1][property]['measurements']),
+                         fmt='none',
+                         ecolor=color,
+                         capsize=2,
+                         alpha=0.5)
         plt.legend()
         figpath = os.path.join(path, 'figures', 'benchmarking')
         os.makedirs(figpath, exist_ok=True)

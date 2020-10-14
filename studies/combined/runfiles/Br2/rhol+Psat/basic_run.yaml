@@ -17,7 +17,7 @@ priors:
     Q:
     - exponential
     - - 0
-      - 1
+      - 5
   AUA:
     epsilon:
     - exponential
@@ -42,19 +42,19 @@ priors:
       - 5
 initial_parameters:
   UA:
-    - 200
+    - 300
     - 0.35
   AUA:
-    - 200
+    - 300
     - 0.35
     - 0.2
   AUA+Q:
-    - 200
+    - 300
     - 0.35
     - 0.2
-    - 0.2
+    - 0.5
 properties: ['rhol','Psat']
-mcmc_steps: 1000000
+mcmc_steps: 10000
 
 rjmc_fit_steps: 500000
 rjmc_steps: 2000000
@@ -71,3 +71,8 @@ benchmark_trange:
 - 0.55
 - 0.95
 number_samples: 1000
+prior_number_data_points: 2
+prior_trange:
+- 0.55
+- 0.95
+
