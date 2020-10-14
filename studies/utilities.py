@@ -21,7 +21,7 @@ def parse_input_yaml(filepath):
     return simulation_params
 
 
-def prepare_data(simulation_params, compound=None, filtering=True):
+def prepare_data(simulation_params, compound=None, filtering=True, scenario='main'):
     """From input parameters, pull appropriate experimental data and
     uncertainty information.
     """
@@ -29,6 +29,12 @@ def prepare_data(simulation_params, compound=None, filtering=True):
     if compound is None:
         compound = simulation_params["compound"]
 
+    if scenario == 'prior':
+        number = simulation_params["prior_number_data_points"]
+    elif scenario == 'main':
+        number = simulation_params["number_data_points"]
+    elif scenario == 'benchmark':
+        number = simulation_params["benchmark_number_data_points"]
     # Retrieve the constants and thermophysical data
     data_set = NISTDataSet(compound)
     if filtering is True:
@@ -45,7 +51,7 @@ def prepare_data(simulation_params, compound=None, filtering=True):
         data_set.filter(
             minimum_temperature * unit.kelvin,
             maximum_temperature * unit.kelvin,
-            simulation_params["number_data_points"],
+            number,
         )
 
     property_types = []

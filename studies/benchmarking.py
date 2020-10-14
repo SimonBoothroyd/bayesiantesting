@@ -15,11 +15,14 @@ def sample_trace(trace, test_set, model_name, n_samples):
     return samples
 
 
-def choose_test_datapoints(filepath, simulation_params, train_set):
+def choose_test_datapoints(filepath, simulation_params, train_set, scenario='benchmark'):
     test_params = parse_input_yaml(filepath)
-    simulation_params["number_data_points"] = test_params["benchmark_number_data_points"]
-    simulation_params["trange"] = test_params["benchmark_trange"]
-
+    if scenario == 'benchmark':
+        simulation_params["number_data_points"] = test_params["benchmark_number_data_points"]
+        simulation_params["trange"] = test_params["benchmark_trange"]
+    elif scenario == 'prior':
+        simulation_params["number_data_points"] = test_params["prior_number_data_points"]
+        simulation_params["trange"] = test_params["prior_trange"]
     test_set, property_types = prepare_data(simulation_params, filtering=False)
 
     test_set.remove_datapoints(train_set)

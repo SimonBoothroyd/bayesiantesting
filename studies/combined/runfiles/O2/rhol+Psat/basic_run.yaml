@@ -53,20 +53,24 @@ initial_parameters:
     - 0.31
     - 0.09
     - 0.05
-properties: ['rhol','Psat']
+properties: ['rhol', 'Psat']
 mcmc_steps: 100000
 
-rjmc_fit_steps: 50000
-rjmc_steps: 400000
+rjmc_fit_steps: 10000
+rjmc_steps: 10000
 swap_freq: 0.5
 
 mbar_fit_steps: 50000
-mbar_steps: 200000
+mbar_steps: 50000
 trange:
-- 0.7
-- 0.8
+- 0.55
+- 0.95
 benchmark_number_data_points: 20
 benchmark_trange:
 - 0.55
 - 0.95
 number_samples: 1000
+prior_number_data_points: 2
+prior_trange:
+- 0.55
+- 0.95
