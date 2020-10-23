@@ -71,19 +71,19 @@ def mcmc_choose_priors(runfile_path, output_path):
         )
         params_length = len(trace[0, 1:])
         params = simulation.fit_prior_exponential()
-        params['epsilon'][1][1] *= 5
-        params['sigma'][1][1] *= 5
+        params['epsilon'][1][1] *= 1
+        params['sigma'][1][1] *= 1
         if model_name == 'UA':
             params_length -= 2
             variables = ['epsilon', 'sigma']
         elif model_name == 'AUA':
             params_length -= 1
             variables = ['epsilon', 'sigma', 'L']
-            params['L'][1][1] *= 5
+            params['L'][1][1] *= 1
         elif model_name == 'AUA+Q':
             variables = ['epsilon', 'sigma', 'L', 'Q']
             if params['Q'][0] == 'exponential':
-                params['Q'][1][1] *= 5
+                params['Q'][1][1] *= 1
 
         prior_figure_path = os.path.join(output_path, 'figures', 'priors', model_name)
         os.makedirs(prior_figure_path, exist_ok=True)
