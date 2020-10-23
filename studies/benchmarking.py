@@ -20,6 +20,8 @@ def choose_test_datapoints(filepath, simulation_params, train_set, scenario='ben
     if scenario == 'benchmark':
         simulation_params["number_data_points"] = test_params["benchmark_number_data_points"]
         simulation_params["trange"] = test_params["benchmark_trange"]
+    elif scenario == 'main':
+        pass
     elif scenario == 'prior':
         simulation_params["number_data_points"] = test_params["prior_number_data_points"]
         simulation_params["trange"] = test_params["prior_trange"]

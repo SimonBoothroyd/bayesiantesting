@@ -3,41 +3,41 @@ number_data_points: 10
 priors:
   AUA+Q:
     epsilon:
-    - exponential
+    - uniform
     - - 0
       - 400
     sigma:
-    - exponential
+    - uniform
     - - 0
       - 5
     L:
-    - exponential
+    - uniform
     - - 0
       - 3
     Q:
-    - exponential
+    - uniform
     - - 0
-      - 1
+      - 10
   AUA:
     epsilon:
-    - exponential
+    - uniform
     - - 0
       - 400
     sigma:
-    - exponential
+    - uniform
     - - 0
       - 5
     L:
-    - exponential
+    - uniform
     - - 0
       - 3
   UA:
     epsilon:
-    - exponential
+    - uniform
     - - 0
       - 400
     sigma:
-    - exponential
+    - uniform
     - - 0
       - 5
 initial_parameters:
@@ -54,9 +54,9 @@ initial_parameters:
     - 0.09
     - 0.05
 properties: ['rhol', 'Psat']
-mcmc_steps: 100000
+mcmc_steps: 10000
 
-rjmc_fit_steps: 10000
+rjmc_fit_steps: 1000
 rjmc_steps: 10000
 swap_freq: 0.5
 
@@ -70,7 +70,8 @@ benchmark_trange:
 - 0.55
 - 0.95
 number_samples: 1000
-prior_number_data_points: 2
+prior_number_data_points: 3
 prior_trange:
 - 0.55
 - 0.95
+prior_properties: ['rhol,Psat']

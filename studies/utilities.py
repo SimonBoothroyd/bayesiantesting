@@ -31,10 +31,13 @@ def prepare_data(simulation_params, compound=None, filtering=True, scenario='mai
 
     if scenario == 'prior':
         number = simulation_params["prior_number_data_points"]
+        props = simulation_params["prior_properties"]
     elif scenario == 'main':
         number = simulation_params["number_data_points"]
+        props = simulation_params["properties"]
     elif scenario == 'benchmark':
         number = simulation_params["benchmark_number_data_points"]
+        props = simulation_params["properties"]
     # Retrieve the constants and thermophysical data
     data_set = NISTDataSet(compound)
     if filtering is True:
@@ -56,13 +59,15 @@ def prepare_data(simulation_params, compound=None, filtering=True, scenario='mai
 
     property_types = []
 
-    if simulation_params["properties"] == "All":
+    if props == "All":
         property_types.extend(data_set.data_types)
     else:
-        if "rhol" in simulation_params["properties"]:
+        if "rhol" in props:
             property_types.append(NISTDataType.LiquidDensity)
-        if "Psat" in simulation_params["properties"]:
+        if "Psat" in props:
             property_types.append(NISTDataType.SaturationPressure)
+        if "SurfTens" in props:
+            property_types.append(NISTDataType.SurfaceTension)
 
     return data_set, property_types
 

@@ -3,41 +3,41 @@ number_data_points: 10
 priors:
   AUA+Q:
     epsilon:
-    - exponential
+    - uniform
     - - 0
       - 400
     sigma:
-    - exponential
+    - uniform
     - - 0
       - 5
     L:
-    - exponential
+    - uniform
     - - 0
       - 3
     Q:
-    - exponential
+    - uniform
     - - 0
-      - 1
+      - 10
   AUA:
     epsilon:
-    - exponential
+    - uniform
     - - 0
       - 400
     sigma:
-    - exponential
+    - uniform
     - - 0
       - 5
     L:
-    - exponential
+    - uniform
     - - 0
       - 3
   UA:
     epsilon:
-    - exponential
+    - uniform
     - - 0
       - 400
     sigma:
-    - exponential
+    - uniform
     - - 0
       - 5
 
@@ -64,8 +64,8 @@ swap_freq: 0.5
 mbar_fit_steps: 20000
 mbar_steps: 1000000
 trange:
-- 0.6
-- 0.7
+- 0.55
+- 0.95
 benchmark_number_data_points: 20
 benchmark_trange:
 - 0.55
@@ -75,3 +75,4 @@ prior_number_data_points: 2
 prior_trange:
 - 0.55
 - 0.95
+prior_properties: ['rhol','Psat']

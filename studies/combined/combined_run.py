@@ -70,19 +70,19 @@ def mcmc_choose_priors(runfile_path, output_path):
         )
         params_length = len(trace[0, 1:])
         params = simulation.fit_prior_exponential()
-        params['epsilon'][1][1] *= 5
-        params['sigma'][1][1] *= 5
+        params['epsilon'][1][1] *= 1
+        params['sigma'][1][1] *= 1
         if model_name == 'UA':
             params_length -= 2
             variables = ['epsilon', 'sigma']
         elif model_name == 'AUA':
             params_length -= 1
             variables = ['epsilon', 'sigma', 'L']
-            params['L'][1][1] *= 5
+            params['L'][1][1] *= 1
         elif model_name == 'AUA+Q':
             variables = ['epsilon', 'sigma', 'L', 'Q']
             if params['Q'][0] == 'exponential':
-                params['Q'][1][1] *= 5
+                params['Q'][1][1] *= 1
 
         prior_figure_path = os.path.join(output_path, 'figures', 'priors', model_name)
         os.makedirs(prior_figure_path, exist_ok=True)
@@ -127,14 +127,18 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
     compound = simulation_params['compound']
     # Load the data.
     initial_data_set, property_types = prepare_data(mbar_params, compound, scenario='prior')
+    print(property_types)
     data_set = choose_test_datapoints(os.path.join(runfile_path, "basic_run.yaml"), simulation_params, initial_data_set,
                                       scenario='main')
+
+    _, property_types = prepare_data(mbar_params, compound, scenario='main')
+    print(property_types)
     # Build the models.
     models = [
         get_2clj_model(model_name, data_set, property_types, mbar_params)
         for model_name in ["UA", "AUA", "AUA+Q"]
     ]
-
+    print(property_types[0], data_set.get_data(property_types[0]))
     # Fit multivariate normal distributions to this models posterior.
     # This will be used as the analytical reference distribution.
     fitting_directory = os.path.join(output_path, "intermediate", "mbar_fitting")
@@ -212,7 +216,7 @@ def rjmc_validation(simulation_params, results, runfile_path, output_path, n_pro
     # Load the data.
     _, property_types = prepare_data(rjmc_params, scenario='main')
     data_set = simulation_params['production_data_set']
-
+    print(property_types[0], data_set.get_data(property_types[0]))
     # Build the model / models.
     sub_models = [
         get_2clj_model("AUA", data_set, property_types, rjmc_params),
@@ -377,6 +381,7 @@ def mcmc_benchmarking(simulation_params, runfile_path, output_path):
         test_params = parse_input_yaml(benchmark_filepath)
         test_set = choose_test_datapoints(benchmark_filepath, simulation_params, data_set)
         samples = sample_trace(trace, test_set, model_name, test_params["number_samples"])
+
         test_model = get_2clj_model(model_name, test_set, property_types, simulation_params)
         elpd, elppd = calculate_elpd(test_model, property_types, samples)
         # model.plot(trace, log_p_trace, percent_deviation_trace, show=True)
