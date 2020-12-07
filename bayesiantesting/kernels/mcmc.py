@@ -428,6 +428,8 @@ class MCMCSimulation:
                 continue
 
             model_trace = trace[model_trace_indices]
+            if len(model_trace) > 1000000:
+                model_trace = model_trace[::1000]
             log_prior = []
             for counter in range(len(model_trace)):
                 log_prior.append(model.evaluate_log_prior(trace[counter,1:]))
