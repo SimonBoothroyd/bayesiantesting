@@ -375,6 +375,8 @@ class Model:
         """
         if len(log_p) > 1000000:
             log_p = log_p[::1000]
+        print(log_p)
+        print(len(log_p))
         if d_log_p_d_lambda == True:
             figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
             axes.plot(log_p,color="#17becf")
