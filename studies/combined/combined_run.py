@@ -54,6 +54,10 @@ def mcmc_choose_priors(runfile_path, output_path):
     # TODO add initial parameters to runfiles
     initial_parameters = simulation_params['initial_parameters']
     model_keys = ['UA', 'AUA', 'AUA+Q']
+
+    for property in property_types:
+        print(property)
+        print(prior_data_set.get_data(property))
     for model_name in model_keys:
 
         model = get_2clj_model(model_name, prior_data_set, property_types, simulation_params)
@@ -84,6 +88,12 @@ def mcmc_choose_priors(runfile_path, output_path):
             variables = ['epsilon', 'sigma', 'L', 'Q']
             if params['Q'][0] == 'exponential':
                 params['Q'][1][1] *= 1
+            # params['Q'][0] = 'uniform'
+            # params['Q'][1][0] = numpy.float64(0.0)
+            # params['Q'][1][1] = numpy.float64(5.0)
+            # print(type(params['Q'][1][0]))
+            # params['Q'] = ['uniform', numpy.asarray([0, 0.5])]
+            # print(params['Q'])
 
         prior_figure_path = os.path.join(output_path, 'figures', 'priors', model_name)
         os.makedirs(prior_figure_path, exist_ok=True)
@@ -94,7 +104,6 @@ def mcmc_choose_priors(runfile_path, output_path):
             x_vec = numpy.linspace(0.666 * min(trace[:, i + 1]), 1.5 * max(trace[:, i + 1]), num=500)
             if i == 3:
                 if params['Q'][0] == 'gamma':
-                    print(params[variables[i]][1])
                     plt.plot(x_vec, dist.gamma.pdf(x_vec, params[variables[i]][1][0], scale=params[variables[i]][1][1]),
                              label='Prior')
                 elif params['Q'][0] == 'exponential':
@@ -134,6 +143,9 @@ def calculate_bayes_factor(simulation_params, runfile_path, output_path, n_proce
 
     _, property_types = prepare_data(mbar_params, compound, scenario='main')
     print(property_types)
+    for property in property_types:
+        print(property)
+        print(data_set.get_data(property))
     # Build the models.
     models = [
         get_2clj_model(model_name, data_set, property_types, mbar_params)
@@ -501,6 +513,9 @@ def plot_priors(simulation_params, path):
                 elif simulation_params['priors'][model_name][param_name][0] == 'gamma':
                     dists.append(dist_gamma(simulation_params['priors'][model_name][param_name][1][0],
                                             scale=simulation_params['priors'][model_name][param_name][1][1]))
+                elif simulation_params['priors'][model_name][param_name][0] == 'uniform':
+                    dists.append(dist.uniform(loc=simulation_params['priors'][model_name][param_name][1][0],
+                                              scale=simulation_params['priors'][model_name][param_name][1][1]))
         mins = []
         maxs = []
         for distribution in dists:
