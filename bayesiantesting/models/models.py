@@ -311,7 +311,7 @@ class Model:
         trace_dict = {}
 
         for index, label in enumerate(self._prior_labels):
-            trace_dict[label] = trace[:, index + 1]
+            trace_dict[label] = trace[::100, index + 1]
 
         data = arviz.convert_to_inference_data(trace_dict)
 
@@ -341,7 +341,7 @@ class Model:
         """
 
         figure = corner.corner(
-            trace[:, 1: 1 + len(self._prior_labels)],
+            trace[::100, 1: 1 + len(self._prior_labels)],
             labels=self._prior_labels,
             color="#17becf",
         )
@@ -368,9 +368,7 @@ class Model:
         matplotlib.pyplot.Figure
             The plotted figure.
         """
-        if len(log_p[0]) > 1000000:
-            log_p[0] = log_p[0][::1000]
-            log_p[1] = log_p[1][::1000]
+
         if d_log_p_d_lambda == True:
             figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
             axes.plot(log_p, color="#17becf")
@@ -378,10 +376,10 @@ class Model:
             axes.set_xlabel("steps")
             axes.set_ylabel(f"{label}")
         else:
-            prior = -log_p[1].flatten()
-            posterior = -log_p[0].flatten()
+            prior = -log_p[1].flatten()[::100]
+            posterior = -log_p[0].flatten()[::100]
             figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
-            x = np.linspace(0, len(log_p[0]), num=len(log_p[0]))
+            x = np.linspace(0, len(prior), num=len(prior))
             axes.plot(x, prior, color="#17becf")
             axes.plot(x, posterior, color='m')
             axes.fill_between(x, prior, 0, color="#17becf", label='prior', alpha=0.3)
