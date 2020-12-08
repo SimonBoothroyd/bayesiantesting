@@ -369,9 +369,6 @@ class Model:
             The plotted figure.
         """
 
-        if len(log_p[0]) > 1000000:
-            log_p[0] = log_p[0][::1000]
-            log_p[1] = log_p[1][::1000]
         if d_log_p_d_lambda == True:
             figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
             axes.plot(log_p, color="#17becf")
@@ -379,10 +376,12 @@ class Model:
             axes.set_xlabel("steps")
             axes.set_ylabel(f"{label}")
         else:
-            prior = -log_p[1].flatten()
-            posterior = -log_p[0].flatten()
+            prior = -log_p[1].flatten()[::100]
+            posterior = -log_p[0].flatten()[::100]
+            print(len(prior))
+            print(len(posterior))
             figure, axes = pyplot.subplots(1, 1, figsize=(5, 5), dpi=200)
-            x = np.linspace(0, len(log_p[0]), num=len(log_p[0]))
+            x = np.linspace(0, len(prior), num=len(prior))
             axes.plot(x, prior, color="#17becf")
             axes.plot(x, posterior, color='m')
             axes.fill_between(x, prior, 0, color="#17becf", label='prior', alpha=0.3)
