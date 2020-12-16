@@ -454,9 +454,9 @@ class MCMCSimulation:
                     )
                     pyplot.close(figures[figure_index])
 
-            np.save(os.path.join(model_directory, "trace.npy"), model_trace)
-            np.save(os.path.join(model_directory, "log_p.npy"), model_log_p[0])
-            np.save(os.path.join(model_directory, "percentages.npy"), model_deviations)
+            np.save(os.path.join(model_directory, "trace.npy"), model_trace[::100])
+            np.save(os.path.join(model_directory, "log_p.npy"), model_log_p[0][::100])
+            np.save(os.path.join(model_directory, "percentages.npy"), model_deviations[::100])
 
         if save_trace_plots and self._model_collection.n_models > 1:
 
