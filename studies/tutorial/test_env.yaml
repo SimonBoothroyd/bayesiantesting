@@ -1,0 +1,21 @@
+name: bayesiantesting
+channels:
+  - omnia
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - numpy
+  - pint
+  - pytorch
+  - matplotlib
+  - tqdm
+  - arviz
+  - autograd
+  - corner
+  - pymbar
+  - pyyaml
+  - uncertainties
+  - jupyter
+prefix: /home/owenmadin/anaconda3/envs/bayesiantesting
+
