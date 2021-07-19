@@ -72,7 +72,7 @@ benchmark_trange:
 - 0.55
 - 0.95
 number_samples: 1000
-prior_number_data_points: 2
+prior_number_data_points: 8
 prior_trange:
 - 0.55
 - 0.95
