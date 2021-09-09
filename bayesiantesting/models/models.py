@@ -311,7 +311,7 @@ class Model:
         trace_dict = {}
 
         for index, label in enumerate(self._prior_labels):
-            trace_dict[label] = trace[::100, index + 1]
+            trace_dict[label] = trace[index + 1]
 
         data = arviz.convert_to_inference_data(trace_dict)
 
@@ -341,7 +341,7 @@ class Model:
         """
 
         figure = corner.corner(
-            trace[::100, 1: 1 + len(self._prior_labels)],
+            trace[1: 1 + len(self._prior_labels)],
             labels=self._prior_labels,
             color="#17becf",
         )

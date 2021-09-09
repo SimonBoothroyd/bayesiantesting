@@ -87,13 +87,11 @@ class NISTDataSet:
         """
 
         raw_critical_temperature = np.loadtxt(
-            get_data_filename(os.path.join("trc_data", self._compound, "Tc.txt")),
+            get_data_filename(os.path.join("trc_data", self._compound+'_avg', "Tc.txt")),
             skiprows=1,
         )
 
-        critical_temperature = (raw_critical_temperature[0] * unit.kelvin).plus_minus(
-            raw_critical_temperature[1]
-        )
+        critical_temperature = (raw_critical_temperature * unit.kelvin).plus_minus(0)
 
         raw_molecular_weight = np.loadtxt(
             get_data_filename(os.path.join("trc_data", self._compound, "Mw.txt")),
@@ -118,12 +116,11 @@ class NISTDataSet:
             NISTDataType.SaturationPressure: "Pv",
             NISTDataType.SurfaceTension: "SurfTens",
         }
-
         for data_type, file_name in file_names.items():
 
             data_frame = pd.read_csv(
                 get_data_filename(
-                    os.path.join("trc_data", self._compound, f"{file_name}.txt")
+                    os.path.join("trc_data", self._compound+'_avg', f"{file_name}.txt")
                 ),
                 sep="\t",
             )

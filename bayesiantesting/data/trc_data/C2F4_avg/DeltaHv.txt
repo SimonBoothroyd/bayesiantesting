@@ -1,0 +1,2 @@
+T (K)	DeltaHv (kJ/mol)	Avg uDeltaHv (kJ/mol)
+197.575	16.421	0.102

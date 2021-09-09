@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "combined_run.py", line 13, in <module>
-    from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data, fit_to_trace, prior_dictionary_to_json
-ModuleNotFoundError: No module named 'studies'

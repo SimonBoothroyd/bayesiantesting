@@ -6,7 +6,7 @@ import os
 from bayesiantesting import unit
 from bayesiantesting.datasets.nist import NISTDataSet, NISTDataType
 from bayesiantesting.surrogates import StollWerthSurrogate
-from studies.utilities import parse_input_yaml, prepare_data
+from bayesiantesting.utils.utilities import parse_input_yaml, prepare_data
 import matplotlib.pyplot as plt
 
 
