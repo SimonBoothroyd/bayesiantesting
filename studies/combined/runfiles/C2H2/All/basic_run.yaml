@@ -1,5 +1,5 @@
 compound: C2H2
-number_data_points: 5
+number_data_points: 10
 priors:
   AUA+Q:
     epsilon:
@@ -54,24 +54,24 @@ initial_parameters:
     - 0.22
     - 0.0
 properties: 'All'
-mcmc_steps: 10000000
+mcmc_steps: 1000000
 
-rjmc_fit_steps: 50000
-rjmc_steps: 400000
+rjmc_fit_steps: 500000
+rjmc_steps: 2000000
 swap_freq: 0.5
 
-mbar_fit_steps: 50000
-mbar_steps: 200000
+mbar_fit_steps: 500000
+mbar_steps: 4000000
 trange:
-- 0.55
-- 0.95
-benchmark_number_data_points: 10
+- 0.62
+- 0.7
+benchmark_number_data_points: 20
 benchmark_trange:
-- 0.55
-- 0.95
+- 0.62
+- 0.7
 number_samples: 1000
-prior_number_data_points: 5
+prior_number_data_points: 8
 prior_trange:
-- 0.55
-- 0.95
+- 0.62
+- 0.7
 prior_properties: 'All'

@@ -54,7 +54,7 @@ initial_parameters:
     - 0.2
     - 0.5
 properties: 'All'
-mcmc_steps: 1000000
+mcmc_steps: 4000000
 
 rjmc_fit_steps: 500000
 rjmc_steps: 2000000

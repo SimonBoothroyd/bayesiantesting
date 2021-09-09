@@ -10,7 +10,7 @@ import copy
 # import shutil
 
 
-from studies.utilities import get_2clj_model, parse_input_yaml, prepare_data, fit_to_trace, prior_dictionary_to_json
+from bayesiantesting.utils.utilities import get_2clj_model, parse_input_yaml, prepare_data, fit_to_trace, prior_dictionary_to_json
 from matplotlib import pyplot as plt
 import scipy.stats.distributions as dist
 from bayesiantesting.kernels import MCMCSimulation
@@ -20,7 +20,7 @@ from bayesiantesting.models.discrete import TwoCenterLJModelCollection
 from bayesiantesting.utils import distributions
 from bayesiantesting.kernels.rjmc import BiasedRJMCSimulation
 from bayesiantesting.datasets.nist import NISTDataType
-from studies.benchmarking import calculate_elpd, sample_trace, choose_test_datapoints, calculate_deviations, \
+from bayesiantesting.utils.benchmarking import calculate_elpd, sample_trace, choose_test_datapoints, calculate_deviations, \
     plot_deviations
 
 

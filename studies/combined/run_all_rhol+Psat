@@ -1,19 +1,19 @@
 conda activate bayesian_testing
 #Make sure we're in the right conda env
 mkdir -p stdout/All
-python combined_run.py -c O2 -p rhol+Psat > stdout/O2.out
+nohup python combined_run.py -c O2 -p rhol+Psat > stdout/O2.out
 
-python combined_run.py -c N2 -p rhol+Psat > stdout/N2.out 
+nohup python combined_run.py -c N2 -p rhol+Psat > stdout/N2.out 
 
-python combined_run.py -c Br2 -p rhol+Psat > stdout/Br2.out 
+nohup python combined_run.py -c Br2 -p rhol+Psat > stdout/Br2.out 
 
-python combined_run.py -c F2 -p rhol+Psat > stdout/F2.out 
+nohup python combined_run.py -c F2 -p rhol+Psat > stdout/F2.out 
 
-python combined_run.py -c C2H2 -p rhol+Psat > stdout/C2H2.out 
+nohup python combined_run.py -c C2H2 -p rhol+Psat > stdout/C2H2.out 
 
-python combined_run.py -c C2H4 -p rhol+Psat > stdout/C2H4.out 
+nohup python combined_run.py -c C2H4 -p rhol+Psat > stdout/C2H4.out 
 
-python combined_run.py -c C2H6 -p rhol+Psat > stdout/C2H6.out 
+nohup python combined_run.py -c C2H6 -p rhol+Psat > stdout/C2H6.out 
 
-python combined_run.py -c C2F4 -p rhol+Psat > stdout/C2F4.out 
+nohup python combined_run.py -c C2F4 -p rhol+Psat > stdout/C2F4.out 
 

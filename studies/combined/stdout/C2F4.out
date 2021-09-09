@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "combined_run.py", line 558, in <module>
+    main(args.compound, args.properties, output_location)
+  File "combined_run.py", line 39, in main
+    simulation_params = mcmc_choose_priors(runfile_path, output_path)
+  File "combined_run.py", line 52, in mcmc_choose_priors
+    prior_data_set, property_types = prepare_data(simulation_params, scenario='prior')
+  File "/home/owenmadin/anaconda3/envs/bayesian_testing/lib/python3.7/site-packages/bayesiantesting-0+untagged.256.g28fb411.dirty-py3.7.egg/bayesiantesting/utils/utilities.py", line 46, in prepare_data
+  File "/home/owenmadin/anaconda3/envs/bayesian_testing/lib/python3.7/site-packages/bayesiantesting-0+untagged.256.g28fb411.dirty-py3.7.egg/bayesiantesting/datasets/nist.py", line 70, in __init__
+  File "/home/owenmadin/anaconda3/envs/bayesian_testing/lib/python3.7/site-packages/bayesiantesting-0+untagged.256.g28fb411.dirty-py3.7.egg/bayesiantesting/datasets/nist.py", line 124, in _load_data
+  File "/home/owenmadin/anaconda3/envs/bayesian_testing/lib/python3.7/site-packages/bayesiantesting-0+untagged.256.g28fb411.dirty-py3.7.egg/bayesiantesting/utils/utils.py", line 23, in get_data_filename
+  File "/home/owenmadin/anaconda3/envs/bayesian_testing/lib/python3.7/site-packages/pkg_resources/__init__.py", line 1144, in resource_filename
+    self, resource_name
+  File "/home/owenmadin/anaconda3/envs/bayesian_testing/lib/python3.7/site-packages/pkg_resources/__init__.py", line 1754, in get_resource_filename
+    return self._extract_resource(manager, zip_path)
+  File "/home/owenmadin/anaconda3/envs/bayesian_testing/lib/python3.7/site-packages/pkg_resources/__init__.py", line 1775, in _extract_resource
+    timestamp, size = self._get_date_and_size(self.zipinfo[zip_path])
+KeyError: 'bayesiantesting/data/trc_data/C2F4_avg/SurfTens.txt'

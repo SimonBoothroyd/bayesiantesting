@@ -1,0 +1,3 @@
+conda activate bayesian_testing
+python combined_run.py -c F2 -p rhol+Psat
+
