@@ -140,9 +140,50 @@ class LambdaSimulation(MCMCSimulation):
                 ) + (1.0 - lambda_value) * reference_model.evaluate_log_likelihood(
                     parameters
                 )
-
+            #print('prior: ', log_prior)
+            #print('likelihood: ', log_likelihood)
         return log_prior + log_likelihood
 
+    @staticmethod
+    def evaluate_log_prior(model, parameters, lambda_value, reference_model):
+        """Evaluate the log p for a given model, set of parameters,
+        and lambda value.
+
+        Parameters
+        ----------
+        model: Model
+            The model of interest.
+        parameters: numpy.ndarray
+            The parameters to evaluate the log p at with
+            shape=(n_trainable_parameters).
+        lambda_value: float
+            The value of lambda to evaluate the log p at.
+        reference_model: Model
+            The model which the model of interest is being
+            transformed into.
+
+        Returns
+        -------
+        float
+            The evaluated log p.
+        """
+
+        if reference_model is None:
+
+            log_prior = model.evaluate_log_prior(parameters)
+        else:
+
+            if autograd.numpy.isclose(lambda_value, 0.0):
+
+                log_prior = reference_model.evaluate_log_prior(parameters)
+
+            else:
+
+                log_prior = lambda_value * model.evaluate_log_prior(parameters) + (
+                    1.0 - lambda_value
+                ) * reference_model.evaluate_log_prior(parameters)
+
+        return log_prior
 
 class BaseModelEvidenceKernel:
     """A base class for kernels which aim to estimate the
@@ -213,7 +254,6 @@ class BaseModelEvidenceKernel:
             The initial parameters to use in the lambda
             simulations, with shape=(n_trainable_parameters).
         """
-
         if len(initial_parameters) != self._model.n_trainable_parameters:
 
             raise ValueError(
@@ -321,7 +361,7 @@ class BaseModelEvidenceKernel:
         lambda_value, lambda_index = lambda_tuple
 
         lambda_directory = os.path.join(output_directory_path, str(lambda_index))
-
+        print(model._name,lambda_value,initial_parameters)
         simulation = LambdaSimulation(
             model_collection=model,
             initial_parameters=initial_parameters,
@@ -346,6 +386,11 @@ class BaseModelEvidenceKernel:
 
         trace = trace[indices]
         log_p_trace = log_p_trace[indices]
+        prior = []
+        for count in range(len(trace)):
+            prior.append(LambdaSimulation.evaluate_log_prior(model, trace[count,1:], lambda_value, reference_model))
+        log_prior = numpy.asarray(prior)
+        log_p = [log_p_trace, log_prior]
 
         print(f"Lamda Window {lambda_index}: g={g} N_samples={len(log_p_trace)}")
 
@@ -362,7 +407,7 @@ class BaseModelEvidenceKernel:
                     model, trace[index][1:], lambda_value, reference_model
                 )
 
-        return trace, log_p_trace, d_lop_p_d_lambda
+        return trace, log_p, d_lop_p_d_lambda
 
     def _compute_integral(self, window_results):
         """Compute the integral over all lambda windows.
@@ -448,8 +493,8 @@ class BaseModelEvidenceKernel:
                 self._steps
             )
 
-            lambdas[index] = numpy.mean(log_p_trace)
-            lambdas_std[index] = numpy.std(log_p_trace) / numpy.sqrt(self._steps)
+            lambdas[index] = numpy.mean(log_p_trace[0])
+            lambdas_std[index] = numpy.std(log_p_trace[0]) / numpy.sqrt(self._steps)
 
             lambda_directory = os.path.join(self._output_directory_path, str(index))
 
@@ -461,7 +506,7 @@ class BaseModelEvidenceKernel:
             log_p_figure.savefig(os.path.join(lambda_directory, "log_p.pdf"))
             pyplot.close(log_p_figure)
 
-            lambda_figure = self._model.plot_log_p(d_log_p_d_lambda, label=axis_label)
+            lambda_figure = self._model.plot_log_p(d_log_p_d_lambda, label=axis_label, d_log_p_d_lambda=True)
             lambda_figure.savefig(
                 os.path.join(lambda_directory, "d_log_p_d_lambda.pdf")
             )
@@ -667,7 +712,7 @@ class MBARIntegration(BaseModelEvidenceKernel):
                     lambda_value,
                     self._reference_model,
                 )
-
+        numpy.save(self._output_directory_path+'/reduced_potentials.npy',reduced_potentials)
         mbar = pymbar.MBAR(reduced_potentials, frame_counts)
         delta_f, d_delta_f = mbar.getFreeEnergyDifferences()
 

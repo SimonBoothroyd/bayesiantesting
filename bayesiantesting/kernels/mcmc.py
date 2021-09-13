@@ -6,9 +6,12 @@ import json
 import os
 
 import numpy as np
+import scipy.stats.distributions as dist
 import torch
+
 from matplotlib import pyplot
 from tqdm import tqdm
+
 
 from bayesiantesting.models import Model, ModelCollection
 from bayesiantesting.samplers import MetropolisSampler
@@ -127,7 +130,6 @@ class MCMCSimulation:
         self._percent_deviation_trace = {label: [] for label in deviations}
 
     def _validate_parameter_shapes(self, initial_parameters, initial_model_index):
-
         if (
             initial_model_index < 0
             or initial_model_index >= self._model_collection.n_models
@@ -141,7 +143,7 @@ class MCMCSimulation:
         initial_log_p = self._evaluate_log_p(initial_parameters, initial_model_index)
 
         if np.isnan(initial_log_p) or np.isinf(initial_log_p):
-            raise ValueError(f"The initial log p is NaN / inf - {initial_log_p}")
+            raise ValueError(f"The initial log p is NaN / inf - {initial_log_p} - initial parameters are {initial_parameters} ")
 
     def propagate(self, steps, warm_up=False, progress_bar=True):
         """Propagate the simulation forward by the specified number of
@@ -426,7 +428,14 @@ class MCMCSimulation:
                 continue
 
             model_trace = trace[model_trace_indices]
-            model_log_p = log_p_trace[model_trace_indices]
+            log_prior = []
+            for counter in range(len(model_trace)):
+                log_prior.append(model.evaluate_log_prior(trace[counter,1:]))
+            log_prior = np.asarray(log_prior)
+
+
+
+            model_log_p = [np.asarray(log_p_trace[model_trace_indices]),np.asarray(log_prior)]
             model_counts[index] = len(model_trace)
             model_deviations = {}
 
@@ -445,9 +454,9 @@ class MCMCSimulation:
                     )
                     pyplot.close(figures[figure_index])
 
-            np.save(os.path.join(model_directory, "trace.npy"), model_trace)
-            np.save(os.path.join(model_directory, "log_p.npy"), model_log_p)
-            np.save(os.path.join(model_directory, "percentages.npy"), model_deviations)
+            np.save(os.path.join(model_directory, "trace.npy"), model_trace[::100])
+            np.save(os.path.join(model_directory, "log_p.npy"), model_log_p[0][::100])
+            np.save(os.path.join(model_directory, "percentages.npy"), model_deviations[::100])
 
         if save_trace_plots and self._model_collection.n_models > 1:
 
@@ -518,3 +527,49 @@ class MCMCSimulation:
         self.save_results(output_directory, save_trace_plots)
 
         return self.trace, self.log_p_trace, self.percentage_deviation_trace
+
+    def fit_prior_exponential(self,
+    ):
+        """Utility to generate exponential prior distributions
+        based off the trace of a short MCMC simulation
+        Inputs
+        ------
+        self.trace: numpy.ndarray
+            A trajectory from a simulation object.
+
+        Outputs
+        -------
+        param_dict: dict
+        A dictionary of parameters required for the
+
+        """
+        priors = {}
+        expon = dist.expon
+        norm = dist.norm
+        variables = ['epsilon', 'sigma', 'L', 'Q']
+        for i in range(1, len(self.trace[0])):
+            if i == 4:
+                counts, bins = np.histogram(self.trace[:, i], range=(0, max(self.trace[:, i])))
+                quadavg = np.mean(self.trace[:, i])
+                for j in range(len(bins)):
+                    if bins[j] < quadavg < bins[j + 1]:
+                        argloc = j
+                if counts[0] > 0.75*counts[argloc]:
+                    prior_type = 'exponential'
+                    loc = np.float64(0)
+                    scale = np.mean(self.trace[:, i])
+                else:
+                    prior_type = 'gamma'
+                    loc = 1/np.std(self.trace[:, i])
+                    scale = (np.mean(self.trace[:, i])/loc)
+
+            else:
+                loc, scale = norm.fit(self.trace[:, i])
+                prior_type = 'normal'
+            priors[variables[i-1]] = [prior_type, [loc, scale]]
+
+        return priors
+
+
+
+

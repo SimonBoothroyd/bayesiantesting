@@ -1,0 +1,1 @@
+T (K)	rhol (kg/m3)	Avg urho (kg/m3)

@@ -3,6 +3,7 @@ Code to perform RJMC simulations on simple toy models.
 This code was originally authored by Owen Madin (github name ocmadin).
 """
 import math
+import os
 
 import numpy as np
 import torch
@@ -182,3 +183,92 @@ class BiasedRJMCSimulation(RJMCSimulation):
             super(BiasedRJMCSimulation, self)._evaluate_log_p(parameters, model_index)
             + self._log_biases[model_index]
         )
+
+
+class WidomRJMC(RJMCSimulation):
+    """An extension of the RJMC kernel which is synonymous with
+    the Widom particle-insertion method.
+
+    RJMC moves are proposed, the acceptance criteria is recorded, but
+    the move is never accepted. The proposal acceptance criteria values
+    may be used with a method such as exponential averaging or BAR to
+    estimate bayes factors between models.
+    """
+
+    @property
+    def proposal_trace(self):
+        """numpy.ndarray: The values of each proposal alpha to each
+        model with shape=(n_proposals, n_models)."""
+        return np.asarray(self._proposal_trace)
+
+    def __init__(
+        self,
+        model_collection,
+        initial_parameters,
+        initial_model_index=0,
+        sampler=None,
+        random_seed=None,
+        swap_frequency=0.3,
+    ):
+
+        super().__init__(
+            model_collection,
+            initial_parameters,
+            initial_model_index,
+            sampler,
+            random_seed,
+            swap_frequency,
+        )
+
+        self._proposal_trace = []
+
+    def _step(
+        self, current_parameters, current_model_index, current_log_p, adapt=False,
+    ):
+
+        random_move = torch.rand((1,)).item()
+
+        if random_move > self._swap_frequency:
+
+            # Just do an in model move.
+            return MCMCSimulation._step(
+                self, current_parameters, current_model_index, current_log_p, adapt,
+            )
+
+        proposal_alphas = []
+
+        for proposed_model_index in range(self._model_collection.n_models):
+
+            if proposed_model_index == current_model_index:
+
+                # Avoid the special case of proposing a move to the current
+                # model.
+                proposal_alphas.append(0.0)
+                continue
+            proposed_parameters = current_parameters.copy()
+
+            # Propose a cross-model move.
+            (
+                proposed_parameters,
+                proposed_log_p,
+                proposed_model_index,
+                jacobian,
+                transition_probability,
+            ) = self.model_proposal(proposed_parameters, proposed_model_index)
+            alpha = (
+                (proposed_log_p - current_log_p)
+                + np.log(jacobian)
+            )
+            # Check for NaNs in the proposed state.
+            if np.isnan(alpha):
+                alpha = -1*math.inf
+
+            proposal_alphas.append(alpha)
+
+        self._proposal_trace.append(proposal_alphas)
+        return current_parameters, current_model_index, current_log_p, False
+
+    def _save_traces(self, directory_path, save_trace_plots=True):
+
+        super(WidomRJMC, self)._save_traces(directory_path, save_trace_plots)
+        np.save(os.path.join(directory_path, "proposal_trace.npy"), self.proposal_trace)

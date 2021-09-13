@@ -1,0 +1,77 @@
+compound: O2
+number_data_points: 10
+priors:
+  AUA+Q:
+    epsilon:
+    - uniform
+    - - 0
+      - 400
+    sigma:
+    - uniform
+    - - 0
+      - 5
+    L:
+    - uniform
+    - - 0
+      - 3
+    Q:
+    - uniform
+    - - 0
+      - 10
+  AUA:
+    epsilon:
+    - uniform
+    - - 0
+      - 400
+    sigma:
+    - uniform
+    - - 0
+      - 5
+    L:
+    - uniform
+    - - 0
+      - 3
+  UA:
+    epsilon:
+    - uniform
+    - - 0
+      - 400
+    sigma:
+    - uniform
+    - - 0
+      - 5
+initial_parameters:
+  UA:
+    - 80
+    - 0.31
+  AUA:
+    - 80
+    - 0.31
+    - 0.1
+  AUA+Q:
+    - 43
+    - 0.31
+    - 0.09
+    - 0.05
+properties: 'All'
+mcmc_steps: 1000000
+
+rjmc_fit_steps: 500000
+rjmc_steps: 4000000
+swap_freq: 0.5
+
+mbar_fit_steps: 500000
+mbar_steps: 2000000
+trange:
+- 0.55
+- 0.95
+benchmark_number_data_points: 20
+benchmark_trange:
+- 0.55
+- 0.95
+number_samples: 1000
+prior_number_data_points: 8
+prior_trange:
+- 0.55
+- 0.95
+prior_properties: 'All'
